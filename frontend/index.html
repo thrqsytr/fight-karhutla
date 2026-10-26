@@ -12,17 +12,17 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-mark" aria-hidden="true"><span data-icon="flame"></span></span>
       <div>
         <h1>Fight Karhutla</h1>
         <p class="tagline">Verified wildfire triage for Indonesia</p>
       </div>
     </div>
+    <div class="kpis" id="kpis" aria-label="Headline numbers"></div>
     <div class="topbar-right">
-      <span id="sim-badge" class="badge badge-sim" hidden>SIMULASI</span>
-      <span class="badge badge-human">
-        Human decides
-        <span class="info" tabindex="0" aria-label="About decisions">i
+      <span id="mode-pill" class="pill"></span>
+      <span class="pill pill-human"><span data-icon="shield" class="icon-sm"></span>Human decides
+        <span class="info tip-right" tabindex="0" aria-label="About decisions"><span data-icon="info" class="icon-sm"></span>
           <span class="tip" role="tooltip">Every incident ends as needs_human. Nothing is sent to anyone automatically. A verifier approves or rejects.</span>
         </span>
       </span>
@@ -32,31 +32,41 @@
   <main class="layout">
     <aside class="panel" id="panel">
       <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
-      <section id="list-view">
+      <section id="list-view" style="display:grid;gap:10px">
         <div class="panel-head">
-          <h2>Incidents <span class="count" id="incident-count"></span></h2>
-          <span class="info" tabindex="0" aria-label="About incidents">i
-            <span class="tip" role="tooltip">Hotspots within 2 km and 24 hours are grouped into one incident. A hotspot is a thermal anomaly, not a confirmed fire.</span>
-          </span>
+          <h2>Incidents <span class="count num" id="incident-count"></span>
+            <span class="info" tabindex="0" aria-label="About incidents"><span data-icon="info" class="icon-sm"></span>
+              <span class="tip" role="tooltip">Hotspots within 2 km and 24 hours are grouped into one incident. A hotspot is a thermal anomaly, not a confirmed fire.</span>
+            </span>
+          </h2>
+          <div class="segmented" id="sort" role="group" aria-label="Sort incidents">
+            <button data-sort="heat" aria-pressed="true">Heat</button>
+            <button data-sort="size" aria-pressed="false">Size</button>
+            <button data-sort="recent" aria-pressed="false">Recent</button>
+          </div>
+        </div>
+        <label class="search"><span data-icon="search"></span><input id="search" type="search" placeholder="Search incident ID" autocomplete="off"></label>
+        <div class="chips" id="filters" role="group" aria-label="Filter incidents">
+          <button class="chip-btn" data-filter="all" aria-pressed="true">All</button>
+          <button class="chip-btn" data-filter="multi" aria-pressed="false"><span data-icon="dots" class="icon-sm"></span>3+ hotspots</button>
+          <button class="chip-btn" data-filter="high" aria-pressed="false"><span data-icon="target" class="icon-sm"></span>High confidence</button>
+          <button class="chip-btn" data-filter="recent" aria-pressed="false"><span class="pulse" style="color:var(--ok)"></span>Last 6 h</button>
         </div>
         <ul class="incident-list" id="incident-list"></ul>
       </section>
-      <section id="detail-view" hidden></section>
+      <section id="detail-view" hidden style="display:grid;gap:10px"></section>
     </aside>
     <div class="map-wrap">
       <div id="map" class="map"></div>
-      <div class="map-note" id="map-note" hidden></div>
+      <div class="map-note card" id="map-note" hidden></div>
+      <div class="legend card section" id="legend" data-open="true"></div>
     </div>
   </main>
 
   <footer class="footer">
-    <p class="disclaimer">Fight Karhutla is not an official emergency channel. In an emergency, contact your local BPBD or fire service.</p>
+    <p class="disclaimer"><span data-icon="alert" class="icon-sm"></span>Fight Karhutla is not an official emergency channel. In an emergency, contact your local BPBD or fire service.</p>
     <p class="attrib" id="attrib"></p>
   </footer>
-
-  <template id="tpl-skeleton-item">
-    <li class="incident skeleton"><span class="sk sk-title"></span><span class="sk sk-line"></span></li>
-  </template>
 
   <script type="module" src="/app.js"></script>
 </body>
