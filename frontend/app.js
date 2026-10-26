@@ -229,15 +229,29 @@ function setMapData() {
   animatePulse();
 }
 
+// One soft ring per cycle: fade in, ease out while growing, fade to zero, then rest.
+// The ring is invisible when the cycle restarts, so there is no jump back to the start size.
+const PULSE_MS = 2600;
+const PULSE_ACTIVE = 0.72;
+const easeOutCubic = (x) => 1 - (1 - x) ** 3;
+function pulseFrame(now) {
+  const t = (now % PULSE_MS) / PULSE_MS;
+  if (t >= PULSE_ACTIVE) return [3, 0];
+  const p = t / PULSE_ACTIVE;
+  const e = easeOutCubic(p);
+  const fadeIn = Math.min(1, p / 0.12);
+  return [3 + e * 7, 0.5 * fadeIn * (1 - e) ** 1.4];
+}
+
 function animatePulse() {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   let last = 0;
   const tick = (now) => {
     if (now - last > 40 && map.getLayer("hotspots-pulse")) {
       last = now;
-      const t = (now % 1800) / 1800;
-      map.setPaintProperty("hotspots-pulse", "circle-radius", 4 + t * 14);
-      map.setPaintProperty("hotspots-pulse", "circle-opacity", 0.35 * (1 - t));
+      const [r, o] = pulseFrame(now);
+      map.setPaintProperty("hotspots-pulse", "circle-radius", r);
+      map.setPaintProperty("hotspots-pulse", "circle-opacity", o);
     }
     requestAnimationFrame(tick);
   };
