@@ -21,7 +21,10 @@ A satellite hotspot is a thermal anomaly, not a confirmed fire. A hotspot alone 
 
 - Citizen photos and voice are visible to verifiers only.
 - The public map rounds coordinates to three decimals (about 100 m).
-- Citizen reports become public only after a verifier approves them.
+- An incident built only from citizen reports appears on the public map only after a verifier approves it. When a report joins a satellite hotspot incident, that incident stays public, but the citizen text, photos, and voice inside it stay private.
 - Phone numbers and verifier identities are stored as hashes.
-- Photo EXIF is stripped on intake.
+- Photo EXIF is stripped on intake: every photo is decoded and re-encoded as JPEG without metadata, so GPS and device tags never reach storage. A test proves the output carries no EXIF.
+- Voice notes are stored as recorded. Browser recordings carry no location, but the server does not rewrite audio files.
+- The report form needs no account and no phone number. A simple per-client limit (6 reports per hour) is kept in memory with a hashed client address; the raw IP is not stored.
+- Citizen text, photos, and voice can be deleted per incident with `DELETE /api/incidents/{id}/citizen-data` (verifier only).
 - Retention: report data is deleted after the demo period ends (planned date to be set before submission).

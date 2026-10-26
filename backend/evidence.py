@@ -12,6 +12,7 @@ from datetime import datetime
 
 from . import db
 from .config import Settings
+from .geo import haversine_m
 from .sources import osm, weather
 from .sources.http import SourceError, _cache_path
 
@@ -22,6 +23,14 @@ OSM_BUDGET_PER_RUN = 12  # tiles, not incidents: one tile serves every incident 
 # Satellite clusters below both thresholds are not enriched automatically; a verifier can still ask.
 MIN_HOTSPOTS = 3
 MIN_MAX_FRP = 20.0
+# Fixtures were captured around one East Kalimantan cluster. Using them elsewhere would invent facts,
+# so outside this radius a fixture-mode source is recorded as unknown instead.
+FIXTURE_CENTER = (-0.02, 116.45)
+FIXTURE_RADIUS_M = 15_000
+
+
+def _outside_fixture(settings: Settings, lat: float, lon: float) -> bool:
+    return settings.fixture_mode and haversine_m(lat, lon, *FIXTURE_CENTER) > FIXTURE_RADIUS_M
 
 
 def hotspot_evidence(conn, incident_id: str) -> tuple[str, dict] | None:
@@ -45,7 +54,9 @@ def hotspot_evidence(conn, incident_id: str) -> tuple[str, dict] | None:
         "confidence_counts": conf,
         "satellites": sorted({r["satellite"] for r in rows}),
     }
-    summary = f"{len(rows)} FIRMS hotspot(s), max FRP {payload['max_frp_mw']} MW, confidence {conf}"
+    names = {"l": "low", "n": "nominal", "h": "high"}
+    conf_text = ", ".join(f"{n} {names.get(c, c)}" for c, n in conf.items())
+    summary = f"{len(rows)} FIRMS hotspot(s), max FRP {payload['max_frp_mw']} MW, confidence: {conf_text}"
     return summary, payload
 
 
@@ -126,7 +137,9 @@ def enrich_incident(conn, settings: Settings, incident_id: str, *, osm_tiles_lef
             db.add_evidence(conn, incident_id, "hotspot", "NASA FIRMS", hs[0], hs[1])
             status["hotspot"] = "ok"
 
-    if "weather" not in have:
+    if "weather" not in have and _outside_fixture(settings, inc["lat"], inc["lon"]):
+        status["weather"] = "failed: outside fixture coverage (fixture mode)"
+    elif "weather" not in have:
         try:
             w = weather.get_weather(
                 round(inc["lat"], 2), round(inc["lon"], 2), at=None if settings.fixture_mode else at,
@@ -139,7 +152,9 @@ def enrich_incident(conn, settings: Settings, incident_id: str, *, osm_tiles_lef
             log.warning("weather failed for %s: %s", incident_id, exc)
             status["weather"] = f"failed: {exc}"
 
-    if "osm" not in have:
+    if "osm" not in have and _outside_fixture(settings, inc["lat"], inc["lon"]):
+        status["osm"] = "failed: outside fixture coverage (fixture mode)"
+    elif "osm" not in have:
         tile = None if settings.fixture_mode else osm.tile_of(inc["lat"], inc["lon"])
         # Only a real Overpass call spends the budget: fixtures and cached tiles are free.
         cached = tile is None or _tile_cached(settings, tile)

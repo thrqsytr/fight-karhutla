@@ -11,8 +11,13 @@ def _setup(settings):
 def test_enrichment_adds_hotspot_weather_osm_for_priority_incidents(settings):
     _setup(settings)
     r = evidence.run_enrichment(settings)
-    assert r["complete"] and not r["partial"]
+    assert r["complete"]
     with db.session(settings.db_path) as conn:
+        # Incidents outside the fixture area get unknown weather and OSM, never borrowed values.
+        for pid in r["partial"]:
+            st = conn.execute("SELECT enrichment_json FROM incidents WHERE id=?", (pid,)).fetchone()[0]
+            assert "outside fixture coverage" in st
+            assert [e["type"] for e in db.list_evidence(conn, pid)] == ["hotspot"]
         inc_id = r["complete"][0]
         ev = db.list_evidence(conn, inc_id)
         types = [e["type"] for e in ev]
@@ -43,9 +48,12 @@ def test_enrichment_is_idempotent(settings):
     _setup(settings)
     first = evidence.run_enrichment(settings)
     second = evidence.run_enrichment(settings)
-    assert second["complete"] == [] and second["partial"] == []
+    assert second["complete"] == []
+    assert set(second["partial"]) == set(first["partial"])  # unknown sources are retried, not dropped
     with db.session(settings.db_path) as conn:
         assert len(db.list_evidence(conn, first["complete"][0])) == 3
+        for pid in first["partial"]:
+            assert len(db.list_evidence(conn, pid)) == 1  # retries never duplicate evidence
 
 
 def test_failed_source_is_recorded_and_others_still_stored(settings, monkeypatch):

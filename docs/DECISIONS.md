@@ -20,6 +20,18 @@ Every deviation from the execution spec is recorded here with its reason.
 | 12 | Map severity comes from measured FIRMS values: color follows fire radiative power (MW), opacity follows detection confidence. | No model-made severity score, consistent with spec principle 3. |
 | 13 | A drone survey simulator is added (Blender 3D flyover, Muse Glimmer frame filter on the drone, SAM 3.1 on the server), planned for Days 5 and 6. Google Maps, the peat layer, and Muse Wonder are cut to make room. | Lets the agent close its own uncertainty by requesting a survey. Blender renders give exact ground-truth masks for measuring area error. All drone output is labelled SIMULASI. |
 
+## 2026-10-27 (Day 2)
+
+| # | Decision | Reason |
+| --- | --- | --- |
+| 14 | OSM is fetched per 0.2 degree tile (padded 0.1 degree, 0.3 for fire stations), cached 7 days, with at most 12 uncached tiles per run and three Overpass endpoints tried in order. | On 2026-10-27 all four public Overpass endpoints tried returned 502, 504, or timed out, and overpass-api.de states it is meant for human-operated use. One tile serves every incident inside it. |
+| 15 | Automatic enrichment covers citizen reports and clusters with 3+ hotspots or max FRP 20 MW and above; a verifier can collect any incident on request. | Open-Meteo allows under 10,000 calls a day and Overpass is shared. Most clusters are single hotspots. |
+| 16 | A failed or deferred source is stored as `failed: reason` and shown in the UI as UNKNOWN, then retried; retries never duplicate evidence. | Spec principle 5 and global rule 18. |
+| 17 | In fixture mode, weather and OSM are recorded as unknown outside 15 km of the fixture point. | Fixture values from one place must not be presented as facts about another. |
+| 18 | Evidence type `report` is added for the citizen's typed description. | The spec lists seven types and none fits free text. |
+| 19 | `/lapor` is in Indonesian; the dashboard stays in English. | Reporters are Indonesian residents; dashboard readers include global judges. |
+| 20 | Verifier endpoint `DELETE /api/incidents/{id}/citizen-data` removes citizen text, photos, voice, and files. | Needed for the retention promise in SAFETY.md and to remove test reports from production. |
+
 ## Day 1 spike results
 
 | Spike | Result | Decision |

@@ -11,6 +11,13 @@ Each endpoint below was verified with a live call on 2026-10-26 (UTC). Saved res
 
 FIRMS NRT sources available on 2026-10-26: `VIIRS_SNPP_NRT`, `VIIRS_NOAA20_NRT`, `VIIRS_NOAA21_NRT`, `MODIS_NRT`, `LANDSAT_NRT`. Archive (`*_SP`) covers earlier dates for evaluation.
 
+## Usage limits checked on 2026-10-27
+
+- Open-Meteo terms: fewer than 10,000 API calls per day, 5,000 per hour, and 600 per minute for non-commercial use.
+- Overpass (overpass-api.de): replied 502 "at capacity" and says the public endpoint is meant for browser-based, human-operated tools; automated or high-volume use should run its own instance. The OSM wiki asks for under 10,000 queries and under 1 GB per day. maps.mail.ru returned 504; overpass.private.coffee and overpass.kumi.systems timed out at 30 s.
+- Our use: one query per 0.2 degree tile, cached 7 days, at most 12 uncached tiles per scheduler run (every 30 minutes).
+- If Overpass stays unreliable, the fallback is a one-time Geofabrik Indonesia extract processed locally. Not built.
+
 ## Behavior shared by all clients
 
 - 10 second timeout per request.

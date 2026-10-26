@@ -128,9 +128,12 @@ def test_report_api_end_to_end_and_media_is_verifier_only(settings):
         got = c.get(f"/api/media/{media[0]}", headers=AUTH)
         assert got.status_code == 200 and got.headers["content-type"] == "image/jpeg"
         assert c.get("/api/media/..%2F..%2Fkarhutla.sqlite3", headers=AUTH).status_code == 404
-        # Enrichment ran in the background after the response.
-        types = [e["type"] for e in c.get(f"/api/incidents/{inc_id}", headers=AUTH).json()["evidence"]]
-        assert "weather" in types and "osm" in types
+        # Enrichment ran in the background. This point is outside the fixture area, so fixture data
+        # must not be passed off as local facts: both sources are recorded as unknown instead.
+        after = c.get(f"/api/incidents/{inc_id}", headers=AUTH).json()
+        assert {e["type"] for e in after["evidence"]} == {"report", "image", "voice"}
+        assert after["enrichment"]["weather"].startswith("failed: outside fixture coverage")
+        assert after["enrichment"]["osm"].startswith("failed: outside fixture coverage")
 
 
 def test_report_api_rejects_bad_input_with_readable_message(settings):
@@ -146,3 +149,38 @@ def test_rate_limit_per_client(settings):
     assert reports.rate_limited("1.2.3.4", now=1010.0)
     assert not reports.rate_limited("1.2.3.4", now=1000.0 + reports.RATE_WINDOW_S + 20)
     assert not reports.rate_limited("5.6.7.8", now=1010.0)
+
+
+def test_delete_citizen_data_removes_rows_and_files(settings):
+    from backend.main import app
+
+    with TestClient(app) as c:
+        r = c.post("/api/reports", data={"lat": "-3.0", "lon": "104.7", "location_source": "gps", "text": "Asap"},
+                   files=[("photos", ("p.jpg", jpeg_with_exif(), "image/jpeg"))]).json()
+        inc_id = r["incident_id"]
+        detail = c.get(f"/api/incidents/{inc_id}", headers=AUTH).json()
+        media_id = next(e["payload"]["media_id"] for e in detail["evidence"] if e["type"] == "image")
+        assert reports.media_path(settings.data_dir, media_id) is not None
+        assert c.delete(f"/api/incidents/{inc_id}/citizen-data").status_code == 401
+        d = c.delete(f"/api/incidents/{inc_id}/citizen-data", headers=AUTH).json()
+        assert d == {"incident_id": inc_id, "evidence_removed": 2, "files_removed": 1, "incident_removed": True}
+        assert reports.media_path(settings.data_dir, media_id) is None
+        assert c.get(f"/api/incidents/{inc_id}", headers=AUTH).status_code == 404
+
+
+def test_delete_citizen_data_keeps_satellite_evidence_on_merged_incident(settings):
+    from backend.main import app
+
+    with TestClient(app) as c:
+        target = c.get("/api/incidents", headers=AUTH).json()["items"][0]
+        with db.session(settings.db_path) as conn:
+            now = datetime.fromisoformat(target["last_seen"]) + timedelta(hours=1)
+            reports.submit(conn, settings.data_dir, lat=target["lat"], lon=target["lon"], accuracy_m=10,
+                           location_source="gps", text="asap", photos=[], audio=None, now=now)
+        before = {e["type"] for e in c.get(f"/api/incidents/{target['id']}", headers=AUTH).json()["evidence"]}
+        assert "report" in before
+        d = c.delete(f"/api/incidents/{target['id']}/citizen-data", headers=AUTH).json()
+        assert d["incident_removed"] is False and d["evidence_removed"] == 1
+        after = c.get(f"/api/incidents/{target['id']}", headers=AUTH).json()
+        assert after["trigger"] == "hotspot_cluster" and "report" not in {e["type"] for e in after["evidence"]}
+        assert after["hotspot_count"] == target["hotspot_count"]

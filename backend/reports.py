@@ -6,6 +6,7 @@ A report within 2 km and 24 h of an existing incident joins it; otherwise it ope
 
 import hashlib
 import io
+import json
 import re
 import time
 import uuid
@@ -106,6 +107,40 @@ def _find_incident_to_join(conn, lat: float, lon: float, now: datetime) -> str |
     near = [(haversine_m(lat, lon, r["lat"], r["lon"]), r["id"]) for r in rows]
     near = [n for n in near if n[0] <= JOIN_RADIUS_M]
     return min(near)[1] if near else None
+
+
+CITIZEN_TYPES = ("report", "image", "voice")
+
+
+def delete_citizen_data(conn, data_dir: Path, incident_id: str) -> dict:
+    """Remove a report's text, photos, and voice notes, including the files.
+
+    An incident that exists only because of citizen reports is removed entirely. An incident with
+    satellite hotspots keeps its hotspot, weather, and OSM evidence and goes back to hotspot_cluster.
+    """
+    inc = conn.execute("SELECT id, trigger, hotspot_count FROM incidents WHERE id=?", (incident_id,)).fetchone()
+    if inc is None:
+        raise KeyError(incident_id)
+    rows = conn.execute(
+        f"SELECT id, payload_json FROM evidence WHERE incident_id=? AND type IN ({','.join('?' * len(CITIZEN_TYPES))})",
+        (incident_id, *CITIZEN_TYPES),
+    ).fetchall()
+    files = 0
+    for r in rows:
+        media_id = json.loads(r["payload_json"]).get("media_id")
+        p = media_path(data_dir, media_id) if media_id else None
+        if p is not None:
+            p.unlink()
+            files += 1
+    conn.execute(f"DELETE FROM evidence WHERE incident_id=? AND type IN ({','.join('?' * len(CITIZEN_TYPES))})", (incident_id, *CITIZEN_TYPES))
+    removed_incident = inc["hotspot_count"] == 0
+    if removed_incident:
+        conn.execute("DELETE FROM evidence WHERE incident_id=?", (incident_id,))
+        conn.execute("DELETE FROM verdicts WHERE incident_id=?", (incident_id,))
+        conn.execute("DELETE FROM incidents WHERE id=?", (incident_id,))
+    else:
+        conn.execute("UPDATE incidents SET trigger='hotspot_cluster', reporter_count=0, updated_at=? WHERE id=?", (db.utcnow(), incident_id))
+    return {"incident_id": incident_id, "evidence_removed": len(rows), "files_removed": files, "incident_removed": removed_incident}
 
 
 def submit(

@@ -321,6 +321,24 @@ async def post_report(
     return result
 
 
+@app.delete("/api/incidents/{incident_id}/citizen-data", dependencies=[Depends(require_verifier)])
+def delete_citizen_data(incident_id: str, settings: Settings = Depends(get_settings)) -> dict:
+    """Retention and cleanup: remove citizen text, photos, and voice for one incident."""
+    with db.session(settings.db_path) as conn:
+        try:
+            result = reports.delete_citizen_data(conn, settings.data_dir, incident_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="incident not found")
+    # Read back: no citizen evidence may remain.
+    with db.session(settings.db_path) as conn:
+        left = conn.execute(
+            "SELECT COUNT(*) FROM evidence WHERE incident_id=? AND type IN ('report','image','voice')", (incident_id,)
+        ).fetchone()[0]
+    if left:
+        raise HTTPException(status_code=500, detail=f"{left} citizen evidence rows remain")
+    return result
+
+
 @app.get("/api/media/{media_id}", dependencies=[Depends(require_verifier)])
 def get_media(media_id: str, settings: Settings = Depends(get_settings)) -> FileResponse:
     """Citizen photos and voice notes are visible to verifiers only."""
