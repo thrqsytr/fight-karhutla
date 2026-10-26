@@ -53,7 +53,7 @@ def get_weather(
             "latitude": f"{lat:.3f}",
             "longitude": f"{lon:.3f}",
             "hourly": HOURLY,
-            "past_days": 1,
+            "past_days": 3,  # incidents look back 48 h; rain still sums the 24 h before the incident
             "forecast_days": 1,
             "wind_speed_unit": "ms",
             "timezone": "UTC",

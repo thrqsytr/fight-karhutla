@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS incidents (
 CREATE TABLE IF NOT EXISTS evidence (
     id TEXT PRIMARY KEY,
     incident_id TEXT NOT NULL REFERENCES incidents(id),
-    type TEXT NOT NULL,                -- hotspot|weather|image|voice|satellite|osm|peat
+    type TEXT NOT NULL,                -- hotspot|weather|image|voice|report|satellite|osm|peat
     source TEXT NOT NULL,
     retrieved_at TEXT NOT NULL,
     summary TEXT NOT NULL,
@@ -78,9 +78,24 @@ def connect(path: Path) -> sqlite3.Connection:
     return conn
 
 
+# Columns added after the first deploy. SQLite has no ADD COLUMN IF NOT EXISTS, so check first.
+MIGRATIONS = {
+    "incidents": {
+        "enriched_at": "TEXT",
+        "enrichment_json": "TEXT",  # per source: ok, or failed with the reason
+        "reporter_count": "INTEGER NOT NULL DEFAULT 0",
+    },
+}
+
+
 def init(path: Path) -> None:
     with connect(path) as conn:
         conn.executescript(SCHEMA)
+        for table, cols in MIGRATIONS.items():
+            have = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+            for name, ddl in cols.items():
+                if name not in have:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
 
 
 @contextmanager
@@ -134,7 +149,7 @@ def list_evidence(conn: sqlite3.Connection, incident_id: str) -> list[dict]:
 def incident_row_to_dict(row: sqlite3.Row) -> dict:
     d = dict(row)
     d["simulation"] = bool(d["simulation"])
-    for k in ("triage_json", "gate_json"):
+    for k in ("triage_json", "gate_json", "enrichment_json"):
         v = d.pop(k)
         d[k.removesuffix("_json")] = json.loads(v) if v else None
     return d

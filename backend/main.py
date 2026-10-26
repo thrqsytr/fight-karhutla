@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import db, ingest
+from . import db, evidence, ingest
 from .config import Settings, get_settings
 from .sources import firms, osm, weather
 
@@ -45,6 +45,10 @@ def _start_scheduler(settings: Settings) -> BackgroundScheduler | None:
             ingest.run_once(settings)
         except Exception:
             log.exception("scheduled FIRMS ingest failed")
+        try:
+            evidence.run_enrichment(settings)
+        except Exception:
+            log.exception("scheduled evidence enrichment failed")
 
     sched.add_job(job, "interval", minutes=settings.firms_poll_minutes, id="firms", next_run_time=datetime.now(timezone.utc))
     sched.start()
@@ -62,6 +66,7 @@ async def lifespan(app: FastAPI):
         if empty:
             log.info("fixture mode with empty database: loading fixture hotspots")
             ingest.run_once(settings)
+            evidence.run_enrichment(settings)
     sched = _start_scheduler(settings)
     yield
     if sched:
@@ -251,6 +256,17 @@ def stats(request: Request, settings: Settings = Depends(get_settings)) -> Respo
                 (since,),
             ).fetchone()[0]
     return etag_json(request, out, private=False)
+
+
+@app.post("/api/incidents/{incident_id}/enrich", dependencies=[Depends(require_verifier)])
+def enrich(incident_id: str, settings: Settings = Depends(get_settings)) -> dict:
+    """Collect missing evidence for one incident now, regardless of the automatic priority thresholds."""
+    with db.session(settings.db_path) as conn:
+        try:
+            status = evidence.enrich_incident(conn, settings, incident_id, osm_tiles_left=[1])
+        except KeyError:
+            raise HTTPException(status_code=404, detail="incident not found")
+    return {"incident_id": incident_id, "sources": status}
 
 
 @app.post("/api/ingest/run", dependencies=[Depends(require_verifier)])

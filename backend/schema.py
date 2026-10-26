@@ -5,7 +5,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 Status = Literal["likely_fire", "possible_fire", "unlikely", "needs_more_info"]
-EvidenceType = Literal["hotspot", "weather", "image", "voice", "satellite", "osm", "peat"]
+# "report" is the citizen's typed description; the spec lists the other seven.
+EvidenceType = Literal["hotspot", "weather", "image", "voice", "report", "satellite", "osm", "peat"]
 
 # Ordered from strongest to weakest; "downgrade one level" moves one step right.
 STATUS_LADDER: tuple[Status, ...] = ("likely_fire", "possible_fire", "needs_more_info")

@@ -31,6 +31,15 @@ def test_osm_fixture_nearest_assets(settings):
     near = a["nearest"]
     assert near["settlement"]["name"]
     assert near["road"]["name"] == "Jalan Poros Tabang"
-    assert near["water"]["distance_m"] >= 0
-    # No fire station within 30 km in this fixture: reported as None, not omitted.
+    assert near["river"]["name"] == "Sungai Belayan"
+    # Nothing found is reported as None, not omitted: the fixture has no lake and no fire station.
+    assert near["lake"] is None
     assert "fire_station" in near and near["fire_station"] is None
+
+
+def test_osm_tile_query_covers_padding():
+    tile = osm.tile_of(-0.02, 116.45)
+    assert tile == (-1, 582)
+    q = osm.build_tile_query(tile)
+    assert "(-0.3000,116.3000,0.1000,116.7000)" in q  # tile -0.2..0 / 116.4..116.6 padded by 0.1
+    assert 'natural"="water"' in q and "out geom(" in q
