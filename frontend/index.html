@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fight Karhutla: verified wildfire triage for Indonesia</title>
+  <meta name="description" content="Satellite hotspots and citizen reports turned into evidence-backed wildfire incidents for human verifiers.">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/config.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <h1>Fight Karhutla</h1>
+        <p class="tagline">Verified wildfire triage for Indonesia</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="sim-badge" class="badge badge-sim" hidden>SIMULASI</span>
+      <span class="badge badge-human">
+        Human decides
+        <span class="info" tabindex="0" aria-label="About decisions">i
+          <span class="tip" role="tooltip">Every incident ends as needs_human. Nothing is sent to anyone automatically. A verifier approves or rejects.</span>
+        </span>
+      </span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel" id="panel">
+      <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+      <section id="list-view">
+        <div class="panel-head">
+          <h2>Incidents <span class="count" id="incident-count"></span></h2>
+          <span class="info" tabindex="0" aria-label="About incidents">i
+            <span class="tip" role="tooltip">Hotspots within 2 km and 24 hours are grouped into one incident. A hotspot is a thermal anomaly, not a confirmed fire.</span>
+          </span>
+        </div>
+        <ul class="incident-list" id="incident-list"></ul>
+      </section>
+      <section id="detail-view" hidden></section>
+    </aside>
+    <div class="map-wrap">
+      <div id="map" class="map"></div>
+      <div class="map-note" id="map-note" hidden></div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p class="disclaimer">Fight Karhutla is not an official emergency channel. In an emergency, contact your local BPBD or fire service.</p>
+    <p class="attrib" id="attrib"></p>
+  </footer>
+
+  <template id="tpl-skeleton-item">
+    <li class="incident skeleton"><span class="sk sk-title"></span><span class="sk sk-line"></span></li>
+  </template>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
