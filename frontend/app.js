@@ -1,4 +1,6 @@
-import * as maplibregl from "https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs";
+// MapLibre (about 300 KB) loads in parallel with the data instead of blocking the first API request.
+const MAPLIBRE_URL = "https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs";
+let maplibregl;
 
 const CFG = window.KARHUTLA_CONFIG || { mapProvider: "maplibre", attributions: [] };
 const TOKEN_KEY = "karhutla.verifierToken";
@@ -143,7 +145,8 @@ function renderKpis() {
 /* Map */
 let map;
 let popup;
-function initMap() {
+async function initMap() {
+  maplibregl = await import(MAPLIBRE_URL);
   if (CFG.mapProvider === "google") {
     const note = $("#map-note");
     note.textContent = "Google Maps adapter is not built; showing MapLibre.";
@@ -212,7 +215,7 @@ function setMapData() {
     },
   });
   map.addLayer({
-    id: "incident-selected", type: "circle", source: "incidents", filter: ["==", ["get", "id"], ""],
+    id: "incident-selected", type: "circle", source: "incidents", filter: ["==", ["get", "id"], state.selected || ""],
     paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 10, 11, 46], "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#0064e0", "circle-stroke-width": 1.5 },
   });
 
@@ -407,7 +410,7 @@ async function openIncident(id) {
   $("#list-view").hidden = true;
   $("#detail-view").hidden = false;
   renderDetailSkeleton();
-  if (map.getLayer("incident-selected")) map.setFilter("incident-selected", ["==", ["get", "id"], id]);
+  if (map?.getLayer("incident-selected")) map.setFilter("incident-selected", ["==", ["get", "id"], id]);
   let inc;
   try {
     inc = await api(`/api/incidents/${id}`);
@@ -415,7 +418,8 @@ async function openIncident(id) {
     $("#detail-view").replaceChildren(el("p", { class: "empty" }, `Could not load ${id}: ${e.message}`));
     return;
   }
-  map.flyTo({ center: [inc.lon, inc.lat], zoom: Math.max(map.getZoom(), 10.5), speed: 1.4 });
+  // The list can render before the map exists; the map then opens on the default view.
+  map?.flyTo({ center: [inc.lon, inc.lat], zoom: Math.max(map.getZoom(), 10.5), speed: 1.4 });
   const st = STATUS[inc.status] || STATUS.pending_triage;
   const frpPct = inc.max_frp == null ? null : Math.min(100, (inc.max_frp / HEAT_MAX) * 100);
   const recent = isRecent(inc.last_seen);
@@ -479,26 +483,35 @@ async function main() {
   const pill = $("#mode-pill");
   if (CFG.fixtureMode) { pill.className = "pill pill-sim"; pill.textContent = "SIMULASI"; }
   else { pill.className = "pill pill-live"; pill.replaceChildren(el("span", { class: "pulse" }), "Live FIRMS"); }
+  // Start every request at once. The list and KPIs render as soon as their data lands;
+  // the map draws its layers whenever both the map and the data are ready.
+  const statsP = api("/api/stats").catch(() => null);
+  const incP = api("/api/incidents").catch((e) => ({ items: [], error: e }));
+  const hsP = api("/api/hotspots").catch(() => ({ items: [] }));
+  const mapP = initMap();
+
   renderKpis();
   renderLegend();
   bindListControls();
   crumbs([{ label: "Incidents" }]);
   $("#incident-list").replaceChildren(...Array.from({ length: 7 }, skeletonCard));
 
-  const [, inc, hs, stats] = await Promise.all([
-    initMap(),
-    api("/api/incidents").catch((e) => ({ items: [], error: e })),
-    api("/api/hotspots").catch(() => ({ items: [] })),
-    api("/api/stats").catch(() => null),
-  ]);
+  const stats = await statsP;
   state.stats = stats;
   if (stats?.newest_acquisition) state.recentSince = new Date(new Date(stats.newest_acquisition).getTime() - RECENT_HOURS * 3600e3).toISOString().replace(".000Z", "+00:00");
-  state.incidents = inc.items;
-  state.hotspots = hs.items;
   renderKpis();
+  performance.mark("kpis-rendered");
+
+  const inc = await incP;
+  state.incidents = inc.items;
   if (inc.error) $("#incident-list").replaceChildren(el("li", { class: "empty" }, `Could not load incidents: ${inc.error.message}`));
-  else renderList();
+  else if (!state.selected) renderList();
+  performance.mark("list-rendered");
+
+  const [hs] = await Promise.all([hsP, mapP]);
+  state.hotspots = hs.items;
   setMapData();
+  performance.mark("map-data-rendered");
 }
 
 main();

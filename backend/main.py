@@ -7,8 +7,9 @@ from contextlib import asynccontextmanager
 from typing import Literal
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -68,6 +69,21 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Fight Karhutla", version="0.1.0", lifespan=lifespan)
+# The incident and hotspot lists are about 1.3 MB of JSON; gzip brings them to about 0.1 MB.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
+
+
+def etag_json(request: Request, payload: dict, *, private: bool) -> Response:
+    """JSON with an ETag. A refresh with unchanged data costs a 304 instead of the full body.
+
+    no-cache means the browser always revalidates, so data is never shown stale.
+    """
+    body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode()
+    tag = '"' + hashlib.sha256(body).hexdigest()[:24] + '"'
+    headers = {"ETag": tag, "Cache-Control": ("private" if private else "public") + ", no-cache", "Vary": "Authorization"}
+    if tag in request.headers.get("if-none-match", ""):
+        return Response(status_code=304, headers=headers)
+    return Response(content=body, media_type="application/json", headers=headers)
 
 
 def is_verifier(authorization: str | None = Header(default=None), settings: Settings = Depends(get_settings)) -> bool:
@@ -125,18 +141,31 @@ def config_js(settings: Settings = Depends(get_settings)) -> PlainTextResponse:
     return PlainTextResponse(f"window.KARHUTLA_CONFIG = {json.dumps(cfg)};\n", media_type="application/javascript")
 
 
+# Latest verdict per incident, so public visibility is decided in one query instead of one per row.
+LATEST_VERDICT_SUBQUERY = """
+    SELECT v.incident_id, v.decision FROM verdicts v
+    WHERE v.id = (SELECT MAX(id) FROM verdicts WHERE incident_id = v.incident_id)
+"""
+
+
 @app.get("/api/incidents")
-def list_incidents(verifier: bool = Depends(is_verifier), settings: Settings = Depends(get_settings)) -> dict:
+def list_incidents(request: Request, verifier: bool = Depends(is_verifier), settings: Settings = Depends(get_settings)) -> Response:
+    # Must match _visible_to_public: satellite clusters are public, citizen reports only after approval.
+    public_filter = "" if verifier else "WHERE i.trigger = 'hotspot_cluster' OR lv.decision = 'approve'"
     with db.session(settings.db_path) as conn:
         rows = conn.execute(
-            f"SELECT i.*, {SEVERITY_COLUMNS} FROM incidents i LEFT JOIN ({SEVERITY_SUBQUERY}) s ON s.incident_id = i.id ORDER BY i.last_seen DESC"
+            f"""SELECT i.*, {SEVERITY_COLUMNS} FROM incidents i
+                LEFT JOIN ({SEVERITY_SUBQUERY}) s ON s.incident_id = i.id
+                LEFT JOIN ({LATEST_VERDICT_SUBQUERY}) lv ON lv.incident_id = i.id
+                {public_filter}
+                ORDER BY i.last_seen DESC, i.id"""
         ).fetchall()
-        items = [db.incident_row_to_dict(r) for r in rows]
-        if not verifier:
-            items = [_public_view(i) for i in items if _visible_to_public(conn, i)]
+    items = [db.incident_row_to_dict(r) for r in rows]
+    if not verifier:
+        items = [_public_view(i) for i in items]
     for i in items:
         i.pop("triage", None)
-    return {"count": len(items), "items": items}
+    return etag_json(request, {"count": len(items), "items": items}, private=verifier)
 
 
 @app.get("/api/incidents/{incident_id}")
@@ -192,17 +221,17 @@ def post_verdict(incident_id: str, body: VerdictIn, settings: Settings = Depends
 
 
 @app.get("/api/hotspots")
-def list_hotspots(settings: Settings = Depends(get_settings)) -> dict:
+def list_hotspots(request: Request, settings: Settings = Depends(get_settings)) -> Response:
     with db.session(settings.db_path) as conn:
         rows = conn.execute(
             "SELECT id, lat, lon, acquired_at, satellite, confidence, frp, incident_id FROM hotspots ORDER BY acquired_at DESC LIMIT 5000"
         ).fetchall()
     items = [dict(r) for r in rows]
-    return {"count": len(items), "items": items, "attribution": firms.ATTRIBUTION}
+    return etag_json(request, {"count": len(items), "items": items, "attribution": firms.ATTRIBUTION}, private=False)
 
 
 @app.get("/api/stats")
-def stats(settings: Settings = Depends(get_settings)) -> dict:
+def stats(request: Request, settings: Settings = Depends(get_settings)) -> Response:
     """Headline numbers. Windows are anchored on the newest acquisition so fixture data stays meaningful."""
     with db.session(settings.db_path) as conn:
         newest = conn.execute("SELECT MAX(acquired_at) FROM hotspots").fetchone()[0]
@@ -221,7 +250,7 @@ def stats(settings: Settings = Depends(get_settings)) -> dict:
                 "SELECT COUNT(*) FROM hotspots WHERE acquired_at > ? AND (confidence = 'h' OR (confidence GLOB '[0-9]*' AND CAST(confidence AS INTEGER) >= 80))",
                 (since,),
             ).fetchone()[0]
-    return out
+    return etag_json(request, out, private=False)
 
 
 @app.post("/api/ingest/run", dependencies=[Depends(require_verifier)])

@@ -69,3 +69,39 @@ def test_stats_counts_match_lists(settings):
         assert s["incidents"] == c.get("/api/incidents", headers=AUTH).json()["count"]
         assert s["hotspots"] == c.get("/api/hotspots").json()["count"]
         assert 0 < s["hotspots_last_24h"] <= s["hotspots"]
+
+
+def test_large_lists_are_gzipped(settings):
+    with client(settings) as c:
+        r = c.get("/api/hotspots", headers={"Accept-Encoding": "gzip"})
+        assert r.headers.get("content-encoding") == "gzip"
+
+
+def test_unchanged_list_returns_304_on_revalidation(settings):
+    with client(settings) as c:
+        first = c.get("/api/incidents")
+        tag = first.headers["etag"]
+        again = c.get("/api/incidents", headers={"If-None-Match": tag})
+        assert again.status_code == 304 and again.content == b""
+        assert c.get("/api/incidents", headers={"If-None-Match": '"stale"'}).status_code == 200
+
+
+def test_citizen_report_is_public_only_after_approval(settings):
+    from backend import db
+
+    with client(settings) as c:
+        with db.session(settings.db_path) as conn:
+            ts = db.utcnow()
+            conn.execute(
+                "INSERT INTO incidents (id, created_at, updated_at, trigger, lat, lon, first_seen, last_seen) VALUES (?,?,?,?,?,?,?,?)",
+                ("INC-20261027-9001", ts, ts, "citizen_report", -0.5, 116.0, ts, ts),
+            )
+        ids = lambda h=None: {i["id"] for i in c.get("/api/incidents", headers=h or {}).json()["items"]}
+        assert "INC-20261027-9001" not in ids()
+        assert "INC-20261027-9001" in ids(AUTH)
+        assert c.get("/api/incidents/INC-20261027-9001").status_code == 404
+        c.post("/api/incidents/INC-20261027-9001/verdict", json={"decision": "reject"}, headers=AUTH)
+        assert "INC-20261027-9001" not in ids()
+        c.post("/api/incidents/INC-20261027-9001/verdict", json={"decision": "approve"}, headers=AUTH)
+        assert "INC-20261027-9001" in ids()
+        assert c.get("/api/incidents/INC-20261027-9001").status_code == 200
