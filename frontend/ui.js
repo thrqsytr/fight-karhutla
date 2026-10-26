@@ -1,0 +1,88 @@
+/* Shared UI building blocks for every page. One component per job, reused everywhere. */
+
+/* Icons: simple stroke glyphs drawn for this project. */
+export const ICONS = {
+  flame: '<path d="M12 2.5c.6 3.2 2.6 4.8 4.2 6.6A7 7 0 0 1 12 21.5a7 7 0 0 1-4.6-12.3c.3 1.8 1.2 3 2.4 3.4C9.4 9 10.4 5.4 12 2.5z"/><path d="M12 21.5a3 3 0 0 1-3-3c0-1.8 1.4-2.8 3-4.6 1.6 1.8 3 2.8 3 4.6a3 3 0 0 1-3 3z"/>',
+  shield: '<path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
+  dots: '<circle cx="7" cy="12" r="2"/><circle cx="12" cy="7" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="12" cy="17" r="2"/>',
+  target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
+  alert: '<path d="M12 4l9 16H3l9-16z"/><path d="M12 10v4"/><path d="M12 17h.01"/>',
+  chevron: '<path d="M6 9l6 6 6-6"/>',
+  satellite: '<rect x="9" y="9" width="6" height="6" rx="1" transform="rotate(45 12 12)"/><path d="M3.5 8.5l3-3 3 3-3 3z"/><path d="M14.5 17.5l3-3 3 3-3 3z"/><path d="M3 21c0-2.5 1.5-4 4-4"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  pin: '<path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
+  file: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5"/><path d="M10 16h5"/>',
+  check: '<circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>',
+  layers: '<path d="M12 4l9 5-9 5-9-5 9-5z"/><path d="M3 14l9 5 9-5"/>',
+  gavel: '<path d="M14 5l5 5"/><path d="M11 8l5 5"/><path d="M12.5 6.5l-6 6"/><path d="M4 20h9"/><path d="M8.5 15.5L5 19"/>',
+  activity: '<path d="M3 12h4l2-6 4 12 2-6h6"/>',
+  list: '<path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/>',
+  x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>',
+  stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  crosshair: '<circle cx="12" cy="12" r="7"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M2 12h4"/><path d="M18 12h4"/>',
+  trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/>',
+  send: '<path d="M4 12l16-8-6 16-3-6-7-2z"/>',
+  play: '<path d="M7 5l12 7-12 7z"/>',
+  arrow: '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>',
+  image: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>',
+};
+export const svg = (name, cls = "icon") => {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("viewBox", "0 0 24 24");
+  s.setAttribute("class", cls);
+  s.setAttribute("aria-hidden", "true");
+  s.innerHTML = ICONS[name] || "";
+  return s;
+};
+
+export const $ = (sel) => document.querySelector(sel);
+export const el = (tag, attrs = {}, ...children) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === "class") n.className = v;
+    else if (k === "dataset") Object.assign(n.dataset, v);
+    else if (k === "style") n.style.cssText = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of children.flat()) if (c != null && c !== false) n.append(c);
+  return n;
+};
+export const info = (text, cls = "") => el("span", { class: `info ${cls}`, tabindex: "0", "aria-label": "More information" }, svg("info", "icon icon-sm"), el("span", { class: "tip", role: "tooltip" }, text));
+
+export function hydrateIcons(root = document) {
+  root.querySelectorAll("[data-icon]").forEach((n) => {
+    const cls = n.classList.contains("icon-sm") ? "icon icon-sm" : "icon";
+    n.replaceWith(svg(n.dataset.icon, cls));
+  });
+}
+
+export function toast(msg, icon = "check") {
+  const t = el("div", { class: "toast", role: "status" }, svg(icon, "icon icon-sm"), msg);
+  document.body.append(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+/* Sections: one collapsible component used everywhere */
+export function section({ icon, title, count, tip, open = false, live = false, content, extraClass = "" }) {
+  const body = el("div", { class: "section-body" }, el("div", { class: "section-inner" }, el("div", { class: "section-content" }, content)));
+  const head = el("button", { class: "section-head", "aria-expanded": String(open) },
+    el("span", { class: "section-icon" }, svg(icon, "icon icon-sm")),
+    el("span", { class: "section-title" }, title, count != null ? el("span", { class: "badge-count num" }, String(count)) : null, live ? el("span", { class: "pulse", title: "Recent data" }) : null),
+    tip ? info(tip, "tip-right") : null,
+    svg("chevron", "icon chev"),
+  );
+  const s = el("section", { class: `card section ${extraClass}`, dataset: { open: String(open) } }, head, body);
+  head.addEventListener("click", (e) => {
+    if (e.target.closest(".info")) return;
+    const next = s.dataset.open !== "true";
+    s.dataset.open = String(next);
+    head.setAttribute("aria-expanded", String(next));
+  });
+  return s;
+}

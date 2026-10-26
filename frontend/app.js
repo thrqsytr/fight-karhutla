@@ -1,3 +1,5 @@
+import { $, el, hydrateIcons, info, section, svg, toast } from "/ui.js";
+
 // MapLibre (about 300 KB) loads in parallel with the data instead of blocking the first API request.
 const MAPLIBRE_URL = "https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs";
 let maplibregl;
@@ -19,59 +21,6 @@ const STATUS = {
 const HEAT_STOPS = [[0, "#ffd66b"], [5, "#ffab40"], [15, "#ff7a1a"], [40, "#ef4423"], [100, "#b3122e"]];
 const HEAT_MAX = 100;
 
-/* Icons: simple stroke glyphs drawn for this project. */
-const ICONS = {
-  flame: '<path d="M12 2.5c.6 3.2 2.6 4.8 4.2 6.6A7 7 0 0 1 12 21.5a7 7 0 0 1-4.6-12.3c.3 1.8 1.2 3 2.4 3.4C9.4 9 10.4 5.4 12 2.5z"/><path d="M12 21.5a3 3 0 0 1-3-3c0-1.8 1.4-2.8 3-4.6 1.6 1.8 3 2.8 3 4.6a3 3 0 0 1-3 3z"/>',
-  shield: '<path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
-  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/>',
-  search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
-  dots: '<circle cx="7" cy="12" r="2"/><circle cx="12" cy="7" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="12" cy="17" r="2"/>',
-  target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
-  alert: '<path d="M12 4l9 16H3l9-16z"/><path d="M12 10v4"/><path d="M12 17h.01"/>',
-  chevron: '<path d="M6 9l6 6 6-6"/>',
-  satellite: '<rect x="9" y="9" width="6" height="6" rx="1" transform="rotate(45 12 12)"/><path d="M3.5 8.5l3-3 3 3-3 3z"/><path d="M14.5 17.5l3-3 3 3-3 3z"/><path d="M3 21c0-2.5 1.5-4 4-4"/>',
-  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  pin: '<path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
-  file: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5"/><path d="M10 16h5"/>',
-  check: '<circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>',
-  layers: '<path d="M12 4l9 5-9 5-9-5 9-5z"/><path d="M3 14l9 5 9-5"/>',
-  gavel: '<path d="M14 5l5 5"/><path d="M11 8l5 5"/><path d="M12.5 6.5l-6 6"/><path d="M4 20h9"/><path d="M8.5 15.5L5 19"/>',
-  activity: '<path d="M3 12h4l2-6 4 12 2-6h6"/>',
-  list: '<path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/>',
-  x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
-};
-const svg = (name, cls = "icon") => {
-  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  s.setAttribute("viewBox", "0 0 24 24");
-  s.setAttribute("class", cls);
-  s.setAttribute("aria-hidden", "true");
-  s.innerHTML = ICONS[name] || "";
-  return s;
-};
-
-const $ = (sel) => document.querySelector(sel);
-const el = (tag, attrs = {}, ...children) => {
-  const n = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (v == null || v === false) continue;
-    if (k === "class") n.className = v;
-    else if (k === "dataset") Object.assign(n.dataset, v);
-    else if (k === "style") n.style.cssText = v;
-    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
-    else n.setAttribute(k, v === true ? "" : v);
-  }
-  for (const c of children.flat()) if (c != null && c !== false) n.append(c);
-  return n;
-};
-const info = (text, cls = "") => el("span", { class: `info ${cls}`, tabindex: "0", "aria-label": "More information" }, svg("info", "icon icon-sm"), el("span", { class: "tip", role: "tooltip" }, text));
-
-function hydrateIcons(root = document) {
-  root.querySelectorAll("[data-icon]").forEach((n) => {
-    const cls = n.classList.contains("icon-sm") ? "icon icon-sm" : "icon";
-    n.replaceWith(svg(n.dataset.icon, cls));
-  });
-}
-
 function heatColor(frp) {
   if (frp == null) return "#c5ced6";
   for (let i = HEAT_STOPS.length - 1; i >= 0; i--) if (frp >= HEAT_STOPS[i][0]) return HEAT_STOPS[i][1];
@@ -81,12 +30,6 @@ const heatExpr = (prop) => ["interpolate", ["linear"], ["coalesce", ["get", prop
 
 const token = () => localStorage.getItem(TOKEN_KEY) || "";
 const authHeaders = () => (token() ? { Authorization: `Bearer ${token()}` } : {});
-
-function toast(msg, icon = "check") {
-  const t = el("div", { class: "toast", role: "status" }, svg(icon, "icon icon-sm"), msg);
-  document.body.append(t);
-  setTimeout(() => t.remove(), 3200);
-}
 
 async function api(path, opts = {}) {
   const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...authHeaders(), ...(opts.headers || {}) } });
@@ -106,25 +49,6 @@ const fmtFrp = (v) => (v == null ? "n/a" : `${Number(v).toFixed(1)} MW`);
 const state = { incidents: [], hotspots: [], stats: null, filter: "all", sort: "heat", q: "", shown: PAGE, selected: null, recentSince: null, layers: { heatmap: true, hotspots: true, incidents: true } };
 
 const isRecent = (iso) => state.recentSince && iso > state.recentSince;
-
-/* Sections: one collapsible component used everywhere */
-function section({ icon, title, count, tip, open = false, live = false, content, extraClass = "" }) {
-  const body = el("div", { class: "section-body" }, el("div", { class: "section-inner" }, el("div", { class: "section-content" }, content)));
-  const head = el("button", { class: "section-head", "aria-expanded": String(open) },
-    el("span", { class: "section-icon" }, svg(icon, "icon icon-sm")),
-    el("span", { class: "section-title" }, title, count != null ? el("span", { class: "badge-count num" }, String(count)) : null, live ? el("span", { class: "pulse", title: "Recent data" }) : null),
-    tip ? info(tip, "tip-right") : null,
-    svg("chevron", "icon chev"),
-  );
-  const s = el("section", { class: `card section ${extraClass}`, dataset: { open: String(open) } }, head, body);
-  head.addEventListener("click", (e) => {
-    if (e.target.closest(".info")) return;
-    const next = s.dataset.open !== "true";
-    s.dataset.open = String(next);
-    head.setAttribute("aria-expanded", String(next));
-  });
-  return s;
-}
 
 /* KPIs */
 function renderKpis() {
@@ -404,6 +328,71 @@ function verifierContent(inc) {
   return [el("div", { class: "actions" }, approve, reject, out)];
 }
 
+/* Evidence rows. Citizen media is fetched with the verifier token, so it never sits at a public URL. */
+const TRIGGER_LABEL = { hotspot_cluster: "hotspot cluster", citizen_report: "citizen report", merged: "hotspots + citizen report" };
+
+async function mediaUrl(mediaId) {
+  const res = await fetch(`/api/media/${encodeURIComponent(mediaId)}`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return URL.createObjectURL(await res.blob());
+}
+
+function photoTile(mediaId, alt) {
+  const img = el("img", { alt, loading: "lazy" });
+  mediaUrl(mediaId).then((u) => (img.src = u)).catch(() => img.replaceWith(el("span", { class: "media-locked" }, svg("alert", "icon icon-sm"), "Photo unavailable")));
+  return img;
+}
+
+function voiceButton(mediaId) {
+  let audio;
+  const b = el("button", { class: "btn", type: "button" }, svg("play", "icon icon-sm"), "Play voice note");
+  b.onclick = async () => {
+    try {
+      if (!audio) audio = new Audio(await mediaUrl(mediaId));
+      if (audio.paused) { await audio.play(); b.replaceChildren(svg("stop", "icon icon-sm"), "Stop"); audio.onended = () => b.replaceChildren(svg("play", "icon icon-sm"), "Play voice note"); }
+      else { audio.pause(); audio.currentTime = 0; b.replaceChildren(svg("play", "icon icon-sm"), "Play voice note"); }
+    } catch (e) {
+      toast(`Voice note unavailable: ${e.message}`, "alert");
+    }
+  };
+  return b;
+}
+
+function evidenceRows(inc) {
+  const rows = inc.evidence.map((e) => {
+    const extra = [];
+    if (e.type === "report") extra.push(el("p", { class: "brief", style: "margin-top:4px" }, e.payload.text));
+    if (e.type === "voice") extra.push(el("div", { style: "margin-top:6px" }, voiceButton(e.payload.media_id)),
+      el("p", { class: "muted", style: "margin:4px 0 0;font-size:12px" }, e.payload.transcript ? `Transcript: ${e.payload.transcript}` : "Transcript pending"));
+    // The report summary repeats the citizen's text, so show the full text once instead.
+    const head = e.type === "report" ? `${e.type} · ${e.source}` : `${e.type} · ${e.source}: ${e.summary}`;
+    return el("div", { class: "ev" }, el("span", { class: "ev-id" }, e.id), el("div", { style: "flex:1;min-width:0" }, head, ...extra));
+  });
+  const photos = inc.evidence.filter((e) => e.type === "image" && e.payload.media_id);
+  if (photos.length) rows.push(el("div", { class: "media-grid" }, ...photos.map((e) => photoTile(e.payload.media_id, `${e.id} citizen photo`))));
+  // A source that failed is shown as unknown with its reason. Silence would read as "nothing found".
+  const st = inc.enrichment || {};
+  for (const [src, v] of Object.entries(st)) {
+    if (String(v).startsWith("failed")) rows.push(el("div", { class: "ev" }, el("span", { class: "ev-id", style: "color:var(--warn)" }, "UNKNOWN"),
+      el("span", {}, `${src}: not collected yet (${String(v).replace(/^failed:\s*/, "").slice(0, 120)}). Retried automatically.`)));
+  }
+  if (!rows.length) rows.push(el("p", { class: "empty" }, inc.enriched_at ? "No evidence collected." : "Not collected yet. Small clusters are collected on request."));
+  return rows;
+}
+
+async function collectNow(id, btn) {
+  btn.disabled = true;
+  try {
+    const r = await api(`/api/incidents/${id}/enrich`, { method: "POST" });
+    const failed = Object.entries(r.sources).filter(([, v]) => String(v).startsWith("failed")).map(([k]) => k);
+    toast(failed.length ? `Collected, but ${failed.join(", ")} failed and will be retried.` : "Evidence collected.", failed.length ? "alert" : "check");
+    openIncident(id);
+  } catch (e) {
+    toast(`Not collected: ${e.message}`, "alert");
+    btn.disabled = false;
+  }
+}
+
 async function openIncident(id) {
   state.selected = id;
   crumbs([{ label: "Incidents", onclick: () => renderList() }, { label: id }]);
@@ -429,7 +418,7 @@ async function openIncident(id) {
     el("div", { class: "tags" },
       inc.simulation ? el("span", { class: "pill pill-sim" }, "SIMULASI") : null,
       recent ? el("span", { class: "pill pill-live" }, el("span", { class: "pulse" }), "Active in last 6 h") : null,
-      el("span", { class: "pill" }, svg("satellite", "icon icon-sm"), inc.trigger.replace("_", " ")),
+      el("span", { class: "pill" }, svg(inc.trigger === "hotspot_cluster" ? "satellite" : "camera", "icon icon-sm"), TRIGGER_LABEL[inc.trigger] || inc.trigger),
     ),
     el("div", { class: "gauge" },
       el("div", { class: "gauge-row" }, el("span", { style: "display:flex;gap:4px;align-items:center" }, "Max fire radiative power", info("Highest FRP among the cluster's hotspots, as measured by the satellite.")), el("strong", { class: "num" }, fmtFrp(inc.max_frp))),
@@ -456,9 +445,8 @@ async function openIncident(id) {
     section({ icon: "shield", title: "Evidence gate", tip: "Share of agent claims that cite real, stored evidence. Claims without evidence are removed, never shown as fact.",
       content: gate ? el("p", { class: "brief" }, `Grounding rate ${gate.grounding_rate == null ? "n/a" : Math.round(gate.grounding_rate * 100) + "%"}, ${gate.claims_passed} of ${gate.claims_total} claims passed.`)
                     : el("p", { class: "empty" }, "No gate result yet.") }),
-    section({ icon: "activity", title: "Evidence", count: inc.evidence.length, tip: "Every tool result is stored with a numbered ID. Claims link to these IDs.",
-      content: inc.evidence.length ? inc.evidence.map((e) => el("div", { class: "ev" }, el("span", { class: "ev-id" }, e.id), el("span", {}, `${e.type} · ${e.source}: ${e.summary}`)))
-                                   : el("p", { class: "empty" }, "No evidence collected yet.") }),
+    section({ icon: "activity", title: "Evidence", count: inc.evidence.length, open: inc.evidence.length > 0, tip: "Every tool result is stored with a numbered ID. Claims link to these IDs. Citizen photos, voice, and text are shown to verifiers only.",
+      content: [...evidenceRows(inc), token() ? el("div", { class: "actions" }, (() => { const b = el("button", { class: "btn", type: "button" }, svg("activity", "icon icon-sm"), "Collect missing evidence"); b.onclick = () => collectNow(inc.id, b); return b; })()) : null] }),
     section({ icon: "flame", title: "Hotspots", count: inc.hotspots.length, live: recent, tip: "NASA FIRMS detections. Confidence l, n, h means low, nominal, high.",
       content: [
         el("table", { class: "hs-table" },
