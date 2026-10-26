@@ -7,13 +7,13 @@ from contextlib import asynccontextmanager
 from typing import Literal
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import db, evidence, ingest
+from . import db, evidence, ingest, reports
 from .config import Settings, get_settings
 from .sources import firms, osm, weather
 
@@ -109,9 +109,14 @@ def _public_view(inc: dict) -> dict:
     return inc
 
 
+PUBLIC_TRIGGERS = ("hotspot_cluster", "merged")
+PRIVATE_EVIDENCE = {"image", "voice", "report"}
+
+
 def _visible_to_public(conn, inc: dict) -> bool:
-    """Satellite-only incidents are open data. Citizen reports become public only after a human approves."""
-    if inc["trigger"] == "hotspot_cluster":
+    """Incidents with satellite hotspots are open data (citizen evidence inside stays private).
+    Incidents built only from citizen reports become public after a human approves."""
+    if inc["trigger"] in PUBLIC_TRIGGERS:
         return True
     row = conn.execute(
         "SELECT decision FROM verdicts WHERE incident_id=? ORDER BY id DESC LIMIT 1", (inc["id"],)
@@ -156,7 +161,7 @@ LATEST_VERDICT_SUBQUERY = """
 @app.get("/api/incidents")
 def list_incidents(request: Request, verifier: bool = Depends(is_verifier), settings: Settings = Depends(get_settings)) -> Response:
     # Must match _visible_to_public: satellite clusters are public, citizen reports only after approval.
-    public_filter = "" if verifier else "WHERE i.trigger = 'hotspot_cluster' OR lv.decision = 'approve'"
+    public_filter = "" if verifier else f"WHERE i.trigger IN {PUBLIC_TRIGGERS!r} OR lv.decision = 'approve'"
     with db.session(settings.db_path) as conn:
         rows = conn.execute(
             f"""SELECT i.*, {SEVERITY_COLUMNS} FROM incidents i
@@ -195,7 +200,7 @@ def get_incident(incident_id: str, verifier: bool = Depends(is_verifier), settin
     if not verifier:
         inc = _public_view(inc)
         # Citizen photos and voice are visible to verifiers only.
-        evidence = [e for e in evidence if e["type"] not in {"image", "voice"}]
+        evidence = [e for e in evidence if e["type"] not in PRIVATE_EVIDENCE]
         for h in hotspots:
             h["lat"], h["lon"] = round(h["lat"], PUBLIC_COORD_DECIMALS), round(h["lon"], PUBLIC_COORD_DECIMALS)
     return {**inc, "evidence": evidence, "hotspots": hotspots, "verdicts": verdicts}
@@ -256,6 +261,75 @@ def stats(request: Request, settings: Settings = Depends(get_settings)) -> Respo
                 (since,),
             ).fetchone()[0]
     return etag_json(request, out, private=False)
+
+
+async def _read_capped(f: UploadFile, cap: int) -> bytes:
+    data = await f.read(cap + 1)
+    if len(data) > cap:
+        raise HTTPException(status_code=413, detail=f"{f.filename or 'file'} is too large")
+    return data
+
+
+def _enrich_after_report(settings: Settings, incident_id: str) -> None:
+    try:
+        with db.session(settings.db_path) as conn:
+            evidence.enrich_incident(conn, settings, incident_id, osm_tiles_left=[1])
+    except Exception:
+        log.exception("enrichment after report failed for %s", incident_id)
+
+
+@app.post("/api/reports", status_code=201)
+async def post_report(
+    request: Request,
+    background: BackgroundTasks,
+    lat: float = Form(...),
+    lon: float = Form(...),
+    location_source: str = Form(...),
+    accuracy_m: float | None = Form(None),
+    text: str | None = Form(None),
+    photos: list[UploadFile] = File(default=[]),
+    audio: UploadFile | None = File(None),
+    settings: Settings = Depends(get_settings),
+) -> dict:
+    """Public citizen report. No account and no phone number: the reporter is not identified."""
+    client = request.client.host if request.client else "unknown"
+    if reports.rate_limited(client):
+        raise HTTPException(status_code=429, detail="Terlalu banyak laporan dari perangkat ini. Coba lagi dalam satu jam.")
+    if len(photos) > reports.MAX_PHOTOS:
+        raise HTTPException(status_code=422, detail=f"Maksimal {reports.MAX_PHOTOS} foto.")
+    photo_items = [reports.Photo(await _read_capped(p, reports.MAX_PHOTO_BYTES), p.filename or "") for p in photos if p.filename]
+    audio_item = None
+    if audio is not None and audio.filename:
+        audio_item = reports.Audio(await _read_capped(audio, reports.MAX_AUDIO_BYTES), audio.content_type or "")
+    try:
+        with db.session(settings.db_path) as conn:
+            result = reports.submit(
+                conn, settings.data_dir, lat=lat, lon=lon, accuracy_m=accuracy_m, location_source=location_source,
+                text=text, photos=photo_items, audio=audio_item,
+            )
+    except reports.ReportError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    # Read back from the source to prove the report landed before telling the reporter it did.
+    keys = [f"{result['incident_id']}/{e}" for e in result["evidence_ids"]]
+    with db.session(settings.db_path) as conn:
+        stored = conn.execute(
+            f"SELECT COUNT(*) FROM evidence WHERE id IN ({','.join('?' * len(keys))})", keys
+        ).fetchone()[0]
+    if stored != len(keys):
+        raise HTTPException(status_code=500, detail="report was not fully stored")
+    background.add_task(_enrich_after_report, settings, result["incident_id"])
+    return result
+
+
+@app.get("/api/media/{media_id}", dependencies=[Depends(require_verifier)])
+def get_media(media_id: str, settings: Settings = Depends(get_settings)) -> FileResponse:
+    """Citizen photos and voice notes are visible to verifiers only."""
+    path = reports.media_path(settings.data_dir, media_id)
+    if path is None:
+        raise HTTPException(status_code=404, detail="media not found")
+    ext = path.suffix.lstrip(".")
+    mime = "image/jpeg" if ext == "jpg" else next((m for m, e in reports.AUDIO_TYPES.items() if e == ext), "application/octet-stream")
+    return FileResponse(path, media_type=mime, headers={"Cache-Control": "private, max-age=3600"})
 
 
 @app.post("/api/incidents/{incident_id}/enrich", dependencies=[Depends(require_verifier)])

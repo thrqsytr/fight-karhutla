@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from . import db
 from .config import Settings
-from .geo import Point, centroid, cluster_points
+from .geo import Point, centroid, cluster_points, haversine_m
 from .sources import firms
 
 log = logging.getLogger(__name__)
@@ -31,6 +31,14 @@ def store_hotspots(conn, hotspots: list[firms.Hotspot]) -> int:
     return conn.total_changes - before
 
 
+def _citizen_incident_near(conn, lat: float, lon: float, at: datetime) -> str | None:
+    rows = conn.execute(
+        "SELECT id, lat, lon FROM incidents WHERE trigger = 'citizen_report' AND last_seen >= ?", ((at - CLUSTER_WINDOW).isoformat(),)
+    ).fetchall()
+    near = sorted((haversine_m(lat, lon, r["lat"], r["lon"]), r["id"]) for r in rows)
+    return near[0][1] if near and near[0][0] <= CLUSTER_RADIUS_M else None
+
+
 def cluster_into_incidents(conn, *, now: datetime, simulation: bool = False) -> dict:
     """Group recent hotspots. Clusters touching an existing incident extend it; the rest open new incidents."""
     since = (now - LOOKBACK).isoformat()
@@ -45,6 +53,13 @@ def cluster_into_incidents(conn, *, now: datetime, simulation: bool = False) -> 
             continue
         lat, lon = centroid(group)
         first, last = group[0].at.isoformat(), group[-1].at.isoformat()
+        if not existing:
+            # A new cluster near a recent citizen report joins that report's incident (spec trigger c).
+            reported = _citizen_incident_near(conn, lat, lon, group[0].at)
+            if reported:
+                existing = [reported]
+                # enriched_at is cleared so the next run adds the hotspot evidence this incident now has.
+                conn.execute("UPDATE incidents SET trigger='merged', first_seen=MIN(first_seen, ?), enriched_at=NULL WHERE id=?", (first, reported))
         if existing:
             # Merging two prior incidents is a human call; attach to the oldest and leave the others intact.
             inc_id = existing[0]
