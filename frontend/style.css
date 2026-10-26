@@ -173,6 +173,8 @@ button { font: inherit; color: inherit; }
   font-size: 13px; font-weight: 600; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--card); cursor: pointer;
 }
 .btn:hover { border-color: var(--ink-3); }
+a.btn { text-decoration: none; color: inherit; }
+a.btn-primary, a.btn-report { color: #fff; }
 .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
 .btn-primary:hover { background: #0057c2; border-color: #0057c2; }
 .btn-ghost-danger { color: var(--st-likely); }
@@ -298,3 +300,81 @@ button { font: inherit; color: inherit; }
   .footer { flex-direction: column; }
   .pill-human { display: none; }
 }
+
+/* Citizen report page (/lapor). Mobile first; the same tokens and components as the dashboard. */
+.page-lapor { display: block; min-height: 100%; }
+.topbar-simple { display: flex; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
+.topbar-simple .brand { color: inherit; text-decoration: none; }
+.lapor { max-width: 640px; margin: 0 auto; padding: 14px 14px 28px; display: grid; gap: 12px; }
+.lapor form { display: grid; gap: 12px; }
+.crumb-sep { transform: rotate(-90deg); color: var(--ink-3); }
+.muted { color: var(--ink-2); font-weight: 400; }
+
+.notice { display: flex; gap: 10px; padding: 12px 14px; background: var(--warn-soft); border-color: #f9dbaf; color: var(--warn); }
+.notice p { margin: 0; color: var(--ink); line-height: 1.45; font-size: 13px; }
+.notice .icon { margin-top: 2px; }
+
+.step { padding: 14px; display: grid; gap: 12px; }
+.step-head { display: flex; align-items: center; gap: 10px; }
+.step-head h2 { font-size: 15px; margin: 0; flex: 1; }
+.step-num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: var(--blue-soft); color: var(--blue); flex: none; }
+
+.btn-block { width: 100%; }
+.btn-lg { height: 46px; font-size: 15px; }
+.btn.is-inactive { background: var(--line); border-color: var(--line); color: var(--ink-2); }
+
+.loc-readout { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; padding: 8px 10px; border-radius: var(--r-sm); background: var(--blue-soft); color: var(--blue); }
+.loc-readout.warn { background: var(--warn-soft); color: var(--warn); }
+.loc-readout .num { font-weight: 600; color: var(--ink); }
+.mini-map { height: 240px; border-radius: var(--r-sm); overflow: hidden; border: 1px solid var(--line); }
+
+.dropzone { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px dashed #b5c3d1; border-radius: var(--r-md); cursor: pointer; background: #f8fafc; }
+.dropzone:hover, .dropzone.over { border-color: var(--blue); background: var(--blue-soft); }
+.dz-icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--blue); color: #fff; flex: none; }
+.dz-text { display: grid; gap: 2px; font-size: 13px; }
+.thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.thumbs:empty { display: none; }
+.thumb { position: relative; aspect-ratio: 1; border-radius: var(--r-sm); overflow: hidden; border: 1px solid var(--line); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb-x { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; border: 0; display: grid; place-items: center; background: rgba(28, 43, 51, .72); color: #fff; cursor: pointer; }
+
+.recorder { display: grid; gap: 8px; }
+.rec-live { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--st-likely); padding: 10px 12px; border-radius: var(--r-sm); background: #fdecea; }
+.rec-dot { color: var(--st-likely); }
+.rec-time { color: var(--ink); }
+.rec-done { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 6px 6px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.rec-done > span { flex: 1; }
+
+.textarea { height: auto; padding: 10px 12px; resize: vertical; width: 100%; line-height: 1.45; }
+.counter { font-size: 11px; color: var(--ink-3); text-align: right; margin-top: -6px; }
+
+.checkbox { display: flex; gap: 10px; align-items: flex-start; text-align: left; background: transparent; border: 0; padding: 0; cursor: pointer; font-size: 13px; line-height: 1.45; }
+.checkbox .box { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid #9aa9b7; display: grid; place-items: center; flex: none; color: transparent; margin-top: 1px; transition: background .12s, border-color .12s; }
+.checkbox .box .icon { stroke-width: 2.4; }
+.checkbox[aria-checked="true"] .box { background: var(--blue); border-color: var(--blue); color: #fff; }
+.checkbox:focus-visible .box { box-shadow: 0 0 0 3px var(--blue-ring); }
+
+.form-error { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; padding: 10px 12px; border-radius: var(--r-sm); background: #fdecea; color: var(--st-likely); }
+.form-error span { color: var(--ink); }
+.progress { height: 6px; border-radius: 999px; background: var(--line-soft); overflow: hidden; }
+.progress-bar { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--blue), var(--blue-2)); transition: width .2s; }
+
+.success { padding: 22px 18px; display: grid; gap: 6px; justify-items: center; text-align: center; }
+.success h2 { margin: 6px 0 4px; font-size: 18px; }
+.success p { margin: 0; line-height: 1.5; }
+.success .actions { margin-top: 12px; justify-content: center; }
+.success-icon { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--ok-soft); color: var(--ok); }
+.success-icon .icon { width: 28px; height: 28px; }
+.success-id { font-size: 20px; font-weight: 700; color: var(--blue); }
+
+.footer-simple { flex-direction: column; gap: 4px; text-align: center; }
+.footer-simple p { justify-content: center; }
+
+/* Report entry point on the dashboard */
+.btn-report { background: var(--blue); color: #fff; border-color: var(--blue); }
+.btn-report:hover { background: #0057c2; border-color: #0057c2; }
+
+/* Citizen media for verifiers */
+.media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.media-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line); display: block; background: var(--bg); }
+.media-locked { font-size: 12px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
