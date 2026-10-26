@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager
 from typing import Literal
 
@@ -20,6 +20,17 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 log = logging.getLogger("karhutla")
 
 PUBLIC_COORD_DECIMALS = 3  # about 100 m
+
+# Severity is reported as measured FIRMS values (fire radiative power, confidence), not as a model score.
+# VIIRS confidence is l|n|h; MODIS is 0-100, where >= 80 counts as high.
+SEVERITY_SUBQUERY = """
+    SELECT incident_id,
+           MAX(frp) AS max_frp,
+           ROUND(SUM(frp), 2) AS sum_frp,
+           SUM(CASE WHEN confidence = 'h' OR (confidence GLOB '[0-9]*' AND CAST(confidence AS INTEGER) >= 80) THEN 1 ELSE 0 END) AS high_conf_count
+    FROM hotspots WHERE incident_id IS NOT NULL GROUP BY incident_id
+"""
+SEVERITY_COLUMNS = "s.max_frp, s.sum_frp, COALESCE(s.high_conf_count, 0) AS high_conf_count"
 ATTRIBUTIONS = [firms.ATTRIBUTION, weather.ATTRIBUTION, osm.ATTRIBUTION]
 
 
@@ -117,7 +128,9 @@ def config_js(settings: Settings = Depends(get_settings)) -> PlainTextResponse:
 @app.get("/api/incidents")
 def list_incidents(verifier: bool = Depends(is_verifier), settings: Settings = Depends(get_settings)) -> dict:
     with db.session(settings.db_path) as conn:
-        rows = conn.execute("SELECT * FROM incidents ORDER BY last_seen DESC").fetchall()
+        rows = conn.execute(
+            f"SELECT i.*, {SEVERITY_COLUMNS} FROM incidents i LEFT JOIN ({SEVERITY_SUBQUERY}) s ON s.incident_id = i.id ORDER BY i.last_seen DESC"
+        ).fetchall()
         items = [db.incident_row_to_dict(r) for r in rows]
         if not verifier:
             items = [_public_view(i) for i in items if _visible_to_public(conn, i)]
@@ -129,7 +142,10 @@ def list_incidents(verifier: bool = Depends(is_verifier), settings: Settings = D
 @app.get("/api/incidents/{incident_id}")
 def get_incident(incident_id: str, verifier: bool = Depends(is_verifier), settings: Settings = Depends(get_settings)) -> dict:
     with db.session(settings.db_path) as conn:
-        row = conn.execute("SELECT * FROM incidents WHERE id=?", (incident_id,)).fetchone()
+        row = conn.execute(
+            f"SELECT i.*, {SEVERITY_COLUMNS} FROM incidents i LEFT JOIN ({SEVERITY_SUBQUERY}) s ON s.incident_id = i.id WHERE i.id=?",
+            (incident_id,),
+        ).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="incident not found")
         inc = db.incident_row_to_dict(row)
@@ -183,6 +199,29 @@ def list_hotspots(settings: Settings = Depends(get_settings)) -> dict:
         ).fetchall()
     items = [dict(r) for r in rows]
     return {"count": len(items), "items": items, "attribution": firms.ATTRIBUTION}
+
+
+@app.get("/api/stats")
+def stats(settings: Settings = Depends(get_settings)) -> dict:
+    """Headline numbers. Windows are anchored on the newest acquisition so fixture data stays meaningful."""
+    with db.session(settings.db_path) as conn:
+        newest = conn.execute("SELECT MAX(acquired_at) FROM hotspots").fetchone()[0]
+        out = {
+            "incidents": conn.execute("SELECT COUNT(*) FROM incidents").fetchone()[0],
+            "incidents_multi_hotspot": conn.execute("SELECT COUNT(*) FROM incidents WHERE hotspot_count >= 3").fetchone()[0],
+            "hotspots": conn.execute("SELECT COUNT(*) FROM hotspots").fetchone()[0],
+            "newest_acquisition": newest,
+            "hotspots_last_24h": 0,
+            "high_conf_last_24h": 0,
+        }
+        if newest:
+            since = (datetime.fromisoformat(newest) - timedelta(hours=24)).isoformat()
+            out["hotspots_last_24h"] = conn.execute("SELECT COUNT(*) FROM hotspots WHERE acquired_at > ?", (since,)).fetchone()[0]
+            out["high_conf_last_24h"] = conn.execute(
+                "SELECT COUNT(*) FROM hotspots WHERE acquired_at > ? AND (confidence = 'h' OR (confidence GLOB '[0-9]*' AND CAST(confidence AS INTEGER) >= 80))",
+                (since,),
+            ).fetchone()[0]
+    return out
 
 
 @app.post("/api/ingest/run", dependencies=[Depends(require_verifier)])

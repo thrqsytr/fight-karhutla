@@ -52,3 +52,20 @@ def test_config_js_hides_google_key_when_maplibre(settings):
     with client(settings) as c:
         body = c.get("/config.js").text
         assert '"mapProvider": "maplibre"' in body and '"googleMapsKey": ""' in body
+
+
+def test_incidents_carry_measured_severity(settings):
+    with client(settings) as c:
+        items = c.get("/api/incidents").json()["items"]
+        assert all("max_frp" in i and "high_conf_count" in i for i in items)
+        top = max(items, key=lambda i: i["max_frp"] or 0)
+        detail = c.get(f"/api/incidents/{top['id']}").json()
+        assert detail["max_frp"] == max(h["frp"] for h in detail["hotspots"])
+
+
+def test_stats_counts_match_lists(settings):
+    with client(settings) as c:
+        s = c.get("/api/stats").json()
+        assert s["incidents"] == c.get("/api/incidents", headers=AUTH).json()["count"]
+        assert s["hotspots"] == c.get("/api/hotspots").json()["count"]
+        assert 0 < s["hotspots_last_24h"] <= s["hotspots"]
