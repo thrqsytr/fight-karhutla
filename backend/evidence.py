@@ -122,20 +122,27 @@ def _priority_candidates(conn, limit: int) -> list:
     ).fetchall()
 
 
-def enrich_incident(conn, settings: Settings, incident_id: str, *, osm_tiles_left: list[int] | None = None) -> dict:
-    """Add hotspot, weather, and OSM evidence that the incident does not have yet. Returns per-source status."""
-    inc = conn.execute("SELECT * FROM incidents WHERE id=?", (incident_id,)).fetchone()
-    if inc is None:
-        raise KeyError(incident_id)
-    status = json.loads(inc["enrichment_json"]) if inc["enrichment_json"] else {}
-    have = {r["type"] for r in conn.execute("SELECT type FROM evidence WHERE incident_id=?", (incident_id,))}
-    at = datetime.fromisoformat(inc["last_seen"])
+def enrich_incident(settings: Settings, incident_id: str, *, osm_tiles_left: list[int] | None = None) -> dict:
+    """Add hotspot, weather, and OSM evidence that the incident does not have yet. Returns per-source status.
 
-    if "hotspot" not in have and inc["hotspot_count"]:
-        hs = hotspot_evidence(conn, incident_id)
-        if hs:
-            db.add_evidence(conn, incident_id, "hotspot", "NASA FIRMS", hs[0], hs[1])
-            status["hotspot"] = "ok"
+    Network calls can take minutes when Overpass is overloaded, so they run outside any transaction:
+    read in one short session, fetch, then write in another. Holding SQLite's write lock across a
+    network call blocked citizen reports in production ("database is locked").
+    """
+    with db.session(settings.db_path) as conn:
+        inc = conn.execute("SELECT * FROM incidents WHERE id=?", (incident_id,)).fetchone()
+        if inc is None:
+            raise KeyError(incident_id)
+        inc = dict(inc)
+        have = {r["type"] for r in conn.execute("SELECT type FROM evidence WHERE incident_id=?", (incident_id,))}
+        hs = hotspot_evidence(conn, incident_id) if "hotspot" not in have and inc["hotspot_count"] else None
+    status = json.loads(inc["enrichment_json"]) if inc["enrichment_json"] else {}
+    at = datetime.fromisoformat(inc["last_seen"])
+    new: list[tuple[str, str, str, dict]] = []  # (type, source, summary, payload)
+
+    if hs:
+        new.append(("hotspot", "NASA FIRMS", hs[0], hs[1]))
+        status["hotspot"] = "ok"
 
     if "weather" not in have and _outside_fixture(settings, inc["lat"], inc["lon"]):
         status["weather"] = "failed: outside fixture coverage (fixture mode)"
@@ -146,7 +153,7 @@ def enrich_incident(conn, settings: Settings, incident_id: str, *, osm_tiles_lef
                 cache_dir=settings.cache_dir, fixtures_dir=settings.fixtures_dir, fixture=settings.fixture_mode,
             )
             w["lat"], w["lon"] = inc["lat"], inc["lon"]
-            db.add_evidence(conn, incident_id, "weather", "Open-Meteo", weather_summary_text(w), w)
+            new.append(("weather", "Open-Meteo", weather_summary_text(w), w))
             status["weather"] = "ok"
         except (SourceError, ValueError, KeyError) as exc:
             log.warning("weather failed for %s: %s", incident_id, exc)
@@ -161,22 +168,28 @@ def enrich_incident(conn, settings: Settings, incident_id: str, *, osm_tiles_lef
         if osm_tiles_left is not None and not cached and osm_tiles_left[0] <= 0:
             status["osm"] = "failed: deferred, Overpass budget for this run is used"
         else:
+            if osm_tiles_left is not None and not cached:
+                osm_tiles_left[0] -= 1
             try:
                 a = osm.get_nearby_assets(inc["lat"], inc["lon"], cache_dir=settings.cache_dir, fixtures_dir=settings.fixtures_dir, fixture=settings.fixture_mode)
-                if osm_tiles_left is not None and not cached:
-                    osm_tiles_left[0] -= 1
-                db.add_evidence(conn, incident_id, "osm", "OpenStreetMap (Overpass)", osm_summary_text(a), a)
+                new.append(("osm", "OpenStreetMap (Overpass)", osm_summary_text(a), a))
                 status["osm"] = "ok"
             except SourceError as exc:
-                if osm_tiles_left is not None and not cached:
-                    osm_tiles_left[0] -= 1
                 log.warning("osm failed for %s: %s", incident_id, exc)
                 status["osm"] = f"failed: {str(exc)[:300]}"
 
-    conn.execute(
-        "UPDATE incidents SET enriched_at=?, enrichment_json=?, updated_at=? WHERE id=?",
-        (db.utcnow(), json.dumps(status), db.utcnow(), incident_id),
-    )
+    with db.session(settings.db_path) as conn:
+        if conn.execute("SELECT 1 FROM incidents WHERE id=?", (incident_id,)).fetchone() is None:
+            return status  # deleted while sources were being fetched
+        # Re-check inside the write: a concurrent run may have stored the same type meanwhile.
+        have_now = {r["type"] for r in conn.execute("SELECT type FROM evidence WHERE incident_id=?", (incident_id,))}
+        for type_, source, summary, payload in new:
+            if type_ not in have_now:
+                db.add_evidence(conn, incident_id, type_, source, summary, payload)
+        conn.execute(
+            "UPDATE incidents SET enriched_at=?, enrichment_json=?, updated_at=? WHERE id=?",
+            (db.utcnow(), json.dumps(status), db.utcnow(), incident_id),
+        )
     return status
 
 
@@ -190,13 +203,17 @@ def run_enrichment(settings: Settings, *, max_incidents: int = WEATHER_BUDGET_PE
     tiles_left = [OSM_BUDGET_PER_RUN]
     done, failed = [], []
     with db.session(settings.db_path) as conn:
-        for row in _priority_candidates(conn, max_incidents * 3):
-            if len(done) + len(failed) >= max_incidents:
-                break
-            eligible = row["trigger"] != "hotspot_cluster" or row["hotspot_count"] >= MIN_HOTSPOTS or (row["max_frp"] or 0) >= MIN_MAX_FRP
-            if not eligible:
-                continue
-            st = enrich_incident(conn, settings, row["id"], osm_tiles_left=tiles_left)
-            (failed if any(str(v).startswith("failed") for v in st.values()) else done).append(row["id"])
+        candidates = [dict(r) for r in _priority_candidates(conn, max_incidents * 3)]
+    for row in candidates:
+        if len(done) + len(failed) >= max_incidents:
+            break
+        eligible = row["trigger"] != "hotspot_cluster" or row["hotspot_count"] >= MIN_HOTSPOTS or (row["max_frp"] or 0) >= MIN_MAX_FRP
+        if not eligible:
+            continue
+        try:
+            st = enrich_incident(settings, row["id"], osm_tiles_left=tiles_left)
+        except KeyError:
+            continue  # deleted since the candidate list was read
+        (failed if any(str(v).startswith("failed") for v in st.values()) else done).append(row["id"])
     log.info("enrichment: complete=%d partial=%d osm_tiles_left=%d", len(done), len(failed), tiles_left[0])
     return {"complete": done, "partial": failed, "osm_tiles_left": tiles_left[0]}

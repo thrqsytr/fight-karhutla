@@ -272,8 +272,7 @@ async def _read_capped(f: UploadFile, cap: int) -> bytes:
 
 def _enrich_after_report(settings: Settings, incident_id: str) -> None:
     try:
-        with db.session(settings.db_path) as conn:
-            evidence.enrich_incident(conn, settings, incident_id, osm_tiles_left=[1])
+        evidence.enrich_incident(settings, incident_id, osm_tiles_left=[1])
     except Exception:
         log.exception("enrichment after report failed for %s", incident_id)
 
@@ -353,11 +352,10 @@ def get_media(media_id: str, settings: Settings = Depends(get_settings)) -> File
 @app.post("/api/incidents/{incident_id}/enrich", dependencies=[Depends(require_verifier)])
 def enrich(incident_id: str, settings: Settings = Depends(get_settings)) -> dict:
     """Collect missing evidence for one incident now, regardless of the automatic priority thresholds."""
-    with db.session(settings.db_path) as conn:
-        try:
-            status = evidence.enrich_incident(conn, settings, incident_id, osm_tiles_left=[1])
-        except KeyError:
-            raise HTTPException(status_code=404, detail="incident not found")
+    try:
+        status = evidence.enrich_incident(settings, incident_id, osm_tiles_left=[1])
+    except KeyError:
+        raise HTTPException(status_code=404, detail="incident not found")
     return {"incident_id": incident_id, "sources": status}
 
 

@@ -73,9 +73,9 @@ def test_failed_source_is_recorded_and_others_still_stored(settings, monkeypatch
     monkeypatch.undo()
     monkeypatch.setattr(source_http.httpx, "request", lambda *a, **k: (_ for _ in ()).throw(AssertionError("network")))
     # The retry picks up only the missing source.
+    st = evidence.enrich_incident(settings, inc_id)
+    assert st["osm"] == "ok"
     with db.session(settings.db_path) as conn:
-        st = evidence.enrich_incident(conn, settings, inc_id)
-        assert st["osm"] == "ok"
         assert [e["type"] for e in db.list_evidence(conn, inc_id)] == ["hotspot", "weather", "osm"]
 
 
@@ -108,3 +108,39 @@ def test_live_mode_spends_overpass_budget_only_on_uncached_tiles(settings, monke
     with db.session(settings.db_path) as conn:
         st = conn.execute("SELECT enrichment_json FROM incidents WHERE id=?", (r["partial"][0],)).fetchone()[0]
         assert "deferred" in st
+
+
+def test_no_write_lock_is_held_while_a_source_is_slow(settings, monkeypatch):
+    """Regression: a slow Overpass call inside the transaction made citizen reports fail with 'database is locked'."""
+    import threading
+
+    from backend import reports
+    from backend.sources import osm
+
+    _setup(settings)
+    entered, release = threading.Event(), threading.Event()
+
+    def slow(*a, **k):
+        entered.set()
+        release.wait(10)
+        raise SourceError("timeout")
+
+    monkeypatch.setattr(osm, "get_nearby_assets", slow)
+    t = threading.Thread(target=evidence.run_enrichment, args=(settings,), kwargs={"max_incidents": 1})
+    t.start()
+    assert entered.wait(5)
+    try:
+        # While the source hangs, another writer must get the lock at once.
+        import sqlite3
+
+        conn = sqlite3.connect(settings.db_path, timeout=0.5)
+        conn.row_factory = sqlite3.Row
+        try:
+            reports.submit(conn, settings.data_dir, lat=-3.0, lon=104.7, accuracy_m=5, location_source="gps",
+                           text="asap", photos=[], audio=None)
+            conn.commit()
+        finally:
+            conn.close()
+    finally:
+        release.set()
+        t.join(10)
