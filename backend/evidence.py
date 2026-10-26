@@ -177,6 +177,10 @@ def enrich_incident(settings: Settings, incident_id: str, *, osm_tiles_left: lis
             except SourceError as exc:
                 log.warning("osm failed for %s: %s", incident_id, exc)
                 status["osm"] = f"failed: {str(exc)[:300]}"
+                if osm_tiles_left is not None:
+                    # Circuit breaker: when every endpoint just failed, more tiles this run would only wait
+                    # on the same overloaded servers. The rest are deferred to the next run.
+                    osm_tiles_left[0] = 0
 
     with db.session(settings.db_path) as conn:
         if conn.execute("SELECT 1 FROM incidents WHERE id=?", (incident_id,)).fetchone() is None:

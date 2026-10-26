@@ -144,3 +144,25 @@ def test_no_write_lock_is_held_while_a_source_is_slow(settings, monkeypatch):
     finally:
         release.set()
         t.join(10)
+
+
+def test_overpass_failure_stops_further_osm_calls_this_run(settings, monkeypatch):
+    _setup(settings)
+    from backend.sources import osm, weather
+
+    live = settings.model_copy(update={"fixture_mode": False})
+    calls = []
+    monkeypatch.setattr(weather, "get_weather", lambda *a, **k: {"wind_speed_ms": 2.0, "wind_direction_deg": 90, "relative_humidity_pct": 70, "rain_24h_mm": 0.0})
+
+    def down(lat, lon, **k):
+        calls.append((lat, lon))
+        raise SourceError("all Overpass endpoints failed: 502")
+
+    monkeypatch.setattr(osm, "get_nearby_assets", down)
+    monkeypatch.setattr(evidence, "_tile_cached", lambda s, t: False)
+    r = evidence.run_enrichment(live, max_incidents=5)
+    assert len(calls) == 1
+    with db.session(settings.db_path) as conn:
+        sts = [conn.execute("SELECT enrichment_json FROM incidents WHERE id=?", (i,)).fetchone()[0] for i in r["partial"]]
+    assert sum("all Overpass endpoints failed" in s for s in sts) == 1
+    assert sum("deferred" in s for s in sts) == len(sts) - 1
