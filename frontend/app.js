@@ -149,7 +149,8 @@ function initMap() {
     note.textContent = "Google Maps adapter is not built; showing MapLibre.";
     note.hidden = false;
   }
-  map = new maplibregl.Map({ container: "map", style: BASEMAP_STYLE, center: [117.5, -1.5], zoom: 4.4, attributionControl: { compact: true } });
+  // hash keeps the view in the URL (#map=zoom/lat/lon) so a verifier can share an exact map position.
+  map = new maplibregl.Map({ container: "map", style: BASEMAP_STYLE, center: [117.5, -1.5], zoom: 4.4, hash: "map", attributionControl: { compact: true } });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
   map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
   popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
@@ -188,10 +189,11 @@ function setMapData() {
     paint: {
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, ["interpolate", ["linear"], ["get", "n"], 1, 3, 20, 9], 11, ["interpolate", ["linear"], ["get", "n"], 1, 14, 20, 40]],
       "circle-color": ["get", "color"],
-      "circle-opacity": 0.06,
+      // At regional zoom the heatmap carries the signal; stacked gray fills over orange turn muddy.
+      "circle-opacity": ["interpolate", ["linear"], ["zoom"], 6.5, 0, 9, 0.06],
       "circle-stroke-color": ["get", "color"],
       "circle-stroke-width": 1,
-      "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 4, 0.35, 8, 0.85],
+      "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0, 8, 0.85],
     },
   });
   map.addLayer({
