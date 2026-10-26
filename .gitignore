@@ -1,0 +1,29 @@
+# Secrets: never commit. Only .env.example belongs in the repo.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials/
+
+# Runtime data
+data/
+*.sqlite
+*.sqlite3
+*.db
+cache/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

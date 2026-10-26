@@ -1,0 +1,12 @@
+# Pinned to the latest stable releases on PyPI as of 2026-10-27.
+fastapi==0.162.0
+uvicorn==0.54.0
+pydantic==2.14.1
+pydantic-settings==2.16.1
+httpx==0.28.1
+openai==3.39.0
+# APScheduler 4.x is still pre-release; 3.11.3 is the latest stable line.
+apscheduler==3.11.3
+python-multipart==0.0.32
+pillow==13.0.0
+numpy==2.5.4
