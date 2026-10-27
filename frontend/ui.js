@@ -134,3 +134,24 @@ export function modal({ title, body, actions = [], onClose }) {
   setTimeout(() => card.querySelector("input, button.btn-primary")?.focus(), 30);
   return { close, card };
 }
+
+/* Site pages: one list feeds the footer on every page and the tabs on the information pages. */
+export const SITE_PAGES = [
+  { path: "/about/", id: "Tentang", en: "About" },
+  { path: "/sources/", id: "Sumber data", en: "Data sources" },
+  { path: "/privacy/", id: "Privasi", en: "Privacy" },
+  { path: "/terms/", id: "Ketentuan", en: "Terms" },
+  { path: "/license/", id: "Lisensi", en: "License" },
+];
+export const REPO_URL = "https://github.com/thrqsytr/fight-karhutla";
+
+/** Footer: links only. The emergency notice and data attributions live on their own pages. */
+export function siteFooter(node, lang) {
+  const here = location.pathname;
+  const link = (p) => el("a", { href: p.path, "aria-current": here === p.path ? "page" : null }, p[lang] || p.en);
+  node.replaceChildren(
+    el("a", { class: "footer-emergency", href: "tel:112" }, svg("alert", "icon icon-sm"), lang === "id" ? "Darurat: hubungi 112" : "Emergency: call 112"),
+    el("nav", { class: "footer-links", "aria-label": lang === "id" ? "Halaman informasi" : "Information pages" },
+      SITE_PAGES.map(link), el("a", { href: REPO_URL, rel: "noopener" }, "GitHub")),
+  );
+}

@@ -1,4 +1,4 @@
-import { $, el, hydrateIcons, info, modal, section, svg, toast } from "/ui.js";
+import { $, el, hydrateIcons, info, modal, section, siteFooter, svg, toast } from "/ui.js";
 import { applyStatic, DASHBOARD_ID, langSwitch, lang, locale, makeT } from "/i18n.js";
 
 const t = makeT(DASHBOARD_ID, "en");
@@ -117,19 +117,30 @@ const SOURCES = [
 const SRC_STATE = { ok: "On", error: "Down", sim: "Simulation", unknown: "Not checked" };
 const SOURCES_REFRESH_MS = 5 * 60e3;
 
+let srcBox;
+
+/** The status bar is a map control, so it shares the bottom row with the scale and the attribution. */
+const sourceStatusControl = {
+  onAdd() {
+    srcBox = el("div", { class: "maplibregl-ctrl src-status card overlay", role: "status", "aria-label": t("Data sources") });
+    renderSources();
+    return srcBox;
+  },
+  onRemove() { srcBox.remove(); srcBox = null; },
+};
+
 function renderSources() {
-  fill($("#src-status"), SOURCES.map((s, i) => {
+  if (!srcBox) return;
+  fill(srcBox, SOURCES.map((s) => {
     const v = state.sources[s.key] || { state: "unknown" };
     const lines = [t(s.tip)];
     if (v.newest_acquisition) lines.push(t("Newest pass: {when}.", { when: fmtTime(v.newest_acquisition) }));
     if (v.checked_at) lines.push(t("Last checked: {when}.", { when: fmtTime(v.checked_at) }));
     if (v.state === "error" && v.detail) lines.push(v.detail);
-    return [
-      i ? el("span", { class: "src-sep", "aria-hidden": "true" }) : null,
-      el("span", { class: "info src-item", tabindex: "0", dataset: { state: v.state } },
-        el("span", { class: "src-dot" }), el("span", { class: "src-name" }, s.name), el("span", { class: "src-state" }, t(SRC_STATE[v.state] || SRC_STATE.unknown)),
-        el("span", { class: "tip", role: "tooltip" }, lines.join(" "))),
-    ];
+    return el("span", { class: "info src-item", tabindex: "0", dataset: { state: v.state } },
+      el("span", { class: "src-name" }, s.name),
+      el("span", { class: "src-state" }, el("span", { class: "src-dot" }), el("span", { class: "src-word" }, t(SRC_STATE[v.state] || SRC_STATE.unknown))),
+      el("span", { class: "tip", role: "tooltip" }, lines.join(" ")));
   }));
 }
 
@@ -161,12 +172,31 @@ async function initMap() {
     note.hidden = false;
   }
   // hash keeps the view in the URL (#map=zoom/lat/lon) so a verifier can share an exact map position.
-  map = new maplibregl.Map({ container: "map", style: BASEMAP_STYLE, ...HOME_VIEW, hash: "map", attributionControl: { compact: true } });
+  map = new maplibregl.Map({ container: "map", style: BASEMAP_STYLE, ...HOME_VIEW, hash: "map", attributionControl: false });
   map.on("error", (e) => { if (String(e.sourceId || "").startsWith("nasa-") && state.sources.gibs.state !== "error") setGibs("error", e.error?.message || "GIBS tile failed"); });
+  // Bottom controls are inserted first-in-row, so adding attribution, scale, then status reads status, scale, attribution.
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
   map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
+  map.addControl(sourceStatusControl, "bottom-right");
+  collapseAttribution(map);
   popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
   await new Promise((resolve) => map.on("load", resolve));
   addNasaLayers();
+}
+
+/** MapLibre opens the compact attribution once its sources load; close it that first time. The (i) still opens it. */
+function collapseAttribution(m) {
+  const box = m.getContainer().querySelector(".maplibregl-ctrl-attrib");
+  if (!box) return;
+  const close = () => {
+    if (!box.classList.contains("maplibregl-compact-show")) return;
+    box.classList.remove("maplibregl-compact-show");
+    box.removeAttribute("open");
+    watch.disconnect();
+  };
+  const watch = new MutationObserver(close);
+  watch.observe(box, { attributes: true, attributeFilter: ["class"] });
+  close();
 }
 
 function addNasaLayers() {
@@ -196,7 +226,7 @@ function setMapData() {
     map.getSource("incidents").setData(inc);
     return;
   }
-  map.addSource("hotspots", { type: "geojson", data: hs });
+  map.addSource("hotspots", { type: "geojson", data: hs, attribution: "Hotspots: NASA FIRMS" });
   map.addSource("incidents", { type: "geojson", data: inc });
 
   // Regional view: density weighted by FRP, fading out as individual points take over.
@@ -924,7 +954,7 @@ async function main() {
   applyStatic(t);
   hydrateIcons();
   $("#lang-slot").replaceWith(langSwitch(el));
-  $("#attrib").textContent = (CFG.attributions || []).join(" · ");
+  siteFooter($("#site-footer"), lang());
   renderViewControls();
   renderSources();
   loadSources();

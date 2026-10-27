@@ -47,7 +47,7 @@ export const DASHBOARD_ID = {
   "Verified wildfire triage for Indonesia": "Triase karhutla terverifikasi untuk Indonesia",
   "The AI only gathers evidence and drafts a recommendation. A human verifier approves or rejects every incident; nothing is sent to anyone automatically.":
     "AI hanya mengumpulkan bukti dan menyusun rekomendasi. Verifikator manusia yang menyetujui atau menolak setiap insiden; tidak ada yang dikirim otomatis ke siapa pun.",
-  "Zoom in": "Perbesar", "Zoom out": "Perkecil",
+  "Zoom in": "Perbesar", "Zoom out": "Perkecil", "Data sources": "Sumber data",
   "NASA FIRMS satellite hotspots (VIIRS and MODIS), fetched every 30 minutes.": "Titik panas satelit NASA FIRMS (VIIRS dan MODIS), diambil setiap 30 menit.",
   "NASA GIBS satellite layers for the map, checked from this browser.": "Lapisan citra satelit NASA GIBS untuk peta, dicek dari browser ini.",
   "Wind, humidity, and rain evidence for each incident.": "Bukti angin, kelembapan, dan hujan untuk setiap insiden.",
@@ -61,8 +61,6 @@ export const DASHBOARD_ID = {
   "Heat": "Panas", "Size": "Jumlah", "Recent": "Terbaru",
   "Search incident ID": "Cari ID insiden",
   "All": "Semua", "3+ hotspots": "3+ titik panas", "High confidence": "Keyakinan tinggi", "Last 6 h": "6 jam terakhir",
-  "Fight Karhutla is not an official emergency channel. In an emergency, call 112 or your local BPBD or fire service.":
-    "Fight Karhutla bukan kanal darurat resmi. Dalam keadaan darurat, hubungi 112, BPBD, atau pemadam kebakaran setempat.",
   "Pending triage": "Menunggu triase", "Likely fire": "Kemungkinan besar api", "Possible fire": "Mungkin api",
   "Unlikely": "Kecil kemungkinan", "Needs more info": "Perlu info tambahan", "Triage running": "Triase berjalan",
   "With 3+ hotspots": "Dengan 3+ titik panas", "Hotspots, 24 h": "Titik panas, 24 jam", "Newest pass": "Lintasan terbaru",

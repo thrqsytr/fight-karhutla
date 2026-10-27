@@ -1,5 +1,5 @@
-import { $, el, hydrateIcons, svg } from "/ui.js";
-import { applyStatic, langSwitch, locale, makeT } from "/i18n.js";
+import { $, el, hydrateIcons, siteFooter, svg } from "/ui.js";
+import { applyStatic, lang, langSwitch, locale, makeT } from "/i18n.js";
 
 /* The report page is written in Indonesian for residents; English is here for visitors and judges.
    Server messages stay in Indonesian. */
@@ -25,7 +25,6 @@ const LAPOR_EN = {
   "Saya paham ini bukan kanal darurat resmi, dan laporan saya akan diperiksa verifikator manusia.":
     "I understand this is not an official emergency channel and that a human verifier will check my report.",
   "Kirim laporan": "Send report",
-  "Tanpa akun dan tanpa nomor telepon. Laporan disimpan selama masa demo lalu dihapus.": "No account and no phone number. Reports are kept for the demo period and then deleted.",
   "di luar Indonesia": "outside Indonesia", "GPS, akurasi sekitar {m} m": "GPS, accuracy about {m} m", "dipilih di peta": "picked on the map",
   "Perangkat ini tidak mendukung GPS. Pilih lokasi dengan mengetuk peta.": "This device has no GPS. Tap the map to pick the location.",
   "Izin lokasi ditolak. Ketuk peta untuk memilih lokasi secara manual.": "Location permission was denied. Tap the map to pick the location.",
@@ -326,6 +325,7 @@ function main() {
   applyStatic(t);
   hydrateIcons();
   $("#lang-slot").replaceWith(langSwitch(el));
+  siteFooter($("#site-footer"), lang());
   $("#btn-gps").addEventListener("click", useGps);
   $("#photo-input").addEventListener("change", (e) => { addPhotos(e.target.files); e.target.value = ""; });
   const drop = $("#photo-drop");

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Privasi: Fight Karhutla</title>
+  <meta name="description" content="Data apa yang dikumpulkan Fight Karhutla, siapa yang melihatnya, dan berapa lama disimpan.">
+  <meta name="theme-color" content="#0064e0">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="page-doc">
+  <header class="topbar topbar-simple">
+    <a class="brand" href="/" aria-label="Fight Karhutla">
+      <span class="brand-mark" aria-hidden="true"><span data-icon="flame"></span></span>
+      <div>
+        <h1>Fight Karhutla</h1>
+        <p class="tagline" data-i18n="Peta insiden">Peta insiden</p>
+      </div>
+    </a>
+    <div class="topbar-right">
+      <span id="lang-slot"></span>
+      <a class="btn" href="/"><span data-icon="layers" class="icon-sm"></span><span data-i18n="Peta">Peta</span></a>
+    </div>
+  </header>
+
+  <main class="doc">
+    <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+    <nav class="doc-tabs" id="doc-tabs" aria-label="Pages"></nav>
+    <article class="card doc-body" lang="id" data-title="Privasi">
+      <h2>Kebijakan privasi</h2>
+      <p class="doc-meta">Diperbarui 28 Oktober 2026.</p>
+      <p>Halaman peta bisa dipakai tanpa akun. Data pribadi hanya masuk bila Anda mengirim laporan lewat halaman <a href="/lapor/">Lapor</a>.</p>
+
+      <h3>Yang dikumpulkan saat Anda melapor</h3>
+      <ul>
+        <li><strong>Lokasi</strong> dari GPS ponsel atau titik yang Anda pilih di peta.</li>
+        <li><strong>Foto</strong> (1 sampai 3). Setiap foto diubah ulang menjadi JPEG tanpa metadata, sehingga data EXIF seperti GPS dan merek ponsel dihapus sebelum disimpan.</li>
+        <li><strong>Pesan suara</strong> (opsional), disimpan seperti saat direkam dan diubah menjadi teks.</li>
+        <li><strong>Keterangan teks</strong> (opsional).</li>
+      </ul>
+      <p>Kami tidak meminta nama, akun, nomor telepon, atau email.</p>
+
+      <h3>Yang tidak disimpan</h3>
+      <p>Alamat IP tidak disimpan oleh aplikasi. Untuk membatasi spam (6 laporan per jam), alamat Anda diubah menjadi kode acak satu arah (hash) yang hanya ada di memori server dan hilang saat server dimulai ulang.</p>
+
+      <h3>Siapa yang bisa melihat</h3>
+      <ul>
+        <li>Foto, pesan suara, teks, dan lokasi persis hanya terlihat oleh verifikator.</li>
+        <li>Peta publik membulatkan lokasi ke sekitar 100 m.</li>
+        <li>Insiden yang hanya berasal dari laporan warga baru tampil di peta publik setelah disetujui verifikator. Foto dan suara warga tidak pernah ditampilkan ke publik.</li>
+      </ul>
+
+      <h3>Pemrosesan oleh pihak lain</h3>
+      <ul>
+        <li>Foto dan pesan suara dikirim ke Meta Model API untuk dibaca dan ditranskripsi (Muse Spark, SAM, Muse Voice Transcribe).</li>
+        <li>Baseten hanya menerima klaim yang berasal dari data publik, tidak pernah data laporan warga.</li>
+        <li>Saat membuka peta, browser Anda memuat tile peta dari OpenFreeMap, citra dari NASA GIBS, dan pustaka MapLibre dari unpkg. Layanan itu melihat alamat IP Anda seperti situs web lain.</li>
+      </ul>
+
+      <h3>Penyimpanan di browser</h3>
+      <p>Tidak ada cookie, iklan, atau analitik. Browser hanya menyimpan pilihan bahasa, status panel samping, dan token verifikator (khusus verifikator) di localStorage.</p>
+
+      <h3>Lama penyimpanan dan penghapusan</h3>
+      <p>Laporan disimpan selama masa demo hackathon, lalu dihapus. Verifikator dapat menghapus seluruh data warga dari satu insiden kapan saja. Untuk meminta penghapusan, buka <a href="https://github.com/thrqsytr/fight-karhutla/issues" rel="noopener">GitHub Issues</a> dan sebutkan nomor insiden saja, tanpa data pribadi.</p>
+    </article>
+    <article class="card doc-body" lang="en" data-title="Privacy" hidden>
+      <h2>Privacy policy</h2>
+      <p class="doc-meta">Updated 28 October 2026.</p>
+      <p>The map can be used without an account. Personal data enters only when you send a report through the <a href="/lapor/">Report</a> page.</p>
+
+      <h3>What a report collects</h3>
+      <ul>
+        <li><strong>Location</strong> from your phone's GPS or the point you pick on the map.</li>
+        <li><strong>Photos</strong> (1 to 3). Every photo is re-encoded as JPEG without metadata, so EXIF data such as GPS and phone model is removed before storage.</li>
+        <li><strong>Voice note</strong> (optional), stored as recorded and transcribed to text.</li>
+        <li><strong>Text description</strong> (optional).</li>
+      </ul>
+      <p>We do not ask for a name, account, phone number, or email.</p>
+
+      <h3>What is not stored</h3>
+      <p>The app does not store IP addresses. To limit spam (6 reports per hour), your address is turned into a one-way code (hash) that lives only in server memory and is gone when the server restarts.</p>
+
+      <h3>Who can see it</h3>
+      <ul>
+        <li>Photos, voice notes, text, and the exact location are visible to verifiers only.</li>
+        <li>The public map rounds locations to about 100 m.</li>
+        <li>An incident built only from citizen reports appears on the public map only after a verifier approves it. Citizen photos and voice are never shown publicly.</li>
+      </ul>
+
+      <h3>Processing by others</h3>
+      <ul>
+        <li>Photos and voice notes are sent to the Meta Model API to be read and transcribed (Muse Spark, SAM, Muse Voice Transcribe).</li>
+        <li>Baseten receives only claims built from public data, never citizen report data.</li>
+        <li>When you open the map, your browser loads map tiles from OpenFreeMap, imagery from NASA GIBS, and the MapLibre library from unpkg. Those services see your IP address, as with any website.</li>
+      </ul>
+
+      <h3>Browser storage</h3>
+      <p>No cookies, ads, or analytics. The browser stores only your language choice, the side panel state, and the verifier token (verifiers only) in localStorage.</p>
+
+      <h3>Retention and deletion</h3>
+      <p>Reports are kept for the hackathon demo period and then deleted. A verifier can delete all citizen data of an incident at any time. To ask for deletion, open <a href="https://github.com/thrqsytr/fight-karhutla/issues" rel="noopener">GitHub Issues</a> and give the incident number only, without personal data.</p>
+    </article>
+  </main>
+
+  <footer class="footer" id="site-footer"></footer>
+  <script type="module" src="/doc.js"></script>
+</body>
+</html>

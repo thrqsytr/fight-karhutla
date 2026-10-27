@@ -135,3 +135,11 @@ def test_source_status_reports_last_real_result(settings):
     settings.fixture_mode = False
     source_status.record_firms(settings, False, "HTTP 503")
     assert source_status.snapshot(settings)["firms"]["state"] == "error"
+
+
+def test_information_pages_are_served_in_both_languages(settings):
+    with client(settings) as c:
+        for slug in ("about", "sources", "privacy", "terms", "license"):
+            r = c.get(f"/{slug}/")
+            assert r.status_code == 200, slug
+            assert 'article class="card doc-body" lang="id"' in r.text and 'lang="en"' in r.text
