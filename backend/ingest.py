@@ -63,8 +63,9 @@ def cluster_into_incidents(conn, *, now: datetime, simulation: bool = False) -> 
         if existing:
             # Merging two prior incidents is a human call; attach to the oldest and leave the others intact.
             inc_id = existing[0]
+            # enriched_at is cleared so the next enrichment run stores a fresh hotspot snapshot.
             conn.execute(
-                "UPDATE incidents SET lat=?, lon=?, last_seen=MAX(last_seen, ?), hotspot_count=hotspot_count+?, updated_at=? WHERE id=?",
+                "UPDATE incidents SET lat=?, lon=?, last_seen=MAX(last_seen, ?), hotspot_count=hotspot_count+?, enriched_at=NULL, updated_at=? WHERE id=?",
                 (lat, lon, last, len(unassigned), db.utcnow(), inc_id),
             )
             extended.append(inc_id)

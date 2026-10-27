@@ -96,6 +96,9 @@ def _failed_recently(ctx: ToolContext, type_: str) -> str | None:
 
 
 def _one_source(ctx: ToolContext, type_: str, compact) -> dict:
+    if type_ == "hotspot":
+        # Cheap and local: refresh the snapshot first if the cluster has grown since it was taken.
+        evidence.enrich_incident(ctx.settings, ctx.incident_id, sources={"hotspot"})
     found = _evidence_of(ctx.settings, ctx.incident_id, {type_})
     if not found and (reason := _failed_recently(ctx, type_)):
         return {"status": "unknown", "reason": reason[:300]}

@@ -136,7 +136,17 @@ def enrich_incident(settings: Settings, incident_id: str, *, osm_tiles_left: lis
             raise KeyError(incident_id)
         inc = dict(inc)
         have = {r["type"] for r in conn.execute("SELECT type FROM evidence WHERE incident_id=?", (incident_id,))}
-        hs = hotspot_evidence(conn, incident_id) if "hotspot" not in have and inc["hotspot_count"] else None
+        hs = None
+        if inc["hotspot_count"]:
+            last_hs = conn.execute(
+                "SELECT payload_json FROM evidence WHERE incident_id=? AND type='hotspot' ORDER BY rowid DESC LIMIT 1", (incident_id,)
+            ).fetchone()
+            # Evidence is a snapshot. When the cluster grows, store a new snapshot instead of letting the
+            # old count stand: the agent always reads the latest one.
+            stale = last_hs is not None and json.loads(last_hs[0]).get("count") != inc["hotspot_count"]
+            if last_hs is None or stale:
+                hs = hotspot_evidence(conn, incident_id)
+                have.discard("hotspot")
     status = json.loads(inc["enrichment_json"]) if inc["enrichment_json"] else {}
     at = datetime.fromisoformat(inc["last_seen"])
     # sources limits the work to some types, so an agent asking for weather never waits on Overpass.
@@ -191,8 +201,14 @@ def enrich_incident(settings: Settings, incident_id: str, *, osm_tiles_left: lis
             return status  # deleted while sources were being fetched
         # Re-check inside the write: a concurrent run may have stored the same type meanwhile.
         have_now = {r["type"] for r in conn.execute("SELECT type FROM evidence WHERE incident_id=?", (incident_id,))}
+        latest_hs = conn.execute(
+            "SELECT payload_json FROM evidence WHERE incident_id=? AND type='hotspot' ORDER BY rowid DESC LIMIT 1", (incident_id,)
+        ).fetchone()
         for type_, source, summary, payload in new:
-            if type_ not in have_now:
+            if type_ == "hotspot":
+                if latest_hs is None or json.loads(latest_hs[0]).get("count") != payload["count"]:
+                    db.add_evidence(conn, incident_id, type_, source, summary, payload)
+            elif type_ not in have_now:
                 db.add_evidence(conn, incident_id, type_, source, summary, payload)
         conn.execute(
             "UPDATE incidents SET enriched_at=?, enrichment_json=?, updated_at=? WHERE id=?",

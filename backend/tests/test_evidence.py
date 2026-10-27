@@ -166,3 +166,27 @@ def test_overpass_failure_stops_further_osm_calls_this_run(settings, monkeypatch
         sts = [conn.execute("SELECT enrichment_json FROM incidents WHERE id=?", (i,)).fetchone()[0] for i in r["partial"]]
     assert sum("all Overpass endpoints failed" in s for s in sts) == 1
     assert sum("deferred" in s for s in sts) == len(sts) - 1
+
+
+def test_hotspot_snapshot_is_refreshed_when_the_cluster_grows(settings):
+    _setup(settings)
+    r = evidence.run_enrichment(settings)
+    inc_id = r["complete"][0]
+    with db.session(settings.db_path) as conn:
+        n = conn.execute("SELECT hotspot_count FROM incidents WHERE id=?", (inc_id,)).fetchone()[0]
+        # Simulate two new detections joining the cluster after the first snapshot.
+        h = conn.execute("SELECT * FROM hotspots WHERE incident_id=? LIMIT 1", (inc_id,)).fetchone()
+        for k in (1, 2):
+            conn.execute("INSERT INTO hotspots (id, source, lat, lon, acquired_at, satellite, instrument, confidence, frp, daynight, incident_id, ingested_at) "
+                         "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", (f"{h['id']}-new{k}", h["source"], h["lat"], h["lon"], h["acquired_at"], h["satellite"],
+                                                             h["instrument"], "h", 50.0, h["daynight"], inc_id, h["ingested_at"]))
+        conn.execute("UPDATE incidents SET hotspot_count=hotspot_count+2, enriched_at=NULL WHERE id=?", (inc_id,))
+    evidence.enrich_incident(settings, inc_id)
+    with db.session(settings.db_path) as conn:
+        snaps = [e for e in db.list_evidence(conn, inc_id) if e["type"] == "hotspot"]
+    assert [s["payload"]["count"] for s in snaps] == [n, n + 2]
+    assert snaps[-1]["payload"]["max_frp_mw"] == 50.0
+    # Unchanged cluster: no duplicate snapshot.
+    evidence.enrich_incident(settings, inc_id)
+    with db.session(settings.db_path) as conn:
+        assert sum(1 for e in db.list_evidence(conn, inc_id) if e["type"] == "hotspot") == 2
