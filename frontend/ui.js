@@ -50,7 +50,8 @@ export const el = (tag, attrs = {}, ...children) => {
     else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
     else n.setAttribute(k, v === true ? "" : v);
   }
-  for (const c of children.flat()) if (c != null && c !== false) n.append(c);
+  // Flatten fully: sections pass nested arrays of optional parts.
+  for (const c of children.flat(Infinity)) if (c != null && c !== false) n.append(c);
   return n;
 };
 export const info = (text, cls = "") => el("span", { class: `info ${cls}`, tabindex: "0", "aria-label": "More information" }, svg("info", "icon icon-sm"), el("span", { class: "tip", role: "tooltip" }, text));

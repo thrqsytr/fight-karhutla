@@ -366,7 +366,7 @@ function evidenceRows(inc) {
       el("p", { class: "muted", style: "margin:4px 0 0;font-size:12px" }, e.payload.transcript ? `Transcript: ${e.payload.transcript}` : "Transcript pending"));
     // The report summary repeats the citizen's text, so show the full text once instead.
     const head = e.type === "report" ? `${e.type} · ${e.source}` : `${e.type} · ${e.source}: ${e.summary}`;
-    return el("div", { class: "ev" }, el("span", { class: "ev-id" }, e.id), el("div", { style: "flex:1;min-width:0" }, head, ...extra));
+    return el("div", { class: "ev", dataset: { ev: e.id } }, el("span", { class: "ev-id" }, e.id), el("div", { style: "flex:1;min-width:0" }, head, ...extra));
   });
   const photos = inc.evidence.filter((e) => e.type === "image" && e.payload.media_id);
   if (photos.length) rows.push(el("div", { class: "media-grid" }, ...photos.map((e) => photoTile(e.payload.media_id, `${e.id} citizen photo`))));
@@ -391,6 +391,82 @@ async function collectNow(id, btn) {
     toast(`Not collected: ${e.message}`, "alert");
     btn.disabled = false;
   }
+}
+
+/* Triage view: claims link to their evidence, disputes and gate actions are shown, never hidden. */
+function evidenceChip(id) {
+  return el("button", { class: "ev-chip", type: "button", title: `Show ${id}`, onclick: (e) => { e.stopPropagation(); focusEvidence(id); } }, id);
+}
+
+function focusEvidence(id) {
+  const row = document.querySelector(`[data-ev="${id}"]`);
+  if (!row) return toast(`${id} is not visible in this view`, "alert");
+  const sec = row.closest(".section");
+  if (sec && sec.dataset.open !== "true") sec.querySelector(".section-head").click();
+  row.scrollIntoView({ behavior: "smooth", block: "center" });
+  row.classList.remove("flash");
+  void row.offsetWidth;
+  row.classList.add("flash");
+}
+
+function claimRows(triage) {
+  if (!triage?.claims?.length) return [el("p", { class: "empty" }, "No claims passed the evidence gate.")];
+  return triage.claims.map((c) =>
+    el("div", { class: `claim ${c.disputed ? "is-disputed" : ""}` },
+      el("p", { class: "claim-text" }, c.text),
+      el("div", { class: "claim-meta" }, ...c.evidence_ids.map(evidenceChip),
+        c.disputed ? el("span", { class: "dispute" }, svg("alert", "icon icon-sm"), "Disputed: ", c.disputed) : null)));
+}
+
+function gateRows(gate) {
+  if (!gate) return [el("p", { class: "empty" }, "No gate result yet.")];
+  const pct = gate.grounding_rate == null ? "n/a" : `${Math.round(gate.grounding_rate * 100)}%`;
+  const rows = [el("div", { class: "stats-grid" },
+    el("div", { class: "stat" }, el("div", { class: "stat-v num" }, pct), el("div", { class: "stat-l" }, "Grounding rate")),
+    el("div", { class: "stat" }, el("div", { class: "stat-v num" }, `${gate.claims_passed}/${gate.claims_total}`), el("div", { class: "stat-l" }, "Claims passed")),
+    el("div", { class: "stat" }, el("div", { class: "stat-v num" }, String(gate.critique?.disputed?.length ?? 0)), el("div", { class: "stat-l" }, "Disputed")))];
+  const list = (label, items, fmt) => items?.length ? rows.push(el("div", { class: "gate-list" }, el("div", { class: "legend-label" }, label), ...items.map((x) => el("div", { class: "ev" }, fmt(x))))) : null;
+  list("Removed claims", gate.claims_dropped, (d) => `${d.text} (${d.reason})`);
+  list("Corrections", gate.corrections, (c) => `${c.where}: ${c.claimed} replaced with ${c.corrected ?? "nothing"}${c.note ? ` (${c.note})` : ""}`);
+  list("Content rule removals", gate.violations, (v) => `${v.where}, ${v.rule}: ${v.removed}`);
+  list("Status changes", gate.downgrades, (d) => d);
+  list("Not reviewed", gate.critique?.errors, (e) => e);
+  rows.push(el("p", { class: "muted", style: "margin:0;font-size:12px" },
+    `Triaged ${gate.triaged_at ? fmtTime(gate.triaged_at) : ""} in ${gate.seconds ?? "?"} s, metered cost $${(gate.cost_usd ?? 0).toFixed(4)}. Critique: ${(gate.critique?.providers || []).join(", ") || "none"}.`));
+  return rows;
+}
+
+function triageButton(inc) {
+  if (!token()) return null;
+  const running = inc.status === "triaging";
+  const b = el("button", { class: "btn btn-primary", type: "button" }, svg("activity", "icon icon-sm"), running ? "Triage running..." : inc.triage ? "Run triage again" : "Run triage");
+  b.disabled = running;
+  b.onclick = async () => {
+    b.disabled = true;
+    try {
+      await api(`/api/incidents/${inc.id}/triage`, { method: "POST" });
+      toast("Triage started. It takes about a minute.");
+      pollTriage(inc.id);
+    } catch (e) {
+      toast(`Not started: ${e.message}`, "alert");
+      b.disabled = false;
+    }
+  };
+  return el("div", { class: "actions" }, b);
+}
+
+let pollTimer;
+function pollTriage(id) {
+  clearTimeout(pollTimer);
+  const tick = async () => {
+    if (state.selected !== id) return;
+    try {
+      const inc = await api(`/api/incidents/${id}`);
+      if (inc.status !== "triaging") { openIncident(id); return; }
+    } catch { /* keep polling; a transient error is not a result */ }
+    pollTimer = setTimeout(tick, 5000);
+  };
+  pollTimer = setTimeout(tick, 4000);
 }
 
 async function openIncident(id) {
@@ -439,12 +515,21 @@ async function openIncident(id) {
       el("dt", {}, "First seen"), el("dd", {}, fmtTime(inc.first_seen)),
       el("dt", {}, "Last seen"), el("dd", {}, fmtTime(inc.last_seen)),
     ) }),
-    section({ icon: "file", title: "Dispatch brief", open: true, tip: "Written by the triage agent and checked by the evidence gate before it is shown. Indonesian first, English with the same content.",
-      content: triage ? [el("p", { class: "brief" }, triage.dispatch_brief.id), el("p", { class: "brief-en" }, triage.dispatch_brief.en)]
-                      : el("p", { class: "empty" }, "Not triaged yet. The triage agent runs once the Meta Model API is connected.") }),
-    section({ icon: "shield", title: "Evidence gate", tip: "Share of agent claims that cite real, stored evidence. Claims without evidence are removed, never shown as fact.",
-      content: gate ? el("p", { class: "brief" }, `Grounding rate ${gate.grounding_rate == null ? "n/a" : Math.round(gate.grounding_rate * 100) + "%"}, ${gate.claims_passed} of ${gate.claims_total} claims passed.`)
-                    : el("p", { class: "empty" }, "No gate result yet.") }),
+    section({ icon: "file", title: "Dispatch brief", open: true, live: inc.status === "triaging",
+      tip: "Written by Muse Spark 1.3 from the claims below, then checked by the evidence gate and a second model. Indonesian first, English with the same content. Nothing is sent to anyone automatically.",
+      content: [
+        triage?.hidden ? el("p", { class: "empty" }, "Built on citizen evidence: shown after a verifier approves.")
+          : triage ? [el("p", { class: "brief" }, triage.dispatch_brief.id), el("p", { class: "brief-en" }, triage.dispatch_brief.en),
+                      triage.dispatch_brief.disputed ? el("span", { class: "dispute" }, svg("alert", "icon icon-sm"), "Brief disputed: ", triage.dispatch_brief.disputed.join(" ")) : null,
+                      triage.uncertainties?.length ? el("div", { class: "gate-list" }, el("div", { class: "legend-label" }, "Uncertainties"), ...triage.uncertainties.map((u) => el("div", { class: "ev" }, u))) : null]
+          : el("p", { class: "empty" }, inc.status === "triaging" ? "Triage is running..." : "Not triaged yet."),
+        triageButton(inc),
+      ] }),
+    section({ icon: "check", title: "Claims", count: triage?.claims?.length ?? 0, open: !!triage?.claims?.length,
+      tip: "Each claim cites stored evidence. Click an ID to see it. A disputed claim was flagged by the critique model as not supported by its evidence.",
+      content: claimRows(triage) }),
+    section({ icon: "shield", title: "Evidence gate", tip: "Deterministic checks between the model and the verifier: schema, evidence existence, numbers against tool results, area from real masks, location, and content rules. Every change is listed.",
+      content: gateRows(gate) }),
     section({ icon: "activity", title: "Evidence", count: inc.evidence.length, open: inc.evidence.length > 0, tip: "Every tool result is stored with a numbered ID. Claims link to these IDs. Citizen photos, voice, and text are shown to verifiers only.",
       content: [...evidenceRows(inc), token() ? el("div", { class: "actions" }, (() => { const b = el("button", { class: "btn", type: "button" }, svg("activity", "icon icon-sm"), "Collect missing evidence"); b.onclick = () => collectNow(inc.id, b); return b; })()) : null] }),
     section({ icon: "flame", title: "Hotspots", count: inc.hotspots.length, live: recent, tip: "NASA FIRMS detections. Confidence l, n, h means low, nominal, high.",
