@@ -27,9 +27,10 @@ Not built yet: WhatsApp intake, Sentinel-2 dNBR, the drone survey simulator, rep
 
 | Model | Role |
 | --- | --- |
-| Muse Spark 1.3 | Triage agent with tool calling and structured output; critique pass |
-| SAM 3.1 | Smoke, flame, and burn scar masks; area in hectares computed by code from pixels |
-| Muse Voice Transcribe | Transcribes citizen voice notes |
+| Muse Spark 1.3 (Meta Model API) | Triage agent with tool calling and structured output; reads citizen photos; reviews claims that rest on citizen evidence |
+| Muse Spark Open (Baseten) | Critique pass over claims and briefs built on public evidence only |
+| SAM 3.1 (Meta Model API) | Masks burned ground and objects on photos, with concepts chosen by Muse Spark. In our tests it found no smoke on photos and nothing on a satellite image, so hectares come only from nadir drone frames with known ground pixel size |
+| Muse Voice Transcribe (Meta Model API) | Transcribes Indonesian voice notes |
 
 ## Run locally
 
