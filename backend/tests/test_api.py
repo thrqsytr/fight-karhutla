@@ -112,3 +112,26 @@ def test_static_files_are_revalidated_not_heuristically_cached(settings):
         r = c.get("/app.js")
         assert r.status_code == 200 and r.headers["cache-control"] == "no-cache" and r.headers.get("etag")
         assert c.get("/app.js", headers={"If-None-Match": r.headers["etag"]}).status_code == 304
+
+
+def test_source_status_reports_last_real_result(settings):
+    import json
+
+    from backend import db, source_status
+
+    with client(settings) as c:
+        s = c.get("/api/sources").json()
+        assert s["firms"]["state"] == "sim" and s["firms"]["newest_acquisition"]
+        assert s["weather"]["state"] == "sim"  # fixture answers never read as live
+        with db.session(settings.db_path) as conn:
+            ids = [r[0] for r in conn.execute("SELECT id FROM incidents ORDER BY id LIMIT 2")]
+            # The newest result is a skipped call, so the one before it decides: a real Overpass failure.
+            conn.execute("UPDATE incidents SET enriched_at='2099-01-01T00:00:02+00:00', enrichment_json=? WHERE id=?",
+                         (json.dumps({"osm": "failed: deferred, Overpass budget for this run is used"}), ids[0]))
+            conn.execute("UPDATE incidents SET enriched_at='2099-01-01T00:00:01+00:00', enrichment_json=? WHERE id=?",
+                         (json.dumps({"osm": "failed: all Overpass endpoints timed out"}), ids[1]))
+        osm = c.get("/api/sources").json()["osm"]
+        assert osm["state"] == "error" and "timed out" in osm["detail"]
+    settings.fixture_mode = False
+    source_status.record_firms(settings, False, "HTTP 503")
+    assert source_status.snapshot(settings)["firms"]["state"] == "error"

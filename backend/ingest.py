@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from . import db
+from . import db, source_status
 from .config import Settings
 from .geo import Point, centroid, cluster_points, haversine_m
 from .sources import firms
@@ -84,14 +84,21 @@ def cluster_into_incidents(conn, *, now: datetime, simulation: bool = False) -> 
 
 def run_once(settings: Settings, *, now: datetime | None = None, days: int = 2) -> dict:
     now = now or datetime.now(timezone.utc)
-    hotspots = firms.get_area(
-        INDONESIA_FIRMS_BBOX,
-        days,
-        map_key=settings.firms_map_key,
-        cache_dir=settings.cache_dir,
-        fixtures_dir=settings.fixtures_dir,
-        fixture=settings.fixture_mode,
-    )
+    try:
+        hotspots = firms.get_area(
+            INDONESIA_FIRMS_BBOX,
+            days,
+            map_key=settings.firms_map_key,
+            cache_dir=settings.cache_dir,
+            fixtures_dir=settings.fixtures_dir,
+            fixture=settings.fixture_mode,
+        )
+    except Exception as exc:
+        if not settings.fixture_mode:
+            source_status.record_firms(settings, False, str(exc))
+        raise
+    if not settings.fixture_mode:
+        source_status.record_firms(settings, True, f"{len(hotspots)} hotspots fetched")
     if settings.fixture_mode:
         # Fixture data is frozen; anchor the lookback on its newest hotspot so clustering is reproducible.
         now = max(datetime.fromisoformat(h.acquired_at) for h in hotspots) if hotspots else now

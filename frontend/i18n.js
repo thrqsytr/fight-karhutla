@@ -45,9 +45,15 @@ export function langSwitch(el) {
    reasons, error details) stays as the server wrote it. */
 export const DASHBOARD_ID = {
   "Verified wildfire triage for Indonesia": "Triase karhutla terverifikasi untuk Indonesia",
-  "Human decides": "Manusia memutuskan",
-  "Every incident ends as needs_human. Nothing is sent to anyone automatically. A verifier approves or rejects.":
-    "Setiap insiden berakhir dengan status perlu manusia. Tidak ada yang dikirim otomatis ke siapa pun. Verifikator yang menyetujui atau menolak.",
+  "The AI only gathers evidence and drafts a recommendation. A human verifier approves or rejects every incident; nothing is sent to anyone automatically.":
+    "AI hanya mengumpulkan bukti dan menyusun rekomendasi. Verifikator manusia yang menyetujui atau menolak setiap insiden; tidak ada yang dikirim otomatis ke siapa pun.",
+  "Zoom in": "Perbesar", "Zoom out": "Perkecil",
+  "NASA FIRMS satellite hotspots (VIIRS and MODIS), fetched every 30 minutes.": "Titik panas satelit NASA FIRMS (VIIRS dan MODIS), diambil setiap 30 menit.",
+  "NASA GIBS satellite layers for the map, checked from this browser.": "Lapisan citra satelit NASA GIBS untuk peta, dicek dari browser ini.",
+  "Wind, humidity, and rain evidence for each incident.": "Bukti angin, kelembapan, dan hujan untuk setiap insiden.",
+  "Nearby settlements, roads, and water from OpenStreetMap (Overpass).": "Permukiman, jalan, dan perairan terdekat dari OpenStreetMap (Overpass).",
+  "On": "Aktif", "Down": "Gangguan", "Simulation": "Simulasi", "Not checked": "Belum dicek",
+  "Newest pass: {when}.": "Lintasan terbaru: {when}.", "Last checked: {when}.": "Terakhir dicek: {when}.",
   "Report": "Lapor",
   "Incidents": "Insiden",
   "Hotspots within 2 km and 24 hours are grouped into one incident. A hotspot is a thermal anomaly, not a confirmed fire.":

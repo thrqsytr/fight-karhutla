@@ -29,6 +29,8 @@ export const ICONS = {
   send: '<path d="M4 12l16-8-6 16-3-6-7-2z"/>',
   play: '<path d="M7 5l12 7-12 7z"/>',
   arrow: '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>',
+  plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+  minus: '<path d="M5 12h14"/>',
   image: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>',
 };
 export const svg = (name, cls = "icon") => {
@@ -55,6 +57,35 @@ export const el = (tag, attrs = {}, ...children) => {
   for (const c of children.flat(Infinity)) if (c != null && c !== false) n.append(c);
   return n;
 };
+/* (i) tooltips are drawn in one fixed layer above everything, so a scrolling panel or a map card
+   can never clip them. The text inside each .info stays in place for screen readers. */
+let tipLayer;
+function showTip(anchor) {
+  const src = anchor.querySelector(".tip");
+  if (!src) return;
+  if (!tipLayer) { tipLayer = el("div", { class: "tip-layer", "aria-hidden": "true" }); document.body.append(tipLayer); }
+  tipLayer.textContent = src.textContent;
+  tipLayer.style.left = "0px";
+  tipLayer.style.top = "0px";
+  const a = anchor.getBoundingClientRect();
+  const b = tipLayer.getBoundingClientRect();
+  const m = 8;
+  const left = Math.max(m, Math.min(a.left + a.width / 2 - b.width / 2, innerWidth - b.width - m));
+  let top = a.bottom + 6;
+  if (top + b.height > innerHeight - m) top = a.top - b.height - 6;
+  tipLayer.style.left = `${left}px`;
+  tipLayer.style.top = `${Math.max(m, top)}px`;
+  tipLayer.classList.add("show");
+}
+const hideTip = () => tipLayer?.classList.remove("show");
+document.addEventListener("pointerover", (e) => { const a = e.target.closest?.(".info"); if (a) showTip(a); });
+document.addEventListener("pointerout", (e) => { const a = e.target.closest?.(".info"); if (a && !a.contains(e.relatedTarget)) hideTip(); });
+document.addEventListener("focusin", (e) => { const a = e.target.closest?.(".info"); if (a) showTip(a); else hideTip(); });
+document.addEventListener("focusout", hideTip);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideTip(); });
+addEventListener("scroll", hideTip, true);
+addEventListener("resize", hideTip);
+
 export const info = (text, cls = "") => el("span", { class: `info ${cls}`, tabindex: "0", "aria-label": "More information" }, svg("info", "icon icon-sm"), el("span", { class: "tip", role: "tooltip" }, text));
 
 export function hydrateIcons(root = document) {

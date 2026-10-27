@@ -73,7 +73,7 @@ const fill = (node, ...kids) => node.replaceChildren(...kids.flat(Infinity).filt
 const state = {
   incidents: [], hotspots: [], stats: null, filter: "all", sort: "heat", q: "", shown: PAGE, selected: null, recentSince: null,
   layers: { heatmap: true, hotspots: true, incidents: true, truecolor: false, aod: false, aerosolindex: false },
-  picking: false, control: null,
+  picking: false, control: null, sources: { gibs: { state: "unknown" } },
 };
 const picked = new Set();
 
@@ -98,16 +98,59 @@ function renderKpis() {
 let map;
 let popup;
 
-/** A one-button map control, styled like the zoom buttons. */
-function mapButton(icon, title, onClick) {
-  return {
-    onAdd() {
-      this.box = el("div", { class: "maplibregl-ctrl maplibregl-ctrl-group" },
-        el("button", { type: "button", class: "map-btn", title, "aria-label": title, onclick: onClick }, svg(icon, "icon icon-sm")));
-      return this.box;
-    },
-    onRemove() { this.box.remove(); },
-  };
+/* View controls: zoom and reset in one horizontal group above the source status and the legend. */
+function renderViewControls() {
+  const btn = (icon, label, onclick) => el("button", { type: "button", class: "map-btn", title: label, "aria-label": label, onclick }, svg(icon, "icon icon-sm"));
+  fill($("#view-controls"),
+    btn("plus", t("Zoom in"), () => map?.zoomIn()),
+    btn("minus", t("Zoom out"), () => map?.zoomOut()),
+    btn("reset", t("Reset map view"), () => map?.flyTo({ ...HOME_VIEW, speed: 1.6 })));
+}
+
+/* Source status: what the app last observed from each source, so a verifier knows what is current. */
+const SOURCES = [
+  { key: "firms", name: "FIRMS", tip: "NASA FIRMS satellite hotspots (VIIRS and MODIS), fetched every 30 minutes." },
+  { key: "gibs", name: "GIBS", tip: "NASA GIBS satellite layers for the map, checked from this browser." },
+  { key: "weather", name: "Open-Meteo", tip: "Wind, humidity, and rain evidence for each incident." },
+  { key: "osm", name: "OSM", tip: "Nearby settlements, roads, and water from OpenStreetMap (Overpass)." },
+];
+const SRC_STATE = { ok: "On", error: "Down", sim: "Simulation", unknown: "Not checked" };
+const SOURCES_REFRESH_MS = 5 * 60e3;
+
+function renderSources() {
+  fill($("#src-status"), SOURCES.map((s, i) => {
+    const v = state.sources[s.key] || { state: "unknown" };
+    const lines = [t(s.tip)];
+    if (v.newest_acquisition) lines.push(t("Newest pass: {when}.", { when: fmtTime(v.newest_acquisition) }));
+    if (v.checked_at) lines.push(t("Last checked: {when}.", { when: fmtTime(v.checked_at) }));
+    if (v.state === "error" && v.detail) lines.push(v.detail);
+    return [
+      i ? el("span", { class: "src-sep", "aria-hidden": "true" }) : null,
+      el("span", { class: "info src-item", tabindex: "0", dataset: { state: v.state } },
+        el("span", { class: "src-dot" }), el("span", { class: "src-name" }, s.name), el("span", { class: "src-state" }, t(SRC_STATE[v.state] || SRC_STATE.unknown)),
+        el("span", { class: "tip", role: "tooltip" }, lines.join(" "))),
+    ];
+  }));
+}
+
+async function loadSources() {
+  const s = await api("/api/sources").catch(() => null);
+  if (s) Object.assign(state.sources, s);
+  renderSources();
+}
+
+function setGibs(st, detail = null) {
+  state.sources.gibs = { state: st, checked_at: new Date().toISOString(), detail };
+  renderSources();
+}
+
+// One small tile tells whether GIBS answers, before any NASA layer is switched on.
+function probeGibs() {
+  const L = NASA_LAYERS[1];
+  const img = new Image();
+  img.onload = () => setGibs("ok");
+  img.onerror = () => setGibs("error", "GIBS tile request failed");
+  img.src = `${GIBS}/${L.id}/default/default/${L.tms}/0/0/0.${L.ext}`;
 }
 
 async function initMap() {
@@ -119,8 +162,7 @@ async function initMap() {
   }
   // hash keeps the view in the URL (#map=zoom/lat/lon) so a verifier can share an exact map position.
   map = new maplibregl.Map({ container: "map", style: BASEMAP_STYLE, ...HOME_VIEW, hash: "map", attributionControl: { compact: true } });
-  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-  map.addControl(mapButton("reset", t("Reset map view"), () => map.flyTo({ ...HOME_VIEW, speed: 1.6 })), "top-right");
+  map.on("error", (e) => { if (String(e.sourceId || "").startsWith("nasa-") && state.sources.gibs.state !== "error") setGibs("error", e.error?.message || "GIBS tile failed"); });
   map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
   popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
   await new Promise((resolve) => map.on("load", resolve));
@@ -883,9 +925,11 @@ async function main() {
   hydrateIcons();
   $("#lang-slot").replaceWith(langSwitch(el));
   $("#attrib").textContent = (CFG.attributions || []).join(" · ");
-  const pill = $("#mode-pill");
-  if (CFG.fixtureMode) { pill.className = "pill pill-sim"; pill.textContent = "SIMULASI"; }
-  else { pill.className = "pill pill-live"; fill(pill, el("span", { class: "pulse" }), t("Live FIRMS")); }
+  renderViewControls();
+  renderSources();
+  loadSources();
+  probeGibs();
+  setInterval(loadSources, SOURCES_REFRESH_MS);
   $("#panel-toggle").addEventListener("click", () => applyPanel(!document.body.classList.contains("panel-hidden")));
   applyPanel(localStorage.getItem(PANEL_KEY) === "1");
   // Start every request at once. The list and KPIs render as soon as their data lands;

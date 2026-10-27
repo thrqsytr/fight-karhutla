@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Res
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import agent, db, evidence, ingest, intake, reports, triage_control
+from . import agent, db, evidence, ingest, intake, reports, source_status, triage_control
 from .config import Settings, get_settings
 from .sources import firms, osm, weather
 
@@ -273,6 +273,12 @@ def stats(request: Request, settings: Settings = Depends(get_settings)) -> Respo
                 (since,),
             ).fetchone()[0]
     return etag_json(request, out, private=False)
+
+
+@app.get("/api/sources")
+def sources(request: Request, settings: Settings = Depends(get_settings)) -> Response:
+    """Last observed health of FIRMS, Open-Meteo, and Overpass. NASA GIBS is checked by the browser."""
+    return etag_json(request, source_status.snapshot(settings), private=False)
 
 
 async def _read_capped(f: UploadFile, cap: int) -> bytes:

@@ -18,19 +18,16 @@
       <span class="brand-mark" aria-hidden="true"><span data-icon="flame"></span></span>
       <div>
         <h1>Fight Karhutla</h1>
-        <p class="tagline" data-i18n="Verified wildfire triage for Indonesia">Verified wildfire triage for Indonesia</p>
+        <p class="tagline"><span data-i18n="Verified wildfire triage for Indonesia">Verified wildfire triage for Indonesia</span>
+          <span class="info" tabindex="0" aria-label="About decisions"><span data-icon="info" class="icon-sm"></span>
+            <span class="tip" role="tooltip" data-i18n="The AI only gathers evidence and drafts a recommendation. A human verifier approves or rejects every incident; nothing is sent to anyone automatically.">The AI only gathers evidence and drafts a recommendation. A human verifier approves or rejects every incident; nothing is sent to anyone automatically.</span>
+          </span></p>
       </div>
     </div>
     <div class="kpis" id="kpis" aria-label="Headline numbers"></div>
     <div class="topbar-right">
-      <span id="mode-pill" class="pill"></span>
       <span id="lang-slot"></span>
       <a class="btn btn-report" href="/lapor/"><span data-icon="camera" class="icon-sm"></span><span data-i18n="Report">Report</span></a>
-      <span class="pill pill-human"><span data-icon="shield" class="icon-sm"></span><span data-i18n="Human decides">Human decides</span>
-        <span class="info tip-right" tabindex="0" aria-label="About decisions"><span data-icon="info" class="icon-sm"></span>
-          <span class="tip" role="tooltip" data-i18n="Every incident ends as needs_human. Nothing is sent to anyone automatically. A verifier approves or rejects.">Every incident ends as needs_human. Nothing is sent to anyone automatically. A verifier approves or rejects.</span>
-        </span>
-      </span>
     </div>
   </header>
 
@@ -66,7 +63,11 @@
       <button class="panel-toggle overlay" id="panel-toggle" type="button" aria-label="Hide panel"></button>
       <div id="map" class="map"></div>
       <div class="map-note card overlay" id="map-note" hidden></div>
-      <div class="legend card section" id="legend" data-open="true"></div>
+      <div class="map-stack">
+        <div class="view-controls card overlay" id="view-controls" role="group" aria-label="Map view"></div>
+        <div class="src-status card overlay" id="src-status" aria-label="Data sources"></div>
+        <div class="legend card section" id="legend" data-open="true"></div>
+      </div>
     </div>
   </main>
 
