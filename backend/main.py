@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Res
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import db, evidence, ingest, reports
+from . import agent, db, evidence, ingest, intake, reports
 from .config import Settings, get_settings
 from .sources import firms, osm, weather
 
@@ -49,6 +49,11 @@ def _start_scheduler(settings: Settings) -> BackgroundScheduler | None:
             evidence.run_enrichment(settings)
         except Exception:
             log.exception("scheduled evidence enrichment failed")
+        if settings.auto_triage and settings.model_api_key:
+            try:
+                auto_triage(settings)
+            except Exception:
+                log.exception("scheduled triage failed")
 
     sched.add_job(job, "interval", minutes=settings.firms_poll_minutes, id="firms", next_run_time=datetime.now(timezone.utc))
     sched.start()
@@ -200,7 +205,14 @@ def get_incident(incident_id: str, verifier: bool = Depends(is_verifier), settin
     if not verifier:
         inc = _public_view(inc)
         # Citizen photos and voice are visible to verifiers only.
+        private_ids = {e["id"] for e in evidence if e["type"] in PRIVATE_EVIDENCE}
         evidence = [e for e in evidence if e["type"] not in PRIVATE_EVIDENCE]
+        approved = bool(verdicts) and verdicts[-1]["decision"] == "approve"
+        tri = inc.get("triage")
+        if tri and not approved and any(set(c["evidence_ids"]) & private_ids for c in tri.get("claims", [])):
+            # A brief built on citizen evidence can quote the citizen, so it stays private until a human approves.
+            inc["triage"] = {"status": tri["status"], "hidden": "awaiting human verification"}
+            inc["gate"] = None
         for h in hotspots:
             h["lat"], h["lon"] = round(h["lat"], PUBLIC_COORD_DECIMALS), round(h["lon"], PUBLIC_COORD_DECIMALS)
     return {**inc, "evidence": evidence, "hotspots": hotspots, "verdicts": verdicts}
@@ -271,6 +283,10 @@ async def _read_capped(f: UploadFile, cap: int) -> bytes:
 
 
 def _enrich_after_report(settings: Settings, incident_id: str) -> None:
+    try:
+        intake.process(settings, incident_id)
+    except Exception:
+        log.exception("media processing after report failed for %s", incident_id)
     try:
         evidence.enrich_incident(settings, incident_id, osm_tiles_left=[1])
     except Exception:
@@ -349,6 +365,57 @@ def get_media(media_id: str, settings: Settings = Depends(get_settings)) -> File
     return FileResponse(path, media_type=mime, headers={"Cache-Control": "private, max-age=3600"})
 
 
+STALE_RUN_MINUTES = 15
+
+
+def auto_triage(settings: Settings) -> list[dict]:
+    """Triage the highest-priority untriaged incidents, bounded per run because each one spends Meta credit."""
+    with db.session(settings.db_path) as conn:
+        rows = conn.execute(
+            """SELECT i.id FROM incidents i
+               WHERE i.triage_json IS NULL AND i.status = 'pending_triage' AND i.enriched_at IS NOT NULL
+                 AND NOT EXISTS (SELECT 1 FROM agent_runs r WHERE r.incident_id = i.id AND r.outcome != 'ok')
+               ORDER BY (i.trigger != 'hotspot_cluster') DESC, i.hotspot_count DESC, i.id LIMIT ?""",
+            (settings.triage_budget_per_run,),
+        ).fetchall()
+    return [agent.triage(settings, r["id"]) for r in rows]
+
+
+def _run_triage(settings: Settings, incident_id: str) -> None:
+    try:
+        intake.process(settings, incident_id)
+        agent.triage(settings, incident_id)
+    except Exception:
+        log.exception("triage task failed for %s", incident_id)
+
+
+@app.post("/api/incidents/{incident_id}/triage", status_code=202, dependencies=[Depends(require_verifier)])
+def start_triage(incident_id: str, background: BackgroundTasks, settings: Settings = Depends(get_settings)) -> dict:
+    """Start a triage run in the background. It takes about a minute; poll the incident for the result."""
+    if not settings.model_api_key:
+        raise HTTPException(status_code=503, detail="MODEL_API_KEY is not configured")
+    with db.session(settings.db_path) as conn:
+        if not conn.execute("SELECT 1 FROM incidents WHERE id=?", (incident_id,)).fetchone():
+            raise HTTPException(status_code=404, detail="incident not found")
+        running = conn.execute(
+            "SELECT started_at FROM agent_runs WHERE incident_id=? AND outcome='running' ORDER BY id DESC LIMIT 1", (incident_id,)
+        ).fetchone()
+    if running and datetime.fromisoformat(running["started_at"]) > datetime.now(timezone.utc) - timedelta(minutes=STALE_RUN_MINUTES):
+        raise HTTPException(status_code=409, detail="a triage run is already in progress for this incident")
+    background.add_task(_run_triage, settings, incident_id)
+    return {"incident_id": incident_id, "status": "triaging"}
+
+
+@app.get("/api/incidents/{incident_id}/runs", dependencies=[Depends(require_verifier)])
+def list_runs(incident_id: str, settings: Settings = Depends(get_settings)) -> dict:
+    """Agent run history with outcome, duration, metered cost, and tool calls."""
+    with db.session(settings.db_path) as conn:
+        rows = [dict(r) for r in conn.execute("SELECT * FROM agent_runs WHERE incident_id=? ORDER BY id DESC LIMIT 20", (incident_id,))]
+    for r in rows:
+        r["detail"] = json.loads(r.pop("detail_json")) if r.get("detail_json") else None
+    return {"count": len(rows), "items": rows}
+
+
 @app.post("/api/incidents/{incident_id}/enrich", dependencies=[Depends(require_verifier)])
 def enrich(incident_id: str, settings: Settings = Depends(get_settings)) -> dict:
     """Collect missing evidence for one incident now, regardless of the automatic priority thresholds."""
@@ -370,6 +437,16 @@ def replay_start() -> JSONResponse:
     return JSONResponse(status_code=501, content={"detail": "replay mode is not built yet"})
 
 
+class RevalidatedStaticFiles(StaticFiles):
+    """Without Cache-Control, browsers cache JS and CSS heuristically and can keep running an old build
+    after a deploy. no-cache forces a revalidation each time; an unchanged file costs a 304."""
+
+    def file_response(self, *args, **kwargs):
+        resp = super().file_response(*args, **kwargs)
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
+
 settings_for_static = get_settings()
 if settings_for_static.frontend_dir.exists():
-    app.mount("/", StaticFiles(directory=settings_for_static.frontend_dir, html=True), name="frontend")
+    app.mount("/", RevalidatedStaticFiles(directory=settings_for_static.frontend_dir, html=True), name="frontend")

@@ -105,3 +105,10 @@ def test_citizen_report_is_public_only_after_approval(settings):
         c.post("/api/incidents/INC-20261027-9001/verdict", json={"decision": "approve"}, headers=AUTH)
         assert "INC-20261027-9001" in ids()
         assert c.get("/api/incidents/INC-20261027-9001").status_code == 200
+
+
+def test_static_files_are_revalidated_not_heuristically_cached(settings):
+    with client(settings) as c:
+        r = c.get("/app.js")
+        assert r.status_code == 200 and r.headers["cache-control"] == "no-cache" and r.headers.get("etag")
+        assert c.get("/app.js", headers={"If-None-Match": r.headers["etag"]}).status_code == 304
