@@ -5,6 +5,7 @@ A report within 2 km and 24 h of an existing incident joins it; otherwise it ope
 """
 
 import hashlib
+import shutil
 import io
 import json
 import re
@@ -138,6 +139,7 @@ def delete_citizen_data(conn, data_dir: Path, incident_id: str) -> dict:
         conn.execute("DELETE FROM evidence WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM verdicts WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM incidents WHERE id=?", (incident_id,))
+        shutil.rmtree(data_dir / "satellite" / incident_id, ignore_errors=True)
     else:
         conn.execute("UPDATE incidents SET trigger='hotspot_cluster', reporter_count=0, updated_at=? WHERE id=?", (db.utcnow(), incident_id))
     return {"incident_id": incident_id, "evidence_removed": len(rows), "files_removed": files, "incident_removed": removed_incident}

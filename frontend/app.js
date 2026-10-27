@@ -64,6 +64,7 @@ async function api(path, opts = {}) {
 const fmtTime = (iso) =>
   new Date(iso).toLocaleString(locale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Makassar" }) + " WITA";
 const fmtNum = (n) => (n == null ? t("n/a") : Number(n).toLocaleString(locale()));
+const fmtDate = (iso) => new Date(iso).toLocaleDateString(locale(), { day: "numeric", month: "short", year: "numeric" });
 const fmtFrp = (v) => (v == null ? t("n/a") : `${Number(v).toLocaleString(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MW`);
 
 /** replaceChildren that skips null and false, which the DOM would otherwise print as text. */
@@ -113,6 +114,7 @@ const SOURCES = [
   { key: "gibs", name: "GIBS", tip: "NASA GIBS satellite layers for the map, checked from this browser." },
   { key: "weather", name: "Open-Meteo", tip: "Wind, humidity, and rain evidence for each incident." },
   { key: "osm", name: "OSM", tip: "Nearby settlements, roads, and water from OpenStreetMap (Overpass)." },
+  { key: "sentinel2", name: "Sentinel-2", tip: "Sentinel-2 before and after images for burn scars, fetched on request." },
 ];
 const SRC_STATE = { ok: "On", error: "Down", sim: "Simulation", unknown: "Not checked" };
 const SOURCES_REFRESH_MS = 5 * 60e3;
@@ -417,6 +419,7 @@ function incidentCard(i) {
 
 function renderList() {
   state.selected = null;
+  showBurnMask(null);
   if (map?.getLayer("incident-selected")) map.setFilter("incident-selected", ["==", ["get", "id"], ""]);
   crumbs([{ label: t("Incidents") }]);
   $("#list-view").hidden = false;
@@ -549,6 +552,78 @@ function evidenceRows(inc) {
   }
   if (!rows.length) rows.push(el("p", { class: "empty" }, t(inc.enriched_at ? "No evidence collected." : "Not collected yet. Small clusters are collected on request.")));
   return rows;
+}
+
+/* Sentinel-2: before and after images, the burn scar, and the numbers the code measured. */
+const satUrl = (inc, name) => `/api/satellite/${encodeURIComponent(inc.id)}/${encodeURIComponent(name)}`;
+
+function showBurnMask(inc, ev) {
+  // The detail view can open before the map has loaded; draw once it has.
+  state.mapReady?.then(() => drawBurnMask(inc, ev));
+}
+
+function drawBurnMask(inc, ev) {
+  if (!map) return;
+  if (map.getLayer("burn-mask")) map.removeLayer("burn-mask");
+  if (map.getSource("burn-mask")) map.removeSource("burn-mask");
+  const p = ev?.payload;
+  if (!inc || !p?.images?.mask || !p.image_corners) return;
+  map.addSource("burn-mask", { type: "image", url: satUrl(inc, p.images.mask), coordinates: p.image_corners });
+  // Under the hotspots so the detections stay readable on top of the scar.
+  map.addLayer({ id: "burn-mask", type: "raster", source: "burn-mask", paint: { "raster-opacity": 0.8, "raster-fade-duration": 200 } }, map.getLayer("hotspots") ? "hotspots" : undefined);
+}
+
+function satelliteContent(inc) {
+  const ev = [...inc.evidence].reverse().find((e) => e.type === "satellite");
+  const fetchBtn = token() ? (() => {
+    const b = el("button", { class: "btn", type: "button" }, svg("satellite", "icon icon-sm"), t(ev ? "Check for a newer pair" : "Find Sentinel-2 images"));
+    b.onclick = () => fetchSatellite(inc.id, b);
+    return el("div", { class: "actions" }, b);
+  })() : null;
+  if (!ev) return [el("p", { class: "empty" }, t("No Sentinel-2 pair yet. Clouds often cover the area; a pass comes about every 5 days.")), fetchBtn];
+  const p = ev.payload;
+  const views = [["overlay", t("Burn scar")], ["post", t("After")], ["pre", t("Before")]].filter(([k]) => p.images?.[k]);
+  const img = el("img", { class: "sat-img", alt: t("Sentinel-2 image"), loading: "lazy" });
+  const seg = el("div", { class: "segmented", role: "group", "aria-label": t("Sentinel-2 view") });
+  const pick = (k) => {
+    img.src = satUrl(inc, p.images[k]);
+    seg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === k)));
+  };
+  views.forEach(([k, label]) => seg.append(el("button", { type: "button", dataset: { k }, "aria-pressed": "false", onclick: () => pick(k) }, label)));
+  if (views.length) pick(views[0][0]);
+  const scene = (s) => `${fmtDate(s.datetime)} · ${t("{pct}% clear", { pct: Math.round(s.aoi_clear_frac * 100) })} · AOT ${s.aot_median}`;
+  const ha = (v) => (v == null ? t("not claimed") : `${fmtNum(v)} ha`);
+  const showOnMap = el("button", { class: "btn", type: "button", onclick: () => { showBurnMask(inc, ev); map?.fitBounds([p.image_corners[3], p.image_corners[1]], { padding: 60, duration: 800 }); } },
+    svg("layers", "icon icon-sm"), t("Show scar on map"));
+  return [
+    el("div", { class: "sat-head" }, el("span", { class: "ev-id" }, ev.id), seg),
+    views.length ? img : null,
+    p.status === "hazy" ? el("span", { class: "dispute" }, svg("alert", "icon icon-sm"), t("Heavy haze: no hectares are claimed from this pair.")) : null,
+    el("dl", { class: "kv" },
+      el("dt", {}, t("Burned area")), el("dd", {}, el("strong", { class: "num" }, ha(p.burned_area_ha)), " ", el("span", { class: "muted" }, `dNBR ≥ ${fmtNum(p.dnbr_threshold)}`)),
+      el("dt", {}, t("Low severity")), el("dd", { class: "num" }, ha(p.low_severity_area_ha)),
+      el("dt", {}, t("Clear ground")), el("dd", { class: "num" }, `${fmtNum(p.clear_area_ha)} ha`),
+      el("dt", {}, t("Before")), el("dd", {}, scene(p.pre)),
+      el("dt", {}, t("After")), el("dd", {}, scene(p.post)),
+    ),
+    el("p", { class: "muted", style: "margin:0;font-size:11px" }, p.attribution || "Contains modified Copernicus Sentinel data"),
+    el("div", { class: "actions" }, p.images?.mask ? showOnMap : null, fetchBtn?.firstChild || null),
+  ];
+}
+
+async function fetchSatellite(id, btn) {
+  btn.disabled = true;
+  const label = btn.lastChild.textContent;
+  btn.lastChild.textContent = t("Searching Sentinel-2...");
+  try {
+    const r = await api(`/api/incidents/${id}/satellite`, { method: "POST" });
+    if (r.evidence_id) { toast(t(r.reused ? "Pair checked in the last 24 hours; showing it." : "Sentinel-2 pair stored as {id}.", { id: r.evidence_id }), "check"); openIncident(id); return; }
+    toast(t("No pair: {why}", { why: r.reason || "unknown" }), "alert");
+  } catch (e) {
+    toast(t("Sentinel-2 failed: {e}", { e: e.message }), "alert");
+  }
+  btn.disabled = false;
+  btn.lastChild.textContent = label;
 }
 
 async function collectNow(id, btn) {
@@ -930,6 +1005,9 @@ async function openIncident(id) {
       content: claimRows(triage) }),
     section({ icon: "shield", title: t("Evidence gate"), tip: t("Deterministic checks between the model and the verifier: schema, evidence existence, numbers against tool results, area from real masks, location, and content rules. Every change is listed."),
       content: gateRows(gate) }),
+    section({ icon: "satellite", title: t("Sentinel-2 burn scar"), open: inc.evidence.some((e) => e.type === "satellite"),
+      tip: t("Before and after images from Sentinel-2. dNBR is the drop in the normalized burn ratio; burned hectares count 20 m pixels at dNBR 0.27 or more, computed by code. Under heavy haze no hectares are claimed."),
+      content: satelliteContent(inc) }),
     section({ icon: "activity", title: t("Evidence"), count: inc.evidence.length, open: inc.evidence.length > 0, tip: t("Every tool result is stored with a numbered ID. Claims link to these IDs. Citizen photos, voice, and text are shown to verifiers only."),
       content: [evidenceRows(inc), token() ? el("div", { class: "actions" }, (() => { const b = el("button", { class: "btn", type: "button" }, svg("activity", "icon icon-sm"), t("Collect missing evidence")); b.onclick = () => collectNow(inc.id, b); return b; })()) : null] }),
     section({ icon: "flame", title: t("Hotspots"), count: inc.hotspots.length, live: recent, tip: t("NASA FIRMS detections. Confidence l, n, h means low, nominal, high."),
@@ -968,6 +1046,7 @@ async function main() {
   const incP = api("/api/incidents").catch((e) => ({ items: [], error: e }));
   const hsP = api("/api/hotspots").catch(() => ({ items: [] }));
   const mapP = initMap();
+  state.mapReady = mapP;
 
   renderKpis();
   renderLegend();

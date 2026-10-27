@@ -95,10 +95,10 @@ def run_once(settings: Settings, *, now: datetime | None = None, days: int = 2) 
         )
     except Exception as exc:
         if not settings.fixture_mode:
-            source_status.record_firms(settings, False, str(exc))
+            source_status.record(settings, "firms", False, str(exc))
         raise
     if not settings.fixture_mode:
-        source_status.record_firms(settings, True, f"{len(hotspots)} hotspots fetched")
+        source_status.record(settings, "firms", True, f"{len(hotspots)} hotspots fetched")
     if settings.fixture_mode:
         # Fixture data is frozen; anchor the lookback on its newest hotspot so clustering is reproducible.
         now = max(datetime.fromisoformat(h.acquired_at) for h in hotspots) if hotspots else now

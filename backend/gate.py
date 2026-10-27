@@ -210,6 +210,11 @@ def run(raw: dict, evidence: list[dict], incident_id: str) -> GateResult:
         if area["value"] is None or not _close(area["value"], computed):
             res.corrections.append({"where": "burn_area_ha.value", "claimed": area["value"], "corrected": computed})
         area["value"] = computed
+        # The method follows from the evidence: satellite pairs are dNBR, photos and frames are SAM masks.
+        method = "dnbr" if ev["type"] == "satellite" else "sam_mask"
+        if area["method"] != method:
+            res.corrections.append({"where": "burn_area_ha.method", "claimed": area["method"], "corrected": method})
+            area["method"] = method
     else:
         if area["value"] is not None:
             res.corrections.append({"where": "burn_area_ha.value", "claimed": area["value"], "corrected": None, "note": "no real mask cited"})

@@ -133,7 +133,7 @@ def test_source_status_reports_last_real_result(settings):
         osm = c.get("/api/sources").json()["osm"]
         assert osm["state"] == "error" and "timed out" in osm["detail"]
     settings.fixture_mode = False
-    source_status.record_firms(settings, False, "HTTP 503")
+    source_status.record(settings, "firms", False, "HTTP 503")
     assert source_status.snapshot(settings)["firms"]["state"] == "error"
 
 

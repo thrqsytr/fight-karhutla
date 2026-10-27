@@ -425,6 +425,8 @@ a.btn-primary, a.btn-report { color: #fff; }
 .btn-report:hover { background: #0057c2; border-color: #0057c2; }
 
 /* Citizen media for verifiers */
+.sat-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sat-img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--bg); display: block; image-rendering: auto; }
 .media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .media-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line); display: block; background: var(--bg); }
 .media-locked { font-size: 12px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }

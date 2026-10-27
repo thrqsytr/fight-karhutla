@@ -35,6 +35,7 @@ def fetch_text(
     ttl_s: int,
     params: dict | None = None,
     data: dict | None = None,
+    json_body: dict | None = None,
 ) -> str:
     """Return the response body, from cache when fresh. Empty bodies are never cached."""
     path = _cache_path(cache_dir, source, cache_key)
@@ -45,7 +46,7 @@ def fetch_text(
     for attempt in range(MAX_RETRIES + 1):
         try:
             resp = httpx.request(
-                method, url, params=params, data=data, timeout=TIMEOUT_S, headers={"User-Agent": USER_AGENT}
+                method, url, params=params, data=data, json=json_body, timeout=TIMEOUT_S, headers={"User-Agent": USER_AGENT}
             )
         except (httpx.TimeoutException, httpx.TransportError) as exc:
             last_exc = exc

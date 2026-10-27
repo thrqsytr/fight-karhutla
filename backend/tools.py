@@ -9,7 +9,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 
-from . import db, evidence, meta_client, reports
+from . import db, evidence, meta_client, reports, satellite
 from .config import Settings
 
 log = logging.getLogger(__name__)
@@ -40,6 +40,12 @@ TOOL_DEFS = [
         "type": "function",
         "name": "get_citizen_reports",
         "description": "Citizen evidence for this incident: typed descriptions, voice note transcripts, and photo readings (what is visible: smoke, flames, burned ground), each with its evidence ID.",
+        "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
+    },
+    {
+        "type": "function",
+        "name": "get_satellite_pair",
+        "description": "Sentinel-2 images before and after the first detection over the incident area, with dNBR (burn severity). Returns image dates, clear share, haze (aerosol optical thickness), and burned hectares counted by code at dNBR >= 0.27. burned_area_ha is null when haze makes the measure unreliable. Unknown when no clear image exists yet.",
         "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {
@@ -139,6 +145,20 @@ def get_citizen_reports(ctx: ToolContext, **_) -> dict:
     return {"items": items} if items else {"status": "none", "reason": "no citizen report for this incident"}
 
 
+SATELLITE_KEYS = ("status", "method", "dnbr_threshold", "burned_area_ha", "low_severity_area_ha", "clear_area_ha", "dnbr_median", "dnbr_p95", "reason")
+
+
+def get_satellite_pair(ctx: ToolContext, **_) -> dict:
+    r = satellite.collect(ctx.settings, ctx.incident_id)
+    if "evidence_id" not in r:
+        return r
+    e = next(e for e in _evidence_of(ctx.settings, ctx.incident_id, {"satellite"}) if e["id"] == r["evidence_id"])
+    p = e["payload"]
+    scene = lambda s: {"date": s["datetime"][:10], "scene_id": s["id"], "clear_share": s["aoi_clear_frac"], "aerosol_optical_thickness": s["aot_median"]}
+    return {"evidence_id": e["id"], "source": e["source"], "retrieved_at": e["retrieved_at"], **{k: p.get(k) for k in SATELLITE_KEYS},
+            "before": scene(p["pre"]), "after": scene(p["post"])}
+
+
 def segment(ctx: ToolContext, evidence_id: str = "", concept: str = "", **_) -> dict:
     if ctx.segment_calls >= MAX_SEGMENT_CALLS:
         return {"status": "refused", "reason": f"segment budget of {MAX_SEGMENT_CALLS} calls per triage is used"}
@@ -169,7 +189,7 @@ def segment(ctx: ToolContext, evidence_id: str = "", concept: str = "", **_) -> 
 
 
 HANDLERS = {"get_hotspots": get_hotspots, "get_weather": get_weather, "get_nearby_assets": get_nearby_assets,
-            "get_citizen_reports": get_citizen_reports, "segment": segment}
+            "get_citizen_reports": get_citizen_reports, "get_satellite_pair": get_satellite_pair, "segment": segment}
 
 
 def call(ctx: ToolContext, name: str, arguments: str) -> dict:

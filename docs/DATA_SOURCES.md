@@ -8,6 +8,7 @@ Each endpoint below was verified with a live call on 2026-10-26 (UTC). Saved res
 | Open-Meteo | `GET https://api.open-meteo.com/v1/forecast?latitude&longitude&hourly=wind_speed_10m,wind_direction_10m,precipitation,relative_humidity_2m&past_days=1&forecast_days=1&wind_speed_unit=ms&timezone=UTC` | None for non-commercial use | CC BY 4.0; "Weather data by Open-Meteo.com" | `backend/sources/weather.py` |
 | OpenStreetMap via Overpass | `POST https://overpass-api.de/api/interpreter` with an `around:` query for places, main roads, rivers, and fire stations, `out geom` | None; results cached 7 days to spare the public server | ODbL; "(c) OpenStreetMap contributors" | `backend/sources/osm.py` |
 | NASA GIBS (display only) | `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/{layer}/default/default/{TileMatrixSet}/{z}/{y}/{x}.{ext}` for `VIIRS_SNPP_CorrectedReflectance_TrueColor` (Level9, jpg), `MODIS_Combined_Value_Added_AOD` and `OMPS_Aerosol_Index` (Level6, png); legends at `/legends/{layer}_H.svg`. Verified 2026-10-28, CORS open. | None | NASA open data; "Imagery: NASA GIBS / Worldview" | `frontend/app.js` |
+| Copernicus Sentinel-2 L2A via Earth Search | `POST https://earth-search.aws.element84.com/v1/search` (collection `sentinel-2-l2a`), then windowed reads of the `nir`, `swir22`, `scl`, `aot`, and `visual` COGs on `sentinel-cogs.s3.us-west-2.amazonaws.com`. Reflectance = DN x 0.0001 - 0.1 (from `raster:bands`). Verified 2026-10-28. | None | Copernicus data, free and open; "Contains modified Copernicus Sentinel data 2026" | `backend/sources/sentinel.py` |
 | OpenFreeMap basemap (Positron style) | `https://tiles.openfreemap.org/styles/positron` (display only, vector tiles) | None, no key | OpenMapTiles and OpenStreetMap, attribution shown by MapLibre | `frontend/app.js` |
 
 FIRMS NRT sources available on 2026-10-26: `VIIRS_SNPP_NRT`, `VIIRS_NOAA20_NRT`, `VIIRS_NOAA21_NRT`, `MODIS_NRT`, `LANDSAT_NRT`. Archive (`*_SP`) covers earlier dates for evaluation.
@@ -29,5 +30,4 @@ FIRMS NRT sources available on 2026-10-26: `VIIRS_SNPP_NRT`, `VIIRS_NOAA20_NRT`,
 
 ## Not yet integrated
 
-- Sentinel-2 pairs for dNBR (Day 4).
 - Peat layer (optional, only if an open layer is found within 30 minutes).

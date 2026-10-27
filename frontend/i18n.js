@@ -48,6 +48,18 @@ export const DASHBOARD_ID = {
   "The AI only gathers evidence and drafts a recommendation. A human verifier approves or rejects every incident; nothing is sent to anyone automatically.":
     "AI hanya mengumpulkan bukti dan menyusun rekomendasi. Verifikator manusia yang menyetujui atau menolak setiap insiden; tidak ada yang dikirim otomatis ke siapa pun.",
   "Zoom in": "Perbesar", "Zoom out": "Perkecil", "Data sources": "Sumber data",
+  "Sentinel-2 burn scar": "Bekas terbakar Sentinel-2",
+  "Sentinel-2 before and after images for burn scars, fetched on request.": "Citra Sentinel-2 sebelum dan sesudah untuk bekas terbakar, diambil bila diminta.",
+  "Before and after images from Sentinel-2. dNBR is the drop in the normalized burn ratio; burned hectares count 20 m pixels at dNBR 0.27 or more, computed by code. Under heavy haze no hectares are claimed.":
+    "Citra sebelum dan sesudah dari Sentinel-2. dNBR adalah penurunan rasio bakar ternormalisasi; luas terbakar menghitung piksel 20 m dengan dNBR 0,27 atau lebih, dihitung oleh kode. Saat kabut asap tebal, luas tidak diklaim.",
+  "Check for a newer pair": "Cek pasangan citra terbaru", "Find Sentinel-2 images": "Cari citra Sentinel-2",
+  "No Sentinel-2 pair yet. Clouds often cover the area; a pass comes about every 5 days.": "Belum ada pasangan citra Sentinel-2. Awan sering menutup area; satelit lewat sekitar setiap 5 hari.",
+  "Burn scar": "Bekas terbakar", "After": "Sesudah", "Before": "Sebelum", "Sentinel-2 image": "Citra Sentinel-2", "Sentinel-2 view": "Tampilan Sentinel-2",
+  "{pct}% clear": "{pct}% cerah", "not claimed": "tidak diklaim", "Show scar on map": "Tampilkan di peta",
+  "Heavy haze: no hectares are claimed from this pair.": "Kabut asap tebal: luas tidak diklaim dari pasangan ini.",
+  "Burned area": "Luas terbakar", "Low severity": "Keparahan rendah", "Clear ground": "Area tanpa awan",
+  "Searching Sentinel-2...": "Mencari Sentinel-2...", "Pair checked in the last 24 hours; showing it.": "Pasangan sudah dicek dalam 24 jam terakhir; ditampilkan.",
+  "Sentinel-2 pair stored as {id}.": "Pasangan Sentinel-2 disimpan sebagai {id}.", "No pair: {why}": "Tidak ada pasangan: {why}", "Sentinel-2 failed: {e}": "Sentinel-2 gagal: {e}",
   "NASA FIRMS satellite hotspots (VIIRS and MODIS), fetched every 30 minutes.": "Titik panas satelit NASA FIRMS (VIIRS dan MODIS), diambil setiap 30 menit.",
   "NASA GIBS satellite layers for the map, checked from this browser.": "Lapisan citra satelit NASA GIBS untuk peta, dicek dari browser ini.",
   "Wind, humidity, and rain evidence for each incident.": "Bukti angin, kelembapan, dan hujan untuk setiap insiden.",

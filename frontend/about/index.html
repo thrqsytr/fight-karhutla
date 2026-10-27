@@ -37,7 +37,7 @@
       <h3>Cara kerja</h3>
       <ol>
         <li><strong>Deteksi.</strong> Titik panas dari NASA FIRMS (VIIRS dan MODIS) diambil setiap 30 menit. Titik panas dalam radius 2 km dan 24 jam digabung menjadi satu insiden.</li>
-        <li><strong>Bukti.</strong> Setiap insiden dilengkapi data cuaca (Open-Meteo), aset terdekat dari OpenStreetMap, dan laporan warga dari halaman <a href="/lapor/">Lapor</a>.</li>
+        <li><strong>Bukti.</strong> Setiap insiden dilengkapi data cuaca (Open-Meteo), aset terdekat dari OpenStreetMap, citra Sentinel-2 sebelum dan sesudah (luas bekas terbakar dihitung kode dari dNBR), dan laporan warga dari halaman <a href="/lapor/">Lapor</a>.</li>
         <li><strong>Triase AI, hanya bila diminta.</strong> Model AI menyusun ringkasan dan rekomendasi status. Triase hanya berjalan dengan kode eksekusi, maksimal 5 insiden per pilihan dan 30 per hari, atau lewat jadwal harian untuk insiden yang dilaporkan warga.</li>
         <li><strong>Gerbang bukti.</strong> Setiap klaim AI harus menunjuk bukti yang ada. Angka, jarak, dan luas dihitung ulang oleh kode; klaim yang tidak cocok ditolak. Klaim lalu diperiksa ulang oleh model kedua.</li>
         <li><strong>Manusia memutuskan.</strong> Setiap insiden berakhir menunggu verifikator. Tidak ada pesan atau perintah yang dikirim otomatis ke siapa pun.</li>
@@ -72,7 +72,7 @@
       <h3>How it works</h3>
       <ol>
         <li><strong>Detection.</strong> Hotspots from NASA FIRMS (VIIRS and MODIS) are fetched every 30 minutes. Hotspots within 2 km and 24 hours are grouped into one incident.</li>
-        <li><strong>Evidence.</strong> Each incident gets weather data (Open-Meteo), nearby assets from OpenStreetMap, and citizen reports from the <a href="/lapor/">Report</a> page.</li>
+        <li><strong>Evidence.</strong> Each incident gets weather data (Open-Meteo), nearby assets from OpenStreetMap, Sentinel-2 before and after images (burn scar area counted by code from dNBR), and citizen reports from the <a href="/lapor/">Report</a> page.</li>
         <li><strong>AI triage, only on request.</strong> An AI model drafts a brief and a status recommendation. Triage runs only with the execution code, at most 5 incidents per selection and 30 per day, or on a daily schedule for citizen-reported incidents.</li>
         <li><strong>Evidence gate.</strong> Every AI claim must cite existing evidence. Numbers, distances, and areas are recomputed by code; claims that do not match are rejected. A second model then reviews the claims.</li>
         <li><strong>A human decides.</strong> Every incident ends waiting for a verifier. No message or order is sent to anyone automatically.</li>

@@ -41,7 +41,8 @@ Gather evidence with the tools, then answer. Rules, all mandatory:
    if you state a likely spread direction, make it a claim citing the weather evidence and set risk.spread_direction_deg.
 9. Do not use dashes (the long punctuation marks) in sentences. Hyphens inside IDs such as EV-001 are fine.
    Do not invent place names; location.admin is the nearest settlement from get_nearby_assets, or "unknown".
-10. Leave the evidence list empty; the system fills it from storage. burn_area_ha is null unless a tool returned hectares.
+10. Leave the evidence list empty; the system fills it from storage. burn_area_ha is null unless get_satellite_pair returned
+    burned_area_ha; then use that value, method "dnbr", and its evidence_id. A dNBR burn scar shows burned ground, not active fire.
 11. risk.score is a number from 0 to 100 (0 no concern, 100 most urgent), with short drivers."""
 
 NUM_NULL = {"type": ["number", "null"]}

@@ -13,9 +13,9 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Res
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import agent, db, evidence, ingest, intake, reports, source_status, triage_control
+from . import agent, db, evidence, ingest, intake, reports, satellite, source_status, triage_control
 from .config import Settings, get_settings
-from .sources import firms, osm, weather
+from .sources import firms, osm, sentinel, weather
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("karhutla")
@@ -32,7 +32,7 @@ SEVERITY_SUBQUERY = """
     FROM hotspots WHERE incident_id IS NOT NULL GROUP BY incident_id
 """
 SEVERITY_COLUMNS = "s.max_frp, s.sum_frp, COALESCE(s.high_conf_count, 0) AS high_conf_count"
-ATTRIBUTIONS = [firms.ATTRIBUTION, weather.ATTRIBUTION, osm.ATTRIBUTION, "Satellite layers: NASA GIBS / Worldview"]
+ATTRIBUTIONS = [firms.ATTRIBUTION, weather.ATTRIBUTION, osm.ATTRIBUTION, sentinel.ATTRIBUTION, "Satellite layers: NASA GIBS / Worldview"]
 
 
 def _start_scheduler(settings: Settings) -> BackgroundScheduler | None:
@@ -273,6 +273,24 @@ def stats(request: Request, settings: Settings = Depends(get_settings)) -> Respo
                 (since,),
             ).fetchone()[0]
     return etag_json(request, out, private=False)
+
+
+@app.post("/api/incidents/{incident_id}/satellite", dependencies=[Depends(require_verifier)])
+def post_satellite(incident_id: str, settings: Settings = Depends(get_settings)) -> dict:
+    """Look for a Sentinel-2 pair now. Free to call (open data), but it takes about 10 to 30 seconds."""
+    try:
+        return satellite.collect(settings, incident_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="incident not found")
+
+
+@app.get("/api/satellite/{incident_id}/{name}")
+def get_satellite_image(incident_id: str, name: str, settings: Settings = Depends(get_settings)) -> FileResponse:
+    # Public: Sentinel-2 is open data. The name pattern rules out paths outside the incident folder.
+    p = satellite.image_path(settings.data_dir, incident_id, name)
+    if p is None:
+        raise HTTPException(status_code=404, detail="image not found")
+    return FileResponse(p, media_type="image/png", headers={"Cache-Control": "public, max-age=86400, immutable"})
 
 
 @app.get("/api/sources")

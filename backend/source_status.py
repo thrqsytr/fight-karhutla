@@ -12,12 +12,21 @@ NOT_A_CALL = ("failed: deferred", "failed: outside fixture coverage")
 RECENT_ENRICHMENTS = 40
 
 
-def record_firms(settings: Settings, ok: bool, detail: str) -> None:
+def record(settings: Settings, name: str, ok: bool, detail: str) -> None:
+    """For sources called outside enrichment (FIRMS ingest, Sentinel-2 on request)."""
     with db.session(settings.db_path) as conn:
         conn.execute(
             "INSERT INTO app_state (key, value, updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at",
-            ("source:firms", json.dumps({"ok": ok, "detail": detail[:200]}), db.utcnow()),
+            (f"source:{name}", json.dumps({"ok": ok, "detail": detail[:200]}), db.utcnow()),
         )
+
+
+def _recorded(conn, name: str) -> dict:
+    row = conn.execute("SELECT value, updated_at FROM app_state WHERE key=?", (f"source:{name}",)).fetchone()
+    if not row:
+        return {"state": "unknown", "checked_at": None, "detail": None}
+    v = json.loads(row["value"])
+    return {"state": "ok" if v["ok"] else "error", "checked_at": row["updated_at"], "detail": v["detail"]}
 
 
 def _from_enrichment(conn, key: str) -> dict:
@@ -40,14 +49,10 @@ def snapshot(settings: Settings) -> dict:
         if settings.fixture_mode:
             firms = {"state": "sim", "checked_at": None, "detail": "fixture data"}
         else:
-            row = conn.execute("SELECT value, updated_at FROM app_state WHERE key='source:firms'").fetchone()
-            if row:
-                v = json.loads(row["value"])
-                firms = {"state": "ok" if v["ok"] else "error", "checked_at": row["updated_at"], "detail": v["detail"]}
-            else:
-                firms = {"state": "unknown", "checked_at": None, "detail": None}
+            firms = _recorded(conn, "firms")
         firms["newest_acquisition"] = newest
-        out = {"firms": firms, "weather": _from_enrichment(conn, "weather"), "osm": _from_enrichment(conn, "osm")}
+        out = {"firms": firms, "weather": _from_enrichment(conn, "weather"), "osm": _from_enrichment(conn, "osm"),
+               "sentinel2": _recorded(conn, "sentinel2")}
     if settings.fixture_mode:
         # Fixture answers are not the live service, so they never read as "on".
         for k in ("weather", "osm"):
