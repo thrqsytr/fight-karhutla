@@ -32,7 +32,7 @@ SEVERITY_SUBQUERY = """
     FROM hotspots WHERE incident_id IS NOT NULL GROUP BY incident_id
 """
 SEVERITY_COLUMNS = "s.max_frp, s.sum_frp, COALESCE(s.high_conf_count, 0) AS high_conf_count"
-ATTRIBUTIONS = [firms.ATTRIBUTION, weather.ATTRIBUTION, osm.ATTRIBUTION]
+ATTRIBUTIONS = [firms.ATTRIBUTION, weather.ATTRIBUTION, osm.ATTRIBUTION, "Satellite layers: NASA GIBS / Worldview"]
 
 
 def _start_scheduler(settings: Settings) -> BackgroundScheduler | None:
