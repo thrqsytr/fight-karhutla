@@ -15,6 +15,7 @@ RUN pip install -r requirements.txt
 COPY backend ./backend
 COPY frontend ./frontend
 COPY fixtures ./fixtures
+COPY replay ./replay
 
 ARG GIT_SHA=unknown
 ENV GIT_SHA=${GIT_SHA}

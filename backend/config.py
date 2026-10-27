@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     data_dir: Path = REPO_ROOT / "data"
     fixtures_dir: Path = REPO_ROOT / "fixtures"
     frontend_dir: Path = REPO_ROOT / "frontend"
+    replay_dir: Path = REPO_ROOT / "replay"
     fixture_mode: bool = True
     scheduler_enabled: bool = False
     firms_poll_minutes: int = 30

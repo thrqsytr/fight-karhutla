@@ -139,8 +139,11 @@ def transcribe(settings: Settings, wav: bytes, meter: Meter | None = None) -> di
     raise ModelUnavailable(f"transcribe failed after retries: {last}")
 
 
-async def segment(settings: Settings, jpeg: bytes, concept: str, meter: Meter | None = None) -> dict:
-    """SAM 3.1 concept segmentation of one image. Pixel counts are computed here, in code, from the decoded masks."""
+async def segment(settings: Settings, jpeg: bytes, concept: str, meter: Meter | None = None, *, want_mask: bool = False) -> dict:
+    """SAM 3.1 concept segmentation of one image. Pixel counts are computed here, in code, from the decoded masks.
+
+    want_mask adds "mask": the union of all objects as a full-frame boolean array, for georeferencing.
+    """
     import meta_sam_parser as sam
 
     client = meta_async(settings)
@@ -156,6 +159,11 @@ async def segment(settings: Settings, jpeg: bytes, concept: str, meter: Meter | 
 
     width, height = Image.open(io.BytesIO(jpeg)).size
     objects = []
+    union = None
+    if want_mask:
+        import numpy as np
+
+        union = np.zeros((height, width), dtype=bool)
     for rec in result.records:
         if rec.kind != "mask":
             continue
@@ -165,6 +173,28 @@ async def segment(settings: Settings, jpeg: bytes, concept: str, meter: Meter | 
         cell = ((b.right - b.left) / rec.mask.width) * ((b.bottom - b.top) / rec.mask.height)
         objects.append({"object_id": rec.object_id, "confidence": rec.confidence, "box": [b.left, b.top, b.right, b.bottom],
                         "source_pixels": round(sum(raster) * cell)})
+        if union is not None:
+            _paste(union, raster, rec.mask.width, rec.mask.height, b)
     total = sum(o["source_pixels"] for o in objects)
-    return {"concept": concept, "image_size": [width, height], "objects": objects, "pixel_count": total,
-            "fraction_of_frame": round(total / (width * height), 4), "outcome": getattr(result.outcome, "status", str(result.outcome))}
+    out = {"concept": concept, "image_size": [width, height], "objects": objects, "pixel_count": total,
+           "fraction_of_frame": round(total / (width * height), 4), "outcome": getattr(result.outcome, "status", str(result.outcome))}
+    if union is not None:
+        out["mask"] = union
+    return out
+
+
+def _paste(union, raster, mw: int, mh: int, b) -> None:
+    """OR one box-local mask raster into the full-frame mask, scaled to its box."""
+    import numpy as np
+    from PIL import Image
+
+    left, top = int(round(b.left)), int(round(b.top))
+    w, h = max(1, int(round(b.right - b.left))), max(1, int(round(b.bottom - b.top)))
+    flat = np.frombuffer(bytes(raster), dtype=np.uint8) if isinstance(raster, (bytes, bytearray, memoryview)) else np.asarray(raster, dtype=np.uint8)
+    m = (flat.reshape(mh, mw) > 0).astype(np.uint8) * 255
+    m = np.array(Image.fromarray(m).resize((w, h), Image.NEAREST)) > 127
+    H, W = union.shape
+    x0, y0 = max(left, 0), max(top, 0)
+    x1, y1 = min(left + w, W), min(top + h, H)
+    if x1 > x0 and y1 > y0:
+        union[y0:y1, x0:x1] |= m[y0 - top:y1 - top, x0 - left:x1 - left]

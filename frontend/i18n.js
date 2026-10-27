@@ -49,6 +49,19 @@ export const DASHBOARD_ID = {
     "AI hanya mengumpulkan bukti dan menyusun rekomendasi. Verifikator manusia yang menyetujui atau menolak setiap insiden; tidak ada yang dikirim otomatis ke siapa pun.",
   "Zoom in": "Perbesar", "Zoom out": "Perkecil", "Data sources": "Sumber data",
   "Sentinel-2 burn scar": "Bekas terbakar Sentinel-2",
+  "Drone survey (simulation)": "Survei drone (simulasi)", "Drone frame": "Frame drone", "Drone view": "Tampilan drone",
+  "A simulated mapping flight: Muse Glimmer at the ground station picks which frames to send, SAM 3.1 segments them, and code turns masks into hectares from the telemetry.":
+    "Penerbangan pemetaan simulasi: Muse Glimmer di stasiun darat memilih frame yang dikirim, SAM 3.1 menyegmentasinya, dan kode mengubah masker menjadi hektar dari telemetri.",
+  "Frame": "Frame", "SAM mask": "Masker SAM", "Truth": "Kebenaran",
+  "Glimmer: uplinked": "Glimmer: dikirim", "Glimmer: dropped": "Glimmer: tidak dikirim", "Glimmer: no decision": "Glimmer: tanpa keputusan",
+  "Mission": "Misi", "{lines} lines x {n} frames, {alt} m above ground, GSD {gsd} m": "{lines} jalur x {n} frame, {alt} m di atas tanah, GSD {gsd} m",
+  "Glimmer filter": "Filter Glimmer", "{up} of {all} frames uplinked, {drop} dropped": "{up} dari {all} frame dikirim, {drop} tidak dikirim",
+  "Measured frames": "Frame terukur", "{m} of {up} uplinked frames; SAM found no mask on frames burned edge to edge": "{m} dari {up} frame terkirim; SAM tidak menemukan masker pada frame yang terbakar penuh",
+  "Missed by filter": "Terlewat filter", "{ha} ha of burned ground in dropped frames": "{ha} ha lahan terbakar di frame yang tidak dikirim",
+  "SAM area": "Luas SAM", "not measured": "belum diukur", "Truth (render)": "Kebenaran (render)", "error {e}%": "galat {e}%", "Cost": "Biaya",
+  "Frames are rendered in Blender over the real Sentinel-2 burn mask of this incident. The error is against the render, not real-world accuracy. These numbers never enter the triage.":
+    "Frame dirender di Blender di atas masker bekas terbakar Sentinel-2 yang nyata dari insiden ini. Galat dihitung terhadap render, bukan akurasi dunia nyata. Angka ini tidak pernah masuk ke triase.",
+  "Show footprints on map": "Tampilkan jejak frame di peta",
   "Sentinel-2 before and after images for burn scars, fetched on request.": "Citra Sentinel-2 sebelum dan sesudah untuk bekas terbakar, diambil bila diminta.",
   "Before and after images from Sentinel-2. dNBR is the drop in the normalized burn ratio; burned hectares count 20 m pixels at dNBR 0.27 or more, computed by code. Under heavy haze no hectares are claimed.":
     "Citra sebelum dan sesudah dari Sentinel-2. dNBR adalah penurunan rasio bakar ternormalisasi; luas terbakar menghitung piksel 20 m dengan dNBR 0,27 atau lebih, dihitung oleh kode. Saat kabut asap tebal, luas tidak diklaim.",

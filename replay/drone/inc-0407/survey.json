@@ -1,0 +1,450 @@
+{
+ "simulation": true,
+ "label": "SIMULASI",
+ "mission_id": "SIM-INC-20261025-0407-01",
+ "incident_id": "INC-20261025-0407",
+ "concept": "bare ground",
+ "cell_m": 1.0,
+ "gsd_m": 0.1758,
+ "frames_total": 48,
+ "frames_uplinked": 34,
+ "frames_dropped": 14,
+ "frames_measured": 3,
+ "frames_not_measured": 31,
+ "sam_burned_ha": 3.42,
+ "sam_cell_count": 34208,
+ "truth_burned_ha_measured": 3.77,
+ "truth_burned_ha_uplinked": 58.73,
+ "truth_burned_ha_all_frames": 70.72,
+ "missed_by_filter_ha": 11.99,
+ "area_error_pct": -9.3,
+ "median_iou": 0.899,
+ "cost_usd": 0.085,
+ "frames": [
+  {
+   "seq": 0,
+   "file": "F000.jpg",
+   "uplinked": false,
+   "truth_fraction": 0.9072
+  },
+  {
+   "seq": 1,
+   "file": "F001.jpg",
+   "uplinked": true,
+   "truth_fraction": 0.9387,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 2,
+   "file": "F002.jpg",
+   "uplinked": true,
+   "truth_fraction": 0.7685,
+   "sam_objects": 1,
+   "measured": true,
+   "sam_fraction": 0.7071,
+   "iou": 0.92
+  },
+  {
+   "seq": 3,
+   "file": "F003.jpg",
+   "uplinked": true,
+   "truth_fraction": 0.4633,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 4,
+   "file": "F004.jpg",
+   "uplinked": true,
+   "truth_fraction": 0.408,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 5,
+   "file": "F005.jpg",
+   "uplinked": true,
+   "truth_fraction": 0.2549,
+   "sam_objects": 1,
+   "measured": true,
+   "sam_fraction": 0.2293,
+   "iou": 0.899
+  },
+  {
+   "seq": 6,
+   "file": "F006.jpg",
+   "uplinked": false,
+   "truth_fraction": 0.0
+  },
+  {
+   "seq": 7,
+   "file": "F007.jpg",
+   "uplinked": false,
+   "truth_fraction": 0.0
+  },
+  {
+   "seq": 8,
+   "file": "F008.jpg",
+   "uplinked": false,
+   "truth_fraction": 0.0
+  },
+  {
+   "seq": 9,
+   "file": "F009.jpg",
+   "uplinked": false,
+   "truth_fraction": 0.0078
+  },
+  {
+   "seq": 10,
+   "file": "F010.jpg",
+   "uplinked": false,
+   "truth_fraction": 0.2274
+  },
+  {
+   "seq": 11,
+   "file": "F011.jpg",
+   "uplinked": false,
+   "truth_fraction": 0.7924
+  },
+  {
+   "seq": 12,
+   "file": "F012.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 13,
+   "file": "F013.jpg",
+   "uplinked": true,
+   "truth_fraction": 0.9858,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 14,
+   "file": "F014.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 15,
+   "file": "F015.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 16,
+   "file": "F016.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 17,
+   "file": "F017.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 18,
+   "file": "F018.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 19,
+   "file": "F019.jpg",
+   "uplinked": false,
+   "truth_fraction": 1.0
+  },
+  {
+   "seq": 20,
+   "file": "F020.jpg",
+   "uplinked": true,
+   "truth_fraction": 0.9937,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 21,
+   "file": "F021.jpg",
+   "uplinked": false,
+   "truth_fraction": 0.9542
+  },
+  {
+   "seq": 22,
+   "file": "F022.jpg",
+   "uplinked": true,
+   "truth_fraction": 0.6929,
+   "sam_objects": 1,
+   "measured": true,
+   "sam_fraction": 0.6075,
+   "iou": 0.877
+  },
+  {
+   "seq": 23,
+   "file": "F023.jpg",
+   "uplinked": false,
+   "truth_fraction": 0.137
+  },
+  {
+   "seq": 24,
+   "file": "F024.jpg",
+   "uplinked": true,
+   "truth_fraction": 0.9156,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 25,
+   "file": "F025.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 26,
+   "file": "F026.jpg",
+   "uplinked": false,
+   "truth_fraction": 0.984
+  },
+  {
+   "seq": 27,
+   "file": "F027.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 28,
+   "file": "F028.jpg",
+   "uplinked": false,
+   "truth_fraction": 1.0
+  },
+  {
+   "seq": 29,
+   "file": "F029.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 30,
+   "file": "F030.jpg",
+   "uplinked": true,
+   "truth_fraction": 0.9693,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 31,
+   "file": "F031.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 32,
+   "file": "F032.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 33,
+   "file": "F033.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 34,
+   "file": "F034.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 35,
+   "file": "F035.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 36,
+   "file": "F036.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 37,
+   "file": "F037.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 38,
+   "file": "F038.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 39,
+   "file": "F039.jpg",
+   "uplinked": true,
+   "truth_fraction": 0.96,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 40,
+   "file": "F040.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 41,
+   "file": "F041.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 42,
+   "file": "F042.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 43,
+   "file": "F043.jpg",
+   "uplinked": false,
+   "truth_fraction": 1.0
+  },
+  {
+   "seq": 44,
+   "file": "F044.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 45,
+   "file": "F045.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  },
+  {
+   "seq": 46,
+   "file": "F046.jpg",
+   "uplinked": false,
+   "truth_fraction": 1.0
+  },
+  {
+   "seq": 47,
+   "file": "F047.jpg",
+   "uplinked": true,
+   "truth_fraction": 1.0,
+   "sam_objects": 0,
+   "measured": false,
+   "sam_fraction": 0.0,
+   "iou": null
+  }
+ ],
+ "note": "Synthetic frames rendered in Blender over the real Sentinel-2 burn mask. The error is against the render truth, not real-world accuracy."
+}

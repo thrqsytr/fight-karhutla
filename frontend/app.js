@@ -420,6 +420,7 @@ function incidentCard(i) {
 function renderList() {
   state.selected = null;
   showBurnMask(null);
+  showFootprints(null);
   if (map?.getLayer("incident-selected")) map.setFilter("incident-selected", ["==", ["get", "id"], ""]);
   crumbs([{ label: t("Incidents") }]);
   $("#list-view").hidden = false;
@@ -609,6 +610,77 @@ function satelliteContent(inc) {
     el("p", { class: "muted", style: "margin:0;font-size:11px" }, p.attribution || "Contains modified Copernicus Sentinel data"),
     el("div", { class: "actions" }, p.images?.mask ? showOnMap : null, fetchBtn?.firstChild || null),
   ];
+}
+
+/* Simulated drone survey (SIMULASI): shown beside the incident, never part of its evidence. */
+const droneUrl = (m, kind, file) => `/api/drone/missions/${encodeURIComponent(m.mission_id)}/${kind}/${file}`;
+
+function showFootprints(m) {
+  state.mapReady?.then(() => {
+    if (!map) return;
+    ["drone-foot-fill", "drone-foot-line"].forEach((id) => map.getLayer(id) && map.removeLayer(id));
+    if (map.getSource("drone-foot")) map.removeSource("drone-foot");
+    if (!m) return;
+    const features = m.frames.map((f) => ({ type: "Feature", properties: { up: !!f.glimmer?.uplink, seq: f.seq },
+      geometry: { type: "Polygon", coordinates: [[...f.footprint, f.footprint[0]]] } }));
+    map.addSource("drone-foot", { type: "geojson", data: { type: "FeatureCollection", features } });
+    map.addLayer({ id: "drone-foot-fill", type: "fill", source: "drone-foot", paint: { "fill-color": ["case", ["get", "up"], "#0064e0", "#7a8b99"], "fill-opacity": ["case", ["get", "up"], 0.12, 0.05] } });
+    map.addLayer({ id: "drone-foot-line", type: "line", source: "drone-foot", paint: { "line-color": ["case", ["get", "up"], "#0064e0", "#7a8b99"], "line-width": 1, "line-opacity": 0.7 } });
+    const lons = m.frames.flatMap((f) => f.footprint.map((p) => p[0]));
+    const lats = m.frames.flatMap((f) => f.footprint.map((p) => p[1]));
+    map.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: 60, duration: 800 });
+  });
+}
+
+function droneContent(m) {
+  const g = m.glimmer || {};
+  const s = m.survey || {};
+  const p = m.plan;
+  let current = m.frames.find((f) => f.glimmer?.uplink) || m.frames[0];
+  let view = "frames";
+  const big = el("img", { class: "sat-img drone-img", alt: t("Drone frame") });
+  const caption = el("p", { class: "muted drone-caption" });
+  const seg = el("div", { class: "segmented", role: "group", "aria-label": t("Drone view") });
+  const show = () => {
+    const kind = view === "frames" || !current.glimmer?.uplink && view === "sam" ? "frames" : view;
+    big.src = droneUrl(m, kind, kind === "frames" ? current.file : current.file.replace(".jpg", ".png"));
+    seg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === kind)));
+    const d = current.glimmer;
+    fill(caption, `${current.file} · `, d ? (d.uplink ? t("Glimmer: uplinked") : t("Glimmer: dropped")) : t("Glimmer: no decision"),
+      d?.reason ? ` · "${d.reason}"` : null, current.iou != null ? ` · IoU ${fmtNum(current.iou)}` : null);
+    strip.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.seq === String(current.seq))));
+  };
+  [["frames", t("Frame")], ["sam", t("SAM mask")], ["truth", t("Truth")]].forEach(([k, label]) =>
+    seg.append(el("button", { type: "button", dataset: { k }, "aria-pressed": "false", onclick: () => { view = k; show(); } }, label)));
+  const strip = el("div", { class: "drone-strip" }, m.frames.map((f) =>
+    el("button", { type: "button", class: `drone-thumb ${f.glimmer?.uplink ? "" : "dropped"}`, dataset: { seq: String(f.seq) }, title: f.file,
+      onclick: () => { current = f; show(); } }, el("img", { src: droneUrl(m, "frames", f.file), alt: f.file, loading: "lazy" }))));
+  show();
+  return [
+    el("div", { class: "sat-head" }, el("span", { class: "pill pill-sim" }, "SIMULASI"), seg),
+    big, caption, strip,
+    el("dl", { class: "kv" },
+      el("dt", {}, t("Mission")), el("dd", {}, t("{lines} lines x {n} frames, {alt} m above ground, GSD {gsd} m", { lines: p.lines, n: p.frames_per_line, alt: p.altitude_agl_m, gsd: fmtNum(p.gsd_m) })),
+      el("dt", {}, t("Glimmer filter")), el("dd", {}, t("{up} of {all} frames uplinked, {drop} dropped", { up: g.uplinked ?? "?", all: g.frames ?? m.frames.length, drop: g.dropped ?? "?" })),
+      el("dt", {}, t("SAM area")), el("dd", {}, s.sam_burned_ha == null ? t("not measured") : [el("strong", { class: "num" }, `${fmtNum(s.sam_burned_ha)} ha`), " ", el("span", { class: "muted" }, `"${s.concept}"`)]),
+      el("dt", {}, t("Measured frames")), el("dd", {}, s.frames_measured == null ? "" : t("{m} of {up} uplinked frames; SAM found no mask on frames burned edge to edge", { m: s.frames_measured, up: s.frames_uplinked })),
+      el("dt", {}, t("Truth (render)")), el("dd", {}, s.truth_burned_ha_measured == null ? "" : `${fmtNum(s.truth_burned_ha_measured)} ha · ${t("error {e}%", { e: fmtNum(s.area_error_pct) })} · IoU ${fmtNum(s.median_iou)}`),
+      el("dt", {}, t("Missed by filter")), el("dd", {}, s.missed_by_filter_ha == null ? "" : t("{ha} ha of burned ground in dropped frames", { ha: fmtNum(s.missed_by_filter_ha) })),
+      el("dt", {}, t("Cost")), el("dd", { class: "num" }, s.cost_usd == null ? "" : `$${s.cost_usd}`),
+    ),
+    el("p", { class: "muted", style: "margin:0;font-size:11px" }, t("Frames are rendered in Blender over the real Sentinel-2 burn mask of this incident. The error is against the render, not real-world accuracy. These numbers never enter the triage.")),
+    el("div", { class: "actions" }, el("button", { class: "btn", type: "button", onclick: () => showFootprints(m) }, svg("layers", "icon icon-sm"), t("Show footprints on map"))),
+  ];
+}
+
+async function droneSection(inc) {
+  const list = await api(`/api/drone/missions?incident_id=${encodeURIComponent(inc.id)}`).catch(() => null);
+  if (!list?.count) return null;
+  const m = await api(`/api/drone/missions/${encodeURIComponent(list.items[0].mission_id)}`).catch(() => null);
+  if (!m) return null;
+  return section({ icon: "target", title: t("Drone survey (simulation)"), open: false,
+    tip: t("A simulated mapping flight: Muse Glimmer at the ground station picks which frames to send, SAM 3.1 segments them, and code turns masks into hectares from the telemetry."),
+    content: droneContent(m) });
 }
 
 async function fetchSatellite(id, btn) {
@@ -1026,6 +1098,12 @@ async function openIncident(id) {
     section({ icon: "check", title: t("Verifier decision"), open: true, tip: t("Approve or reject is recorded as a label. Labels calibrate the evidence gate thresholds."), content: verifierContent(inc) }),
   ];
   fill($("#detail-view"), head, sections);
+  // The drone replay loads after the main view so it never delays it.
+  droneSection(inc).then((s) => {
+    if (!s || state.selected !== inc.id) return;
+    const sat = [...document.querySelectorAll("#detail-view .section")].find((x) => x.querySelector(".sat-img"));
+    sat ? sat.after(s) : $("#detail-view").append(s);
+  });
 }
 
 async function main() {

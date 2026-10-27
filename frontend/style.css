@@ -425,6 +425,13 @@ a.btn-primary, a.btn-report { color: #fff; }
 .btn-report:hover { background: #0057c2; border-color: #0057c2; }
 
 /* Citizen media for verifiers */
+.drone-strip { display: grid; grid-auto-flow: column; grid-auto-columns: 54px; gap: 4px; overflow-x: auto; padding-bottom: 4px; }
+.drone-thumb { padding: 0; border: 2px solid transparent; border-radius: 6px; background: none; cursor: pointer; }
+.drone-thumb img { width: 50px; height: 33px; object-fit: cover; border-radius: 4px; display: block; }
+.drone-thumb.dropped img { opacity: .35; filter: grayscale(1); }
+.drone-thumb[aria-pressed="true"] { border-color: var(--blue); }
+.drone-img { aspect-ratio: 3 / 2; }
+.drone-caption { margin: 0; font-size: 12px; }
 .sat-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sat-img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--bg); display: block; image-rendering: auto; }
 .media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }

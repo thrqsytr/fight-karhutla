@@ -18,11 +18,12 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Triage agent: Muse Spark 1.3 calls incident-bound tools, answers in a strict schema, passes the evidence gate, and gets a critique pass from Muse Spark Open on Baseten (public evidence only; claims on citizen evidence are reviewed on Meta Model API)
 - Intake processing: citizen voice notes transcribed with Muse Voice Transcribe (Indonesian), photos read by Muse Spark, SAM 3.1 segmentation available to the agent
 - Sentinel-2 burn scar evidence: a clear before and after pair from Earth Search, dNBR computed in code, burned hectares counted from 20 m pixels at dNBR 0.27 or more, no hectares under heavy haze, before, after, and burn scar images in the incident view and on the map
+- Drone survey simulator (SIMULASI): a Blender flyover of a real incident built on its Sentinel-2 burn mask, planned by the app's mission planner, filtered at the ground station by Muse Glimmer on Modal, measured with SAM 3.1 and georeferenced to hectares by code, compared with render truth. Shown beside the incident, never used in triage
 - Metered cost per triage from the usage of each call (first production run: $0.055, 8 of 8 claims grounded)
 - Dashboard with map, incident list, evidence panel, claims linked to evidence, gate details, and verifier approve or reject
-- 89 tests that run without a network
+- 96 tests that run without a network
 
-Not built yet: WhatsApp intake, the drone survey simulator, replay mode, evaluation. Triage runs only on purpose: verifiers select incidents in the list or by drawing an area on the map (at most 5 per selection) and confirm with an execution code; a daily cap and a daily or hourly schedule over citizen reports bound the spend.
+Not built yet: WhatsApp intake, replay mode, evaluation. Triage runs only on purpose: verifiers select incidents in the list or by drawing an area on the map (at most 5 per selection) and confirm with an execution code; a daily cap and a daily or hourly schedule over citizen reports bound the spend.
 
 ## Meta models
 

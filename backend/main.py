@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Res
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import agent, db, evidence, ingest, intake, reports, satellite, source_status, triage_control
+from . import agent, db, drone_replay, evidence, ingest, intake, reports, satellite, source_status, triage_control
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -291,6 +291,29 @@ def get_satellite_image(incident_id: str, name: str, settings: Settings = Depend
     if p is None:
         raise HTTPException(status_code=404, detail="image not found")
     return FileResponse(p, media_type="image/png", headers={"Cache-Control": "public, max-age=86400, immutable"})
+
+
+@app.get("/api/drone/missions")
+def drone_missions(incident_id: str | None = None, settings: Settings = Depends(get_settings)) -> dict:
+    """Simulated drone surveys (SIMULASI). Shown beside an incident, never stored as its evidence."""
+    items = [drone_replay.summary(m) for m in drone_replay.missions(settings.replay_dir) if incident_id in (None, m["incident_id"])]
+    return {"count": len(items), "items": items}
+
+
+@app.get("/api/drone/missions/{mission_id}")
+def drone_mission(mission_id: str, settings: Settings = Depends(get_settings)) -> dict:
+    m = drone_replay.find(settings.replay_dir, mission_id)
+    if m is None:
+        raise HTTPException(status_code=404, detail="mission not found")
+    return m
+
+
+@app.get("/api/drone/missions/{mission_id}/{kind}/{name}")
+def drone_file(mission_id: str, kind: str, name: str, settings: Settings = Depends(get_settings)) -> FileResponse:
+    p = drone_replay.file_path(settings.replay_dir, mission_id, kind, name)
+    if p is None:
+        raise HTTPException(status_code=404, detail="file not found")
+    return FileResponse(p, headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/api/sources")

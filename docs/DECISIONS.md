@@ -39,6 +39,20 @@ Every deviation from the execution spec is recorded here with its reason.
 | 26 | Burned hectares = 20 m pixels clear in both images with dNBR at or above 0.27 (USGS moderate-low severity), times 0.04 ha. Pixels from 0.10 to 0.27 are reported as low severity and never counted as burned. The gate recomputes the area from the stored pixel count and sets the method to dnbr. | A fixed published threshold that code applies is checkable; a model estimate is not. |
 | 27 | If either image has a median aerosol optical thickness above 0.8, the pair is stored as hazy: images and dNBR statistics are kept, but no pixel count is passed on, so no hectares can be claimed. | The 23 October scene over Merauke was classified 99.8% clear yet sat under thick smoke (AOT 0.99). Smoke lowers NIR, which inflates dNBR. |
 | 28 | Satellite pairs are fetched only on request: by the agent's `get_satellite_pair` tool during a triage or by a verifier button. A stored pair is reused for 24 hours. Images are public at `/api/satellite/{incident}/{file}`. | Each pair reads about 20 windows (10 to 30 s). Sentinel-2 passes about every 5 days, so checking more often repeats the answer. It is open data, unlike citizen media. |
+| 29 | The drone survey is a simulation over a real incident: INC-20261025-0407 (East Kalimantan). Blender 5.2 renders the ground from that incident's real Sentinel-2 after image and dNBR burn mask, with procedural canopy, char, active fire at the newest FIRMS hotspots, and smoke leaning downwind from the stored Open-Meteo wind. The mission comes from the app's own planner (`backend/drone.py`): lawnmower, 120 m above ground, 1 inch camera, GSD 0.176 m, 48 frames over 0.76 km2. Code is in `sim/`, frames in `replay/drone/`. | A real drone flight is out of reach before the deadline. Anchoring the scene on real satellite data keeps the geometry and the burn shape real; only the pixels are synthetic. |
+| 30 | Muse Glimmer runs at the ground station, not on the drone: llama.cpp (official CUDA image) serving the 17 GB Q4_K_M GGUF with its vision projector on a Modal A10G (`edge/glimmer_modal.py`). It decides per frame which to uplink. | Glimmer is a dense 30B model; even the quantized build needs a 24 GB class GPU. Claiming it runs on a small drone would be false. |
+| 31 | Drone results are shown beside the incident as SIMULASI and never stored as its evidence, so triage can not quote them. | A real dispatch brief must not carry a hectare figure that came from a render. |
+| 32 | SAM concept on drone frames is "bare ground", and hectares count only frames where SAM returned a mask. | On nadir frames SAM returned nothing for "burned ground", "ash", "forest", "tree", "ground", "soil", "burnt area", "scorched earth", and "dead tree"; "bare ground" matched the truth at IoU 0.92 on an edge frame. On frames burned edge to edge it returns no mask, and an orthomosaic did not help either. Reporting those frames as not measured is honest; treating them as zero or as fully burned would not be. |
+
+## Day 5 drone simulation results (2026-10-28, synthetic)
+
+| Step | Result |
+| --- | --- |
+| Render | 48 frames plus 48 truth masks, Blender 5.2 EEVEE, about 4 s per frame on this PC |
+| Glimmer filter (Modal A10G, reasoning low) | 34 uplinked, 14 dropped, 0 unparsed; 7.4 s per frame, 444 s total. Against the render truth (burned share 5% or more): 34 true positives, 0 false positives, 10 misses. Four misses called the synthetic char "skin texture" or "not an aerial scene", a realism limit of the render. 11.99 ha of burned ground sat in dropped frames. |
+| SAM 3.1 "bare ground" | Masks on 3 of 34 uplinked frames (edge frames). On those: 3.42 ha against 3.77 ha truth (error -9.3%), median IoU 0.899. The other 31 frames are burned edge to edge and got no mask. Cost $0.085 (34 calls), plus about $0.04 of concept probes. |
+
+These numbers are against the render truth and are not real-world accuracy.
 
 ## Day 1 spike results
 

@@ -9,5 +9,5 @@ cache
 backend/tests
 eval
 docs
-replay
+replay/**/mosaic_preview.jpg
 *.md
