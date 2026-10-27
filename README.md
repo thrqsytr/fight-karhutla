@@ -15,10 +15,13 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Evidence gate: schema check, evidence existence, number matching, burn area recomputed from pixels, location check, content rules
 - Evidence per incident: hotspot cluster summary, Open-Meteo weather, nearest settlement, road, river, lake, and fire station from OSM, with quota budgets and failures shown as unknown
 - Citizen report form at `/lapor` (location, up to 3 photos, voice note, text) with EXIF stripped and media visible to verifiers only
-- Dashboard with map, incident list, evidence panel, and verifier approve or reject
-- 59 tests that run without a network
+- Triage agent: Muse Spark 1.3 calls incident-bound tools, answers in a strict schema, passes the evidence gate, and gets a critique pass from Muse Spark Open on Baseten (public evidence only; claims on citizen evidence are reviewed on Meta Model API)
+- Intake processing: citizen voice notes transcribed with Muse Voice Transcribe (Indonesian), photos read by Muse Spark, SAM 3.1 segmentation available to the agent
+- Metered cost per triage from the usage of each call (first production run: $0.055, 8 of 8 claims grounded)
+- Dashboard with map, incident list, evidence panel, claims linked to evidence, gate details, and verifier approve or reject
+- 74 tests that run without a network
 
-Not built yet: the Muse Spark triage agent, SAM 3.1 segmentation, Muse Voice Transcribe, WhatsApp intake, Sentinel-2 dNBR, the drone survey simulator, replay mode, evaluation. The Meta Model API key is pending credit approval.
+Not built yet: WhatsApp intake, Sentinel-2 dNBR, the drone survey simulator, replay mode, evaluation. Automatic triage is off by default because each run spends Meta Model API credit; verifiers start triage per incident.
 
 ## Meta models
 
