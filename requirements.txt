@@ -8,5 +8,7 @@ openai==3.39.0
 # APScheduler 4.x is still pre-release; 3.11.3 is the latest stable line.
 apscheduler==3.11.3
 python-multipart==0.0.32
+# Meta's official parser for SAM 3.1 segmentation output (SAM License).
+meta-sam-parser==0.1.0
 pillow==13.0.0
 numpy==2.5.4

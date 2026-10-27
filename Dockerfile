@@ -7,6 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DATA_DIR=/data
 
 WORKDIR /srv
+# ffmpeg converts browser voice notes (WebM, Ogg, MP4) to the mono 16-bit PCM WAV that Muse Voice Transcribe accepts.
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 

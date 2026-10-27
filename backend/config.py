@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     llm_provider: Literal["meta", "assemblyai"] = "meta"
     asr_provider: Literal["meta", "assemblyai"] = "meta"
     assemblyai_api_key: str = ""
+    baseten_api_key: str = ""
+
+    # Automatic triage spends Meta credit, so it is bounded per scheduler run.
+    triage_budget_per_run: int = 4
+    auto_triage: bool = False
 
     firms_map_key: str = ""
 
