@@ -21,7 +21,7 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Dashboard with map, incident list, evidence panel, claims linked to evidence, gate details, and verifier approve or reject
 - 74 tests that run without a network
 
-Not built yet: WhatsApp intake, Sentinel-2 dNBR, the drone survey simulator, replay mode, evaluation. Automatic triage is off by default because each run spends Meta Model API credit; verifiers start triage per incident.
+Not built yet: WhatsApp intake, Sentinel-2 dNBR, the drone survey simulator, replay mode, evaluation. Triage runs only on purpose: verifiers select incidents in the list or by drawing an area on the map (at most 5 per selection) and confirm with an execution code; a daily cap and a daily or hourly schedule over citizen reports bound the spend.
 
 ## Meta models
 

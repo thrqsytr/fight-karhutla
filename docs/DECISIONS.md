@@ -31,6 +31,7 @@ Every deviation from the execution spec is recorded here with its reason.
 | 18 | Evidence type `report` is added for the citizen's typed description. | The spec lists seven types and none fits free text. |
 | 19 | `/lapor` is in Indonesian; the dashboard stays in English. | Reporters are Indonesian residents; dashboard readers include global judges. |
 | 20 | Verifier endpoint `DELETE /api/incidents/{id}/citizen-data` removes citizen text, photos, voice, and files. | Needed for the retention promise in SAFETY.md and to remove test reports from production. |
+| 21 | Triage runs only on purpose. A verifier ticks incidents or draws an area on the map (the box keeps the highest-FRP incidents up to 5 per selection) and confirms with an execution code. Wrong codes lock a client out after 5 attempts for 15 minutes. A server-side cap of 30 runs per WITA day covers manual and scheduled runs. The schedule is stored in the database: daily by default, hourly as high intensity, or off, and it only triages citizen-reported incidents. | Each triage spends about $0.05 of Meta credit (measured). Automatic triage over all 400+ eligible clusters would have used most of the credit before judging. |
 
 ## Day 1 spike results
 
