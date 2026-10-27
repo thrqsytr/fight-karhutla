@@ -122,7 +122,8 @@ def _priority_candidates(conn, limit: int) -> list:
     ).fetchall()
 
 
-def enrich_incident(settings: Settings, incident_id: str, *, osm_tiles_left: list[int] | None = None) -> dict:
+def enrich_incident(settings: Settings, incident_id: str, *, osm_tiles_left: list[int] | None = None,
+                    sources: set[str] | None = None) -> dict:
     """Add hotspot, weather, and OSM evidence that the incident does not have yet. Returns per-source status.
 
     Network calls can take minutes when Overpass is overloaded, so they run outside any transaction:
@@ -138,6 +139,9 @@ def enrich_incident(settings: Settings, incident_id: str, *, osm_tiles_left: lis
         hs = hotspot_evidence(conn, incident_id) if "hotspot" not in have and inc["hotspot_count"] else None
     status = json.loads(inc["enrichment_json"]) if inc["enrichment_json"] else {}
     at = datetime.fromisoformat(inc["last_seen"])
+    # sources limits the work to some types, so an agent asking for weather never waits on Overpass.
+    want = sources or {"hotspot", "weather", "osm"}
+    have = have | ({"hotspot", "weather", "osm"} - want)
     new: list[tuple[str, str, str, dict]] = []  # (type, source, summary, payload)
 
     if hs:

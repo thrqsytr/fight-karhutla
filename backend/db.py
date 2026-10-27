@@ -53,6 +53,19 @@ CREATE TABLE IF NOT EXISTS evidence (
 );
 CREATE INDEX IF NOT EXISTS evidence_incident ON evidence(incident_id);
 
+CREATE TABLE IF NOT EXISTS agent_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    incident_id TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    outcome TEXT NOT NULL,             -- running | ok | schema_failed | error
+    error TEXT,
+    seconds REAL,
+    cost_usd REAL,
+    detail_json TEXT
+);
+CREATE INDEX IF NOT EXISTS agent_runs_incident ON agent_runs(incident_id);
+
 CREATE TABLE IF NOT EXISTS verdicts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     incident_id TEXT NOT NULL REFERENCES incidents(id),
