@@ -13,70 +13,73 @@
 </head>
 <body class="page-lapor">
   <header class="topbar topbar-simple">
-    <a class="brand" href="/" aria-label="Fight Karhutla, kembali ke peta">
+    <a class="brand" href="/" aria-label="Fight Karhutla">
       <span class="brand-mark" aria-hidden="true"><span data-icon="flame"></span></span>
       <div>
-        <h1>Lapor karhutla</h1>
+        <h1 data-i18n="Lapor karhutla">Lapor karhutla</h1>
         <p class="tagline">Fight Karhutla</p>
       </div>
     </a>
-    <a class="btn" href="/"><span data-icon="layers" class="icon-sm"></span>Peta</a>
+    <div class="topbar-right">
+      <span id="lang-slot"></span>
+      <a class="btn" href="/"><span data-icon="layers" class="icon-sm"></span><span data-i18n="Peta">Peta</span></a>
+    </div>
   </header>
 
   <main class="lapor" id="lapor">
-    <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Peta insiden</a><span data-icon="chevron" class="icon-sm crumb-sep"></span><span class="current">Lapor</span></nav>
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="/" data-i18n="Peta insiden">Peta insiden</a><span data-icon="chevron" class="icon-sm crumb-sep"></span><span class="current" data-i18n="Lapor">Lapor</span></nav>
 
     <div class="card notice">
       <span data-icon="alert"></span>
-      <p><strong>Bukan kanal darurat resmi.</strong> Bila ada bahaya bagi orang, hubungi 112 atau BPBD setempat lebih dulu. Laporan di sini diperiksa verifikator manusia sebelum diteruskan.</p>
+      <p><strong data-i18n="Bukan kanal darurat resmi.">Bukan kanal darurat resmi.</strong> <span data-i18n="Bila ada bahaya bagi orang, hubungi 112 atau BPBD setempat lebih dulu. Laporan di sini diperiksa verifikator manusia sebelum diteruskan.">Bila ada bahaya bagi orang, hubungi 112 atau BPBD setempat lebih dulu. Laporan di sini diperiksa verifikator manusia sebelum diteruskan.</span></p>
     </div>
 
     <form id="report-form" novalidate>
       <section class="card step" id="step-location">
-        <div class="step-head"><span class="step-num">1</span><h2>Lokasi</h2>
-          <span class="info tip-right" tabindex="0" aria-label="Tentang lokasi"><span data-icon="info" class="icon-sm"></span>
-            <span class="tip" role="tooltip">Pakai GPS ponsel, lalu geser penanda bila perlu. Lokasi persis hanya terlihat oleh verifikator; peta publik membulatkan ke sekitar 100 m.</span></span>
+        <div class="step-head"><span class="step-num">1</span><h2 data-i18n="Lokasi">Lokasi</h2>
+          <span class="info tip-right" tabindex="0" aria-label="Info"><span data-icon="info" class="icon-sm"></span>
+            <span class="tip" role="tooltip" data-i18n="Pakai GPS ponsel, lalu geser penanda bila perlu. Lokasi persis hanya terlihat oleh verifikator; peta publik membulatkan ke sekitar 100 m.">Pakai GPS ponsel, lalu geser penanda bila perlu. Lokasi persis hanya terlihat oleh verifikator; peta publik membulatkan ke sekitar 100 m.</span></span>
         </div>
-        <button type="button" class="btn btn-primary btn-block" id="btn-gps"><span data-icon="crosshair" class="icon-sm"></span>Gunakan lokasi saya</button>
+        <button type="button" class="btn btn-primary btn-block" id="btn-gps"><span data-icon="crosshair" class="icon-sm"></span><span data-i18n="Gunakan lokasi saya">Gunakan lokasi saya</span></button>
         <div class="loc-readout" id="loc-readout" hidden></div>
-        <div class="mini-map" id="mini-map" aria-label="Peta untuk memilih lokasi"></div>
+        <div class="mini-map" id="mini-map" aria-label="Map"></div>
       </section>
 
       <section class="card step" id="step-photos">
-        <div class="step-head"><span class="step-num">2</span><h2>Foto <span class="muted">(1 sampai 3)</span></h2>
-          <span class="info tip-right" tabindex="0" aria-label="Tentang foto"><span data-icon="info" class="icon-sm"></span>
-            <span class="tip" role="tooltip">Foto asap atau api dari jarak aman. Data tersembunyi di foto (EXIF, termasuk merek ponsel dan GPS) dihapus sebelum disimpan.</span></span>
+        <div class="step-head"><span class="step-num">2</span><h2><span data-i18n="Foto">Foto</span> <span class="muted" data-i18n="(1 sampai 3)">(1 sampai 3)</span></h2>
+          <span class="info tip-right" tabindex="0" aria-label="Info"><span data-icon="info" class="icon-sm"></span>
+            <span class="tip" role="tooltip" data-i18n="Foto asap atau api dari jarak aman. Data tersembunyi di foto (EXIF, termasuk merek ponsel dan GPS) dihapus sebelum disimpan.">Foto asap atau api dari jarak aman. Data tersembunyi di foto (EXIF, termasuk merek ponsel dan GPS) dihapus sebelum disimpan.</span></span>
         </div>
         <label class="dropzone" id="photo-drop">
           <input type="file" id="photo-input" accept="image/*" multiple hidden>
           <span class="dz-icon"><span data-icon="camera"></span></span>
-          <span class="dz-text"><strong>Ambil atau pilih foto</strong><span class="muted">JPG, PNG, atau WEBP</span></span>
+          <span class="dz-text"><strong data-i18n="Ambil atau pilih foto">Ambil atau pilih foto</strong><span class="muted" data-i18n="JPG, PNG, atau WEBP">JPG, PNG, atau WEBP</span></span>
         </label>
         <div class="thumbs" id="thumbs"></div>
       </section>
 
       <section class="card step" id="step-voice">
-        <div class="step-head"><span class="step-num">3</span><h2>Pesan suara <span class="muted">(opsional)</span></h2>
-          <span class="info tip-right" tabindex="0" aria-label="Tentang pesan suara"><span data-icon="info" class="icon-sm"></span>
-            <span class="tip" role="tooltip">Ceritakan apa yang terlihat: asap, api, arah angin, akses jalan. Maksimal 2 menit. Suara diubah menjadi teks untuk verifikator.</span></span>
+        <div class="step-head"><span class="step-num">3</span><h2><span data-i18n="Pesan suara">Pesan suara</span> <span class="muted" data-i18n="(opsional)">(opsional)</span></h2>
+          <span class="info tip-right" tabindex="0" aria-label="Info"><span data-icon="info" class="icon-sm"></span>
+            <span class="tip" role="tooltip" data-i18n="Ceritakan apa yang terlihat: asap, api, arah angin, akses jalan. Maksimal 2 menit. Suara diubah menjadi teks untuk verifikator.">Ceritakan apa yang terlihat: asap, api, arah angin, akses jalan. Maksimal 2 menit. Suara diubah menjadi teks untuk verifikator.</span></span>
         </div>
         <div class="recorder" id="recorder"></div>
       </section>
 
       <section class="card step" id="step-text">
-        <div class="step-head"><span class="step-num">4</span><h2>Keterangan <span class="muted">(opsional)</span></h2></div>
-        <textarea id="text" class="input textarea" maxlength="1000" rows="4" placeholder="Contoh: asap tebal dari arah timur kebun, terlihat sejak pagi."></textarea>
+        <div class="step-head"><span class="step-num">4</span><h2><span data-i18n="Keterangan">Keterangan</span> <span class="muted" data-i18n="(opsional)">(opsional)</span></h2></div>
+        <textarea id="text" class="input textarea" maxlength="1000" rows="4" placeholder="Contoh: asap tebal dari arah timur kebun, terlihat sejak pagi." data-i18n-placeholder="Contoh: asap tebal dari arah timur kebun, terlihat sejak pagi."></textarea>
         <div class="counter num" id="counter">0 / 1000</div>
       </section>
 
       <section class="card step">
         <button type="button" class="checkbox" id="consent" role="checkbox" aria-checked="false">
           <span class="box"><span data-icon="check" class="icon-sm"></span></span>
-          <span>Saya paham ini bukan kanal darurat resmi, dan laporan saya akan diperiksa verifikator manusia.</span>
+          <span data-i18n="Saya paham ini bukan kanal darurat resmi, dan laporan saya akan diperiksa verifikator manusia.">Saya paham ini bukan kanal darurat resmi, dan laporan saya akan diperiksa verifikator manusia.</span>
         </button>
         <div class="form-error" id="form-error" role="alert" hidden></div>
         <div class="progress" id="progress" hidden><span class="progress-bar" id="progress-bar"></span></div>
-        <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-submit"><span data-icon="send" class="icon-sm"></span>Kirim laporan</button>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-submit"><span data-icon="send" class="icon-sm"></span><span data-i18n="Kirim laporan">Kirim laporan</span></button>
       </section>
     </form>
 
@@ -84,8 +87,8 @@
   </main>
 
   <footer class="footer footer-simple">
-    <p>Tanpa akun dan tanpa nomor telepon. Laporan disimpan selama masa demo lalu dihapus.</p>
-    <p>Peta: OpenFreeMap, OpenMapTiles, data (c) OpenStreetMap contributors</p>
+    <p data-i18n="Tanpa akun dan tanpa nomor telepon. Laporan disimpan selama masa demo lalu dihapus.">Tanpa akun dan tanpa nomor telepon. Laporan disimpan selama masa demo lalu dihapus.</p>
+    <p>OpenFreeMap, OpenMapTiles, data (c) OpenStreetMap contributors</p>
   </footer>
 
   <script type="module" src="/lapor/lapor.js"></script>

@@ -20,6 +20,7 @@ export const ICONS = {
   activity: '<path d="M3 12h4l2-6 4 12 2-6h6"/>',
   list: '<path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/>',
   x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
+  reset: '<path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v4h4"/><circle cx="12" cy="12" r="1.6"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>',
   stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',

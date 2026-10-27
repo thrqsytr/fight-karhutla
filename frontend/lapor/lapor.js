@@ -1,4 +1,55 @@
 import { $, el, hydrateIcons, svg } from "/ui.js";
+import { applyStatic, langSwitch, locale, makeT } from "/i18n.js";
+
+/* The report page is written in Indonesian for residents; English is here for visitors and judges.
+   Server messages stay in Indonesian. */
+const LAPOR_EN = {
+  "Lapor karhutla": "Report a forest or land fire",
+  "Peta": "Map", "Peta insiden": "Incident map", "Lapor": "Report",
+  "Bukan kanal darurat resmi.": "Not an official emergency channel.",
+  "Bila ada bahaya bagi orang, hubungi 112 atau BPBD setempat lebih dulu. Laporan di sini diperiksa verifikator manusia sebelum diteruskan.":
+    "If people are in danger, call 112 or your local BPBD first. Reports here are checked by a human verifier before they are passed on.",
+  "Lokasi": "Location",
+  "Pakai GPS ponsel, lalu geser penanda bila perlu. Lokasi persis hanya terlihat oleh verifikator; peta publik membulatkan ke sekitar 100 m.":
+    "Use your phone's GPS, then drag the marker if needed. The exact location is visible to verifiers only; the public map rounds it to about 100 m.",
+  "Gunakan lokasi saya": "Use my location", "Mencari lokasi...": "Finding location...", "Perbarui lokasi": "Update location",
+  "Foto": "Photos", "(1 sampai 3)": "(1 to 3)",
+  "Foto asap atau api dari jarak aman. Data tersembunyi di foto (EXIF, termasuk merek ponsel dan GPS) dihapus sebelum disimpan.":
+    "Photograph smoke or fire from a safe distance. Hidden photo data (EXIF, including phone model and GPS) is removed before storage.",
+  "Ambil atau pilih foto": "Take or choose photos", "JPG, PNG, atau WEBP": "JPG, PNG, or WEBP",
+  "Pesan suara": "Voice note", "(opsional)": "(optional)",
+  "Ceritakan apa yang terlihat: asap, api, arah angin, akses jalan. Maksimal 2 menit. Suara diubah menjadi teks untuk verifikator.":
+    "Describe what you see: smoke, fire, wind direction, road access. Up to 2 minutes. The audio is transcribed for verifiers.",
+  "Keterangan": "Description",
+  "Contoh: asap tebal dari arah timur kebun, terlihat sejak pagi.": "Example: thick smoke east of the garden, visible since morning.",
+  "Saya paham ini bukan kanal darurat resmi, dan laporan saya akan diperiksa verifikator manusia.":
+    "I understand this is not an official emergency channel and that a human verifier will check my report.",
+  "Kirim laporan": "Send report",
+  "Tanpa akun dan tanpa nomor telepon. Laporan disimpan selama masa demo lalu dihapus.": "No account and no phone number. Reports are kept for the demo period and then deleted.",
+  "di luar Indonesia": "outside Indonesia", "GPS, akurasi sekitar {m} m": "GPS, accuracy about {m} m", "dipilih di peta": "picked on the map",
+  "Perangkat ini tidak mendukung GPS. Pilih lokasi dengan mengetuk peta.": "This device has no GPS. Tap the map to pick the location.",
+  "Izin lokasi ditolak. Ketuk peta untuk memilih lokasi secara manual.": "Location permission was denied. Tap the map to pick the location.",
+  "Lokasi tidak ditemukan. Coba lagi di tempat terbuka, atau ketuk peta.": "Location not found. Try again in the open, or tap the map.",
+  "Maksimal {n} foto. Foto berlebih tidak ditambahkan.": "At most {n} photos. Extra photos were not added.",
+  "Foto {n}": "Photo {n}", "Hapus foto {n}": "Remove photo {n}",
+  "Perekam suara tidak didukung di browser ini. Tulis keterangan di langkah 4.": "Voice recording is not supported in this browser. Write a description in step 4.",
+  "Merekam": "Recording", "maks {t}": "max {t}", "Selesai": "Done", "Putar pesan suara": "Play voice note", "Putar": "Play", "Berhenti": "Stop",
+  "Hapus pesan suara": "Remove voice note", "Rekam pesan suara": "Record a voice note",
+  "Izin mikrofon ditolak. Anda tetap bisa mengirim foto dan keterangan.": "Microphone permission was denied. You can still send photos and a description.",
+  "Tentukan lokasi dulu: ketuk \"Gunakan lokasi saya\" atau ketuk peta.": "Set the location first: tap \"Use my location\" or tap the map.",
+  "Lokasi berada di luar wilayah Indonesia.": "The location is outside Indonesia.",
+  "Tambahkan minimal satu foto, pesan suara, atau keterangan.": "Add at least one photo, voice note, or description.",
+  "Centang pernyataan di atas tombol kirim.": "Tick the statement above the send button.",
+  "Laporan belum terkirim (kode {code}). Coba lagi.": "The report was not sent (code {code}). Try again.",
+  "Koneksi terputus. Laporan belum terkirim; coba lagi saat sinyal lebih baik.": "The connection dropped. The report was not sent; try again with a better signal.",
+  "Laporan diterima": "Report received", "Nomor insiden": "Incident number",
+  "Laporan Anda digabung dengan insiden yang sudah terpantau di dekat lokasi itu.": "Your report joined an incident already monitored near that location.",
+  "Laporan Anda membuka insiden baru.": "Your report opened a new incident.",
+  "Status: menunggu verifikasi manusia. Fight Karhutla tidak mengirim perintah ke siapa pun; verifikator yang memutuskan langkah berikutnya.":
+    "Status: waiting for human verification. Fight Karhutla sends no orders to anyone; a verifier decides the next step.",
+  "Lihat peta": "View map", "Kirim laporan lain": "Send another report",
+};
+const t = makeT(LAPOR_EN, "id");
 
 const MAPLIBRE_URL = "https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs";
 const BASEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
@@ -9,6 +60,9 @@ const MAX_RECORD_S = 120;
 const ID_BBOX = { w: 94.5, s: -11.5, e: 141.5, n: 6.5 };
 
 const state = { loc: null, photos: [], audio: null, consent: false, sending: false };
+
+/** replaceChildren that skips null and false, which the DOM would otherwise print as text. */
+const fill = (node, ...kids) => node.replaceChildren(...kids.flat(Infinity).filter((k) => k != null && k !== false));
 
 /* Location */
 let map, marker, maplibregl;
@@ -30,10 +84,10 @@ function setLocation(lat, lon, accuracy, source) {
   r.hidden = false;
   const outside = !inIndonesia(lat, lon);
   r.className = `loc-readout ${outside ? "warn" : ""}`;
-  r.replaceChildren(
+  fill(r,
     svg(outside ? "alert" : "pin", "icon icon-sm"),
-    el("span", { class: "num" }, `${lat.toFixed(5)}, ${lon.toFixed(5)}`),
-    el("span", { class: "muted" }, outside ? "di luar Indonesia" : source === "gps" ? `GPS, akurasi sekitar ${Math.round(accuracy)} m` : "dipilih di peta"),
+    el("span", { class: "num" }, `${lat.toLocaleString(locale(), { maximumFractionDigits: 5 })}, ${lon.toLocaleString(locale(), { maximumFractionDigits: 5 })}`),
+    el("span", { class: "muted" }, outside ? t("di luar Indonesia") : source === "gps" ? t("GPS, akurasi sekitar {m} m", { m: Math.round(accuracy) }) : t("dipilih di peta")),
   );
   if (map && maplibregl) {
     if (!marker) {
@@ -47,19 +101,20 @@ function setLocation(lat, lon, accuracy, source) {
 
 function useGps() {
   const btn = $("#btn-gps");
-  if (!("geolocation" in navigator)) return showError("Perangkat ini tidak mendukung GPS. Pilih lokasi dengan mengetuk peta.");
+  const label = (text) => fill(btn, svg("crosshair", "icon icon-sm"), t(text));
+  if (!("geolocation" in navigator)) return showError(t("Perangkat ini tidak mendukung GPS. Pilih lokasi dengan mengetuk peta."));
   btn.disabled = true;
-  btn.replaceChildren(svg("crosshair", "icon icon-sm"), "Mencari lokasi...");
+  label("Mencari lokasi...");
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       btn.disabled = false;
-      btn.replaceChildren(svg("crosshair", "icon icon-sm"), "Perbarui lokasi");
+      label("Perbarui lokasi");
       setLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, "gps");
     },
     (err) => {
       btn.disabled = false;
-      btn.replaceChildren(svg("crosshair", "icon icon-sm"), "Gunakan lokasi saya");
-      showError(err.code === 1 ? "Izin lokasi ditolak. Ketuk peta untuk memilih lokasi secara manual." : "Lokasi tidak ditemukan. Coba lagi di tempat terbuka, atau ketuk peta.");
+      label("Gunakan lokasi saya");
+      showError(t(err.code === 1 ? "Izin lokasi ditolak. Ketuk peta untuk memilih lokasi secara manual." : "Lokasi tidak ditemukan. Coba lagi di tempat terbuka, atau ketuk peta."));
     },
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
   );
@@ -84,9 +139,9 @@ async function shrink(file) {
 
 async function addPhotos(files) {
   const room = MAX_PHOTOS - state.photos.length;
-  const picked = [...files].filter((f) => f.type.startsWith("image/")).slice(0, room);
-  if ([...files].length > room) showError(`Maksimal ${MAX_PHOTOS} foto. Foto berlebih tidak ditambahkan.`);
-  for (const f of picked) {
+  const chosen = [...files].filter((f) => f.type.startsWith("image/")).slice(0, room);
+  if ([...files].length > room) showError(t("Maksimal {n} foto. Foto berlebih tidak ditambahkan.", { n: MAX_PHOTOS }));
+  for (const f of chosen) {
     const small = await shrink(f);
     state.photos.push({ file: small, url: URL.createObjectURL(small) });
   }
@@ -94,10 +149,10 @@ async function addPhotos(files) {
 }
 
 function renderThumbs() {
-  $("#thumbs").replaceChildren(
-    ...state.photos.map((p, i) =>
-      el("div", { class: "thumb" }, el("img", { src: p.url, alt: `Foto ${i + 1}` }),
-        el("button", { type: "button", class: "thumb-x", "aria-label": `Hapus foto ${i + 1}`, onclick: () => { URL.revokeObjectURL(p.url); state.photos.splice(i, 1); renderThumbs(); } }, svg("x", "icon icon-sm")))),
+  fill($("#thumbs"),
+    state.photos.map((p, i) =>
+      el("div", { class: "thumb" }, el("img", { src: p.url, alt: t("Foto {n}", { n: i + 1 }) }),
+        el("button", { type: "button", class: "thumb-x", "aria-label": t("Hapus foto {n}", { n: i + 1 }), onclick: () => { URL.revokeObjectURL(p.url); state.photos.splice(i, 1); renderThumbs(); } }, svg("x", "icon icon-sm")))),
   );
   $("#photo-drop").hidden = state.photos.length >= MAX_PHOTOS;
   validate();
@@ -118,27 +173,28 @@ function fmtSecs(s) {
 function renderRecorder(mode = "idle") {
   const box = $("#recorder");
   if (!window.MediaRecorder || !navigator.mediaDevices?.getUserMedia) {
-    box.replaceChildren(el("p", { class: "empty" }, "Perekam suara tidak didukung di browser ini. Tulis keterangan di langkah 4."));
+    fill(box, el("p", { class: "empty" }, t("Perekam suara tidak didukung di browser ini. Tulis keterangan di langkah 4.")));
     return;
   }
   if (mode === "recording") {
     const time = el("span", { class: "rec-time num", id: "rec-time" }, "0:00");
-    box.replaceChildren(el("div", { class: "rec-live" }, el("span", { class: "pulse rec-dot" }), "Merekam", time, el("span", { class: "muted" }, `maks ${fmtSecs(MAX_RECORD_S)}`)),
-      el("button", { type: "button", class: "btn btn-block", onclick: stopRecording }, svg("stop", "icon icon-sm"), "Selesai"));
+    fill(box, el("div", { class: "rec-live" }, el("span", { class: "pulse rec-dot" }), t("Merekam"), time, el("span", { class: "muted" }, t("maks {t}", { t: fmtSecs(MAX_RECORD_S) }))),
+      el("button", { type: "button", class: "btn btn-block", onclick: stopRecording }, svg("stop", "icon icon-sm"), t("Selesai")));
     return;
   }
   if (state.audio) {
-    const play = el("button", { type: "button", class: "btn", "aria-label": "Putar pesan suara" }, svg("play", "icon icon-sm"), "Putar");
+    const label = (playing) => [svg(playing ? "stop" : "play", "icon icon-sm"), t(playing ? "Berhenti" : "Putar")];
+    const play = el("button", { type: "button", class: "btn", "aria-label": t("Putar pesan suara") }, label(false));
     play.onclick = () => {
       if (!player) player = new Audio(state.audio.url);
-      if (player.paused) { player.play(); play.replaceChildren(svg("stop", "icon icon-sm"), "Berhenti"); player.onended = () => play.replaceChildren(svg("play", "icon icon-sm"), "Putar"); }
-      else { player.pause(); player.currentTime = 0; play.replaceChildren(svg("play", "icon icon-sm"), "Putar"); }
+      if (player.paused) { player.play(); fill(play, label(true)); player.onended = () => fill(play, label(false)); }
+      else { player.pause(); player.currentTime = 0; fill(play, label(false)); }
     };
-    box.replaceChildren(el("div", { class: "rec-done" }, svg("mic", "icon icon-sm"), el("span", {}, "Pesan suara ", el("span", { class: "num" }, fmtSecs(state.audio.secs))), play,
-      el("button", { type: "button", class: "btn btn-ghost-danger", "aria-label": "Hapus pesan suara", onclick: () => { player?.pause(); player = null; URL.revokeObjectURL(state.audio.url); state.audio = null; renderRecorder(); validate(); } }, svg("trash", "icon icon-sm"))));
+    fill(box, el("div", { class: "rec-done" }, svg("mic", "icon icon-sm"), el("span", {}, `${t("Pesan suara")} `, el("span", { class: "num" }, fmtSecs(state.audio.secs))), play,
+      el("button", { type: "button", class: "btn btn-ghost-danger", "aria-label": t("Hapus pesan suara"), onclick: () => { player?.pause(); player = null; URL.revokeObjectURL(state.audio.url); state.audio = null; renderRecorder(); validate(); } }, svg("trash", "icon icon-sm"))));
     return;
   }
-  box.replaceChildren(el("button", { type: "button", class: "btn btn-block", onclick: startRecording }, svg("mic", "icon icon-sm"), "Rekam pesan suara"));
+  fill(box, el("button", { type: "button", class: "btn btn-block", onclick: startRecording }, svg("mic", "icon icon-sm"), t("Rekam pesan suara")));
 }
 
 async function startRecording() {
@@ -146,14 +202,14 @@ async function startRecording() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch {
-    return showError("Izin mikrofon ditolak. Anda tetap bisa mengirim foto dan keterangan.");
+    return showError(t("Izin mikrofon ditolak. Anda tetap bisa mengirim foto dan keterangan."));
   }
   const mime = pickMime();
   recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
   chunks = [];
   recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   recorder.onstop = () => {
-    stream.getTracks().forEach((t) => t.stop());
+    stream.getTracks().forEach((track) => track.stop());
     clearInterval(timer);
     const type = (recorder.mimeType || mime || "audio/webm").split(";")[0];
     const blob = new Blob(chunks, { type });
@@ -167,8 +223,8 @@ async function startRecording() {
   renderRecorder("recording");
   timer = setInterval(() => {
     const s = (Date.now() - startedAt) / 1000;
-    const t = $("#rec-time");
-    if (t) t.textContent = fmtSecs(s);
+    const clock = $("#rec-time");
+    if (clock) clock.textContent = fmtSecs(s);
     if (s >= MAX_RECORD_S) stopRecording();
   }, 250);
 }
@@ -193,17 +249,17 @@ function validate() {
 }
 
 function missing() {
-  if (!state.loc) return "Tentukan lokasi dulu: ketuk \"Gunakan lokasi saya\" atau ketuk peta.";
-  if (!inIndonesia(state.loc.lat, state.loc.lon)) return "Lokasi berada di luar wilayah Indonesia.";
-  if (!hasContent()) return "Tambahkan minimal satu foto, pesan suara, atau keterangan.";
-  if (!state.consent) return "Centang pernyataan di atas tombol kirim.";
+  if (!state.loc) return t("Tentukan lokasi dulu: ketuk \"Gunakan lokasi saya\" atau ketuk peta.");
+  if (!inIndonesia(state.loc.lat, state.loc.lon)) return t("Lokasi berada di luar wilayah Indonesia.");
+  if (!hasContent()) return t("Tambahkan minimal satu foto, pesan suara, atau keterangan.");
+  if (!state.consent) return t("Centang pernyataan di atas tombol kirim.");
   return null;
 }
 
 function showError(msg) {
   const e = $("#form-error");
   e.hidden = !msg;
-  e.replaceChildren(...(msg ? [svg("alert", "icon icon-sm"), el("span", {}, msg)] : []));
+  fill(e, msg ? [svg("alert", "icon icon-sm"), el("span", {}, msg)] : []);
 }
 
 function send() {
@@ -235,13 +291,13 @@ function send() {
     let body = {};
     try { body = JSON.parse(xhr.responseText); } catch { /* non-JSON error page */ }
     if (xhr.status === 201) return showSuccess(body);
-    showError(body.detail && typeof body.detail === "string" ? body.detail : `Laporan belum terkirim (kode ${xhr.status}). Coba lagi.`);
+    showError(body.detail && typeof body.detail === "string" ? body.detail : t("Laporan belum terkirim (kode {code}). Coba lagi.", { code: xhr.status }));
     validate();
   };
   xhr.onerror = () => {
     state.sending = false;
     $("#progress").hidden = true;
-    showError("Koneksi terputus. Laporan belum terkirim; coba lagi saat sinyal lebih baik.");
+    showError(t("Koneksi terputus. Laporan belum terkirim; coba lagi saat sinyal lebih baik."));
     validate();
   };
   xhr.open("POST", "/api/reports");
@@ -252,24 +308,24 @@ function showSuccess(body) {
   $("#report-form").hidden = true;
   const s = $("#success");
   s.hidden = false;
-  s.replaceChildren(
+  fill(s,
     el("div", { class: "success-icon" }, svg("check")),
-    el("h2", {}, "Laporan diterima"),
-    el("p", { class: "muted" }, "Nomor insiden"),
+    el("h2", {}, t("Laporan diterima")),
+    el("p", { class: "muted" }, t("Nomor insiden")),
     el("p", { class: "success-id mono" }, body.incident_id),
-    el("p", {}, body.joined_existing
-      ? "Laporan Anda digabung dengan insiden yang sudah terpantau di dekat lokasi itu."
-      : "Laporan Anda membuka insiden baru."),
-    el("p", { class: "muted" }, "Status: menunggu verifikasi manusia. Fight Karhutla tidak mengirim perintah ke siapa pun; verifikator yang memutuskan langkah berikutnya."),
+    el("p", {}, t(body.joined_existing ? "Laporan Anda digabung dengan insiden yang sudah terpantau di dekat lokasi itu." : "Laporan Anda membuka insiden baru.")),
+    el("p", { class: "muted" }, t("Status: menunggu verifikasi manusia. Fight Karhutla tidak mengirim perintah ke siapa pun; verifikator yang memutuskan langkah berikutnya.")),
     el("div", { class: "actions" },
-      el("a", { class: "btn btn-primary", href: "/" }, svg("layers", "icon icon-sm"), "Lihat peta"),
-      el("button", { type: "button", class: "btn", onclick: () => location.reload() }, "Kirim laporan lain")),
+      el("a", { class: "btn btn-primary", href: "/" }, svg("layers", "icon icon-sm"), t("Lihat peta")),
+      el("button", { type: "button", class: "btn", onclick: () => location.reload() }, t("Kirim laporan lain"))),
   );
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function main() {
+  applyStatic(t);
   hydrateIcons();
+  $("#lang-slot").replaceWith(langSwitch(el));
   $("#btn-gps").addEventListener("click", useGps);
   $("#photo-input").addEventListener("change", (e) => { addPhotos(e.target.files); e.target.value = ""; });
   const drop = $("#photo-drop");
