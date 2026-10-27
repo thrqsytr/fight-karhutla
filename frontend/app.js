@@ -1,4 +1,4 @@
-import { $, el, hydrateIcons, info, section, svg, toast } from "/ui.js";
+import { $, el, hydrateIcons, info, modal, section, svg, toast } from "/ui.js";
 
 // MapLibre (about 300 KB) loads in parallel with the data instead of blocking the first API request.
 const MAPLIBRE_URL = "https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs";
@@ -143,7 +143,12 @@ function setMapData() {
     paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 10, 11, 46], "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#0064e0", "circle-stroke-width": 1.5 },
   });
 
-  map.on("click", "incidents", (e) => openIncident(e.features[0].properties.id));
+  map.addLayer({
+    id: "incident-picked", type: "circle", source: "incidents", filter: ["in", ["get", "id"], ["literal", [...picked]]],
+    paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 8, 11, 42], "circle-color": "rgba(0,100,224,0.12)", "circle-stroke-color": "#0064e0", "circle-stroke-width": 2 },
+  });
+
+  map.on("click", "incidents", (e) => (state.picking ? togglePick(e.features[0].properties.id) : openIncident(e.features[0].properties.id)));
   const hover = (layer, html) => {
     map.on("mousemove", layer, (e) => {
       map.getCanvas().style.cursor = "pointer";
@@ -241,8 +246,12 @@ function skeletonCard() {
 function incidentCard(i) {
   const color = heatColor(i.max_frp);
   const st = STATUS[i.status] || STATUS.pending_triage;
-  return el("li", { class: `card incident ${state.selected === i.id ? "active" : ""}`, onclick: () => openIncident(i.id), tabindex: "0", onkeydown: (e) => e.key === "Enter" && openIncident(i.id) },
-    el("span", { class: "heat-dot", style: `color:${color};background:${color}22` }, isRecent(i.last_seen) ? el("span", { class: "pulse" }) : el("span", { class: "core" })),
+  const act = () => (state.picking ? togglePick(i.id) : openIncident(i.id));
+  const on = picked.has(i.id);
+  return el("li", { class: `card incident ${state.selected === i.id ? "active" : ""} ${state.picking ? "is-picking" : ""} ${on ? "is-picked" : ""}`, onclick: act, tabindex: "0",
+    onkeydown: (e) => (e.key === "Enter" || (state.picking && e.key === " ")) && (e.preventDefault(), act()), "aria-pressed": state.picking ? String(on) : null },
+    state.picking ? el("span", { class: "pick-box", "aria-hidden": "true" }, on ? svg("check", "icon icon-sm") : null)
+      : el("span", { class: "heat-dot", style: `color:${color};background:${color}22` }, isRecent(i.last_seen) ? el("span", { class: "pulse" }) : el("span", { class: "core" })),
     el("div", {},
       el("div", { class: "id" }, i.id),
       el("div", { class: "meta" },
@@ -268,8 +277,16 @@ function renderList() {
     list.replaceChildren(el("li", { class: "empty" }, "No incidents match this filter."));
     return;
   }
+  if (state.picking && picked.size) {
+    // Picked incidents stay on top while selecting, even if the area put them beyond the current page.
+    const chosen = state.incidents.filter((i) => picked.has(i.id));
+    items.splice(0, items.length, ...chosen, ...items.filter((i) => !picked.has(i.id)));
+  }
   const shown = items.slice(0, state.shown);
+  syncPickedLayer();
+  if (state.control) renderControl();
   list.replaceChildren(
+    selectionBar(),
     ...shown.map(incidentCard),
     items.length > shown.length ? el("li", {}, el("button", { class: "btn more", onclick: () => { state.shown += PAGE; renderList(); } }, `Show ${Math.min(PAGE, items.length - shown.length)} more of ${fmtNum(items.length - shown.length)}`)) : null,
   );
@@ -436,22 +453,230 @@ function gateRows(gate) {
   return rows;
 }
 
+/* Deliberate triage: pick incidents in the list or draw an area on the map, then confirm with the execution code. */
+const picked = new Set();
+state.picking = false;
+state.control = null;
+
+function batchLimit() { return state.control?.batch_limit ?? 5; }
+function estCost(n) { return (n * (state.control?.est_cost_per_triage_usd ?? 0.055)).toFixed(2); }
+
+function togglePick(id) {
+  if (picked.has(id)) picked.delete(id);
+  else if (picked.size >= batchLimit()) return toast(`At most ${batchLimit()} incidents per execution.`, "alert");
+  else picked.add(id);
+  renderList();
+}
+
+function setPicking(on) {
+  state.picking = on;
+  if (!on) picked.clear();
+  renderList();
+}
+
+function syncPickedLayer() {
+  if (map?.getLayer("incident-picked")) map.setFilter("incident-picked", ["in", ["get", "id"], ["literal", [...picked]]]);
+}
+
+function selectionBar() {
+  if (!state.picking) return null;
+  const n = picked.size;
+  return el("li", { class: "sel-bar card" },
+    el("div", {}, el("strong", { class: "num" }, `${n} of ${batchLimit()} selected`),
+      el("div", { class: "muted", style: "font-size:12px" }, n ? `Estimated $${estCost(n)}, metered after the run` : "Tick incidents, or draw an area on the map")),
+    el("div", { class: "actions" },
+      el("button", { class: "btn", type: "button", onclick: () => startAreaSelect() }, svg("crosshair", "icon icon-sm"), "Area"),
+      el("button", { class: "btn", type: "button", onclick: () => setPicking(false) }, "Cancel"),
+      (() => { const b = el("button", { class: "btn btn-primary", type: "button" }, svg("activity", "icon icon-sm"), "Triage"); b.disabled = !n; b.onclick = () => openTriageDialog([...picked]); return b; })()));
+}
+
+/* Area selection: drag a box on the map; incidents inside are picked, highest heat first, up to the limit. */
+let areaBox = null;
+function startAreaSelect() {
+  if (!map) return;
+  if (!state.picking) setPicking(true);
+  const canvas = map.getCanvasContainer();
+  canvas.classList.add("is-area-select");
+  map.dragPan.disable();
+  map.boxZoom.disable();
+  toast("Drag a box over the area to triage. Esc cancels.", "crosshair");
+  let start = null;
+  // Measure against the map container: the canvas container is a zero-height wrapper.
+  const frame = map.getContainer();
+  const pos = (e) => { const r = frame.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const finish = (endPt) => {
+    canvas.classList.remove("is-area-select");
+    canvas.removeEventListener("pointerdown", down);
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+    document.removeEventListener("keydown", esc);
+    areaBox?.remove();
+    areaBox = null;
+    map.dragPan.enable();
+    map.boxZoom.enable();
+    if (!start || !endPt) return;
+    const a = map.unproject([Math.min(start.x, endPt.x), Math.max(start.y, endPt.y)]);
+    const b = map.unproject([Math.max(start.x, endPt.x), Math.min(start.y, endPt.y)]);
+    const inside = state.incidents.filter((i) => i.lon >= a.lng && i.lon <= b.lng && i.lat >= a.lat && i.lat <= b.lat)
+      .sort((x, y) => (y.max_frp ?? -1) - (x.max_frp ?? -1));
+    if (!inside.length) return toast("No incidents in that area.", "alert");
+    picked.clear();
+    inside.slice(0, batchLimit()).forEach((i) => picked.add(i.id));
+    toast(inside.length > batchLimit() ? `${inside.length} incidents in the area; picked the ${batchLimit()} with the highest FRP.` : `${inside.length} incident${inside.length === 1 ? "" : "s"} picked.`);
+    renderList();
+  };
+  const down = (e) => {
+    start = pos(e);
+    areaBox = el("div", { class: "area-box" });
+    frame.append(areaBox);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+  const move = (e) => {
+    const p = pos(e);
+    Object.assign(areaBox.style, { left: `${Math.min(start.x, p.x)}px`, top: `${Math.min(start.y, p.y)}px`, width: `${Math.abs(p.x - start.x)}px`, height: `${Math.abs(p.y - start.y)}px` });
+  };
+  const up = (e) => finish(pos(e));
+  const esc = (e) => { if (e.key === "Escape") finish(null); };
+  canvas.addEventListener("pointerdown", down, { once: true });
+  document.addEventListener("keydown", esc);
+}
+
+function codeField() {
+  return el("input", { class: "input code-input", type: "password", placeholder: "Execution code", autocomplete: "off", "aria-label": "Execution code" });
+}
+
+function openTriageDialog(ids) {
+  const items = ids.map((id) => state.incidents.find((i) => i.id === id) || { id });
+  const code = codeField();
+  const err = el("div", { class: "form-error", role: "alert", hidden: true });
+  const left = state.control?.remaining_today;
+  const run = el("button", { class: "btn btn-primary", type: "button" }, svg("activity", "icon icon-sm"), `Run ${ids.length} triage${ids.length === 1 ? "" : "s"}`);
+  const dlg = modal({
+    title: `Triage ${ids.length} incident${ids.length === 1 ? "" : "s"}`,
+    body: [
+      el("div", { class: "gate-list" }, ...items.map((i) => el("div", { class: "ev" }, el("span", { class: "ev-id" }, i.id),
+        el("span", {}, i.hotspot_count != null ? `${i.hotspot_count} hotspots, max FRP ${fmtFrp(i.max_frp)}` : "")))),
+      el("p", { class: "muted", style: "margin:0;font-size:13px" },
+        `Estimated cost $${estCost(ids.length)} (about $${(state.control?.est_cost_per_triage_usd ?? 0.055).toFixed(3)} each, metered after the run). ` +
+        (left != null ? `${left} of ${state.control.daily_cap} runs left today.` : "")),
+      code, err,
+    ],
+    actions: [el("button", { class: "btn", type: "button", onclick: () => dlg.close() }, "Cancel"), run],
+  });
+  const go = async () => {
+    run.disabled = true;
+    err.hidden = true;
+    try {
+      const single = ids.length === 1 && !state.picking;
+      const r = single
+        ? await api(`/api/incidents/${ids[0]}/triage`, { method: "POST", body: JSON.stringify({ code: code.value }) })
+        : await api("/api/triage/batch", { method: "POST", body: JSON.stringify({ incident_ids: ids, code: code.value }) });
+      dlg.close();
+      const started = single ? ids : r.accepted;
+      toast(`Triage started for ${started.length} incident${started.length === 1 ? "" : "s"}. About a minute each.`);
+      started.forEach((id) => { const i = state.incidents.find((x) => x.id === id); if (i) i.status = "triaging"; });
+      if (state.picking) setPicking(false);
+      if (single || started.length === 1) pollTriage(started[0]);
+      watchBatch(started);
+      loadControl();
+    } catch (e) {
+      err.hidden = false;
+      err.replaceChildren(svg("alert", "icon icon-sm"), el("span", {}, e.message));
+      run.disabled = false;
+    }
+  };
+  run.onclick = go;
+  code.addEventListener("keydown", (e) => e.key === "Enter" && go());
+}
+
+/* Batch progress: refresh the list until every started incident has left "triaging". */
+let batchTimer;
+function watchBatch(ids) {
+  clearTimeout(batchTimer);
+  const tick = async () => {
+    try {
+      const fresh = await api("/api/incidents");
+      state.incidents = fresh.items;
+      if (!state.selected) renderList();
+      setMapData();
+      if (ids.some((id) => state.incidents.find((i) => i.id === id)?.status === "triaging")) batchTimer = setTimeout(tick, 8000);
+      else loadControl();
+    } catch { batchTimer = setTimeout(tick, 8000); }
+  };
+  batchTimer = setTimeout(tick, 6000);
+}
+
+/* Schedule and usage card, verifiers only. */
+const MODE_LABEL = { off: "Off", daily: "Daily", hourly: "Hourly" };
+async function loadControl() {
+  const box = $("#triage-control");
+  if (!token()) { box.replaceChildren(); return; }
+  try {
+    state.control = await api("/api/triage/control");
+  } catch (e) {
+    box.replaceChildren();
+    return;
+  }
+  renderControl();
+}
+
+function renderControl() {
+  const c = state.control;
+  const box = $("#triage-control");
+  if (!c) return box.replaceChildren();
+  const seg = el("div", { class: "segmented", role: "group", "aria-label": "Scheduled triage" },
+    ...c.modes.map((m) => el("button", { type: "button", "aria-pressed": String(m === c.mode), onclick: () => m !== c.mode && changeMode(m) }, MODE_LABEL[m] || m)));
+  const next = c.mode === "off" ? "Scheduled triage is off." : `Next scheduled pass: ${c.next_auto_run && c.next_auto_run.startsWith("20") ? fmtTime(c.next_auto_run) : "soon"}.`;
+  const content = [
+    el("div", { class: "mode-row" }, el("span", { class: "legend-label" }, "Schedule",
+      info(`Scheduled triage covers ${c.auto_scope}, at most ${c.auto_budget_per_run} per pass. Daily is the default; hourly is the high-intensity mode. Changing it needs the execution code.`)), seg),
+    el("div", { class: "stats-grid" },
+      el("div", { class: "stat" }, el("div", { class: "stat-v num" }, `${c.today.runs}/${c.daily_cap}`), el("div", { class: "stat-l" }, "Runs today")),
+      el("div", { class: "stat" }, el("div", { class: "stat-v num" }, `$${c.today.cost_usd.toFixed(2)}`), el("div", { class: "stat-l" }, "Metered today")),
+      el("div", { class: "stat" }, el("div", { class: "stat-v num" }, String(c.batch_limit)), el("div", { class: "stat-l" }, "Per selection"))),
+    el("p", { class: "muted", style: "margin:0;font-size:12px" }, next),
+    el("div", { class: "actions" },
+      el("button", { class: "btn btn-primary", type: "button", onclick: () => setPicking(!state.picking) }, svg("check", "icon icon-sm"), state.picking ? "Stop selecting" : "Select incidents"),
+      el("button", { class: "btn", type: "button", onclick: () => startAreaSelect() }, svg("crosshair", "icon icon-sm"), "Select area on map")),
+    !c.code_configured ? el("p", { class: "form-error" }, svg("alert", "icon icon-sm"), el("span", {}, "No execution code is configured on the server, so triage cannot run.")) : null,
+  ];
+  box.replaceChildren(section({ icon: "activity", title: "Triage control", open: state.picking || false, content }));
+}
+
+function changeMode(mode) {
+  const code = codeField();
+  const err = el("div", { class: "form-error", role: "alert", hidden: true });
+  const ok = el("button", { class: "btn btn-primary", type: "button" }, `Set ${MODE_LABEL[mode]}`);
+  const dlg = modal({
+    title: `Scheduled triage: ${MODE_LABEL[mode]}`,
+    body: [el("p", { style: "margin:0" }, mode === "off" ? "No scheduled triage. Verifiers still run triage on selected incidents."
+      : mode === "daily" ? "One scheduled pass per day over citizen-reported incidents." : "High intensity: one scheduled pass per hour over citizen-reported incidents. The daily cap still applies."), code, err],
+    actions: [el("button", { class: "btn", type: "button", onclick: () => dlg.close() }, "Cancel"), ok],
+  });
+  const go = async () => {
+    ok.disabled = true;
+    try {
+      state.control = await api("/api/triage/control/mode", { method: "PUT", body: JSON.stringify({ mode, code: code.value }) });
+      dlg.close();
+      toast(`Scheduled triage set to ${MODE_LABEL[mode]}.`);
+      renderControl();
+    } catch (e) {
+      err.hidden = false;
+      err.replaceChildren(svg("alert", "icon icon-sm"), el("span", {}, e.message));
+      ok.disabled = false;
+    }
+  };
+  ok.onclick = go;
+  code.addEventListener("keydown", (e) => e.key === "Enter" && go());
+}
+
 function triageButton(inc) {
   if (!token()) return null;
   const running = inc.status === "triaging";
   const b = el("button", { class: "btn btn-primary", type: "button" }, svg("activity", "icon icon-sm"), running ? "Triage running..." : inc.triage ? "Run triage again" : "Run triage");
   b.disabled = running;
-  b.onclick = async () => {
-    b.disabled = true;
-    try {
-      await api(`/api/incidents/${inc.id}/triage`, { method: "POST" });
-      toast("Triage started. It takes about a minute.");
-      pollTriage(inc.id);
-    } catch (e) {
-      toast(`Not started: ${e.message}`, "alert");
-      b.disabled = false;
-    }
-  };
+  b.onclick = () => openTriageDialog([inc.id]);
   return el("div", { class: "actions" }, b);
 }
 
@@ -565,6 +790,7 @@ async function main() {
 
   renderKpis();
   renderLegend();
+  loadControl();
   bindListControls();
   crumbs([{ label: "Incidents" }]);
   $("#incident-list").replaceChildren(...Array.from({ length: 7 }, skeletonCard));

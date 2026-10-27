@@ -397,3 +397,22 @@ a.btn-primary, a.btn-report { color: #fff; }
 .gate-list { display: grid; gap: 4px; }
 .ev.flash { animation: flash 1.4s ease-out; }
 @keyframes flash { 0% { background: var(--blue-soft); border-color: var(--blue); } 100% { background: transparent; } }
+
+/* Modal (shared dialog) */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(28, 43, 51, .45); display: grid; place-items: center; z-index: 60; padding: 16px; }
+.modal-card { width: min(460px, 100%); max-height: calc(100vh - 32px); overflow: auto; display: grid; gap: 12px; padding: 16px; box-shadow: var(--shadow-2); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.modal-head h3 { margin: 0; font-size: 16px; }
+.modal-body { display: grid; gap: 10px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.btn-icon { width: 32px; height: 32px; padding: 0; }
+.code-input { width: 100%; letter-spacing: .08em; }
+
+/* Selection */
+.pick-box { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid #9aa9b7; display: grid; place-items: center; color: #fff; margin: 3px; }
+.incident.is-picked { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-ring); }
+.incident.is-picked .pick-box { background: var(--blue); border-color: var(--blue); }
+.sel-bar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; flex-wrap: wrap; border-color: #b5d0f8; background: #f7faff; }
+.mode-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.is-area-select, .is-area-select canvas { cursor: crosshair !important; }
+.area-box { position: absolute; border: 1.5px solid var(--blue); background: rgba(0, 100, 224, .10); border-radius: 4px; pointer-events: none; z-index: 4; }

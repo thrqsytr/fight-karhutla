@@ -87,3 +87,18 @@ export function section({ icon, title, count, tip, open = false, live = false, c
   });
   return s;
 }
+
+/* Modal: the one dialog component (native alert, confirm, and prompt are not used). Esc or the backdrop closes it. */
+export function modal({ title, body, actions = [], onClose }) {
+  const close = () => { back.remove(); document.removeEventListener("keydown", onKey); onClose?.(); };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  const card = el("div", { class: "modal-card card", role: "dialog", "aria-modal": "true", "aria-label": title },
+    el("div", { class: "modal-head" }, el("h3", {}, title), el("button", { class: "btn btn-icon", type: "button", "aria-label": "Close", onclick: close }, svg("x", "icon icon-sm"))),
+    el("div", { class: "modal-body" }, body),
+    el("div", { class: "modal-actions" }, actions));
+  const back = el("div", { class: "modal-backdrop", onclick: (e) => { if (e.target === back) close(); } }, card);
+  document.body.append(back);
+  document.addEventListener("keydown", onKey);
+  setTimeout(() => card.querySelector("input, button.btn-primary")?.focus(), 30);
+  return { close, card };
+}
