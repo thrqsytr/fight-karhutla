@@ -207,5 +207,5 @@ def test_triage_endpoint_requires_key_and_token(settings):
 
     with TestClient(app) as c:
         inc_id = c.get("/api/incidents").json()["items"][0]["id"]
-        assert c.post(f"/api/incidents/{inc_id}/triage").status_code == 401
-        assert c.post(f"/api/incidents/{inc_id}/triage", headers=AUTH).status_code == 503  # no MODEL_API_KEY in tests
+        assert c.post(f"/api/incidents/{inc_id}/triage", json={"code": "x"}).status_code == 401
+        assert c.post(f"/api/incidents/{inc_id}/triage", json={"code": "x"}, headers=AUTH).status_code == 503  # no MODEL_API_KEY in tests

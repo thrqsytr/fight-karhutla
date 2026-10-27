@@ -17,9 +17,12 @@ class Settings(BaseSettings):
     assemblyai_api_key: str = ""
     baseten_api_key: str = ""
 
-    # Automatic triage spends Meta credit, so it is bounded per scheduler run.
-    triage_budget_per_run: int = 4
-    auto_triage: bool = False
+    # Triage spends Meta credit. Runs need an execution code, are capped per day, and the schedule
+    # (off, daily, hourly) is stored in the database and changed from the dashboard.
+    execution_code: str = ""
+    triage_budget_per_run: int = 2
+    triage_batch_limit: int = 5
+    triage_daily_cap: int = 30
 
     firms_map_key: str = ""
 

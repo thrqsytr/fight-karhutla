@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Res
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import agent, db, evidence, ingest, intake, reports
+from . import agent, db, evidence, ingest, intake, reports, triage_control
 from .config import Settings, get_settings
 from .sources import firms, osm, weather
 
@@ -49,7 +49,7 @@ def _start_scheduler(settings: Settings) -> BackgroundScheduler | None:
             evidence.run_enrichment(settings)
         except Exception:
             log.exception("scheduled evidence enrichment failed")
-        if settings.auto_triage and settings.model_api_key:
+        if settings.model_api_key:
             try:
                 auto_triage(settings)
             except Exception:
@@ -368,17 +368,19 @@ def get_media(media_id: str, settings: Settings = Depends(get_settings)) -> File
 STALE_RUN_MINUTES = 15
 
 
-def auto_triage(settings: Settings) -> list[dict]:
-    """Triage the highest-priority untriaged incidents, bounded per run because each one spends Meta credit."""
+def auto_triage(settings: Settings) -> list[str]:
+    """Scheduled triage: only when the stored schedule says it is due, only citizen-reported incidents,
+    within the per-run budget and the daily cap."""
     with db.session(settings.db_path) as conn:
-        rows = conn.execute(
-            """SELECT i.id FROM incidents i
-               WHERE i.triage_json IS NULL AND i.status = 'pending_triage' AND i.enriched_at IS NOT NULL
-                 AND NOT EXISTS (SELECT 1 FROM agent_runs r WHERE r.incident_id = i.id AND r.outcome != 'ok')
-               ORDER BY (i.trigger != 'hotspot_cluster') DESC, i.hotspot_count DESC, i.id LIMIT ?""",
-            (settings.triage_budget_per_run,),
-        ).fetchall()
-    return [agent.triage(settings, r["id"]) for r in rows]
+        if not triage_control.due_auto_run(conn):
+            return []
+        ids = triage_control.auto_candidates(settings, conn)
+        triage_control.mark_auto_run(conn)
+        if ids:
+            triage_control.record_batch(conn, ids, "schedule")
+    for i in ids:
+        _run_triage(settings, i)
+    return ids
 
 
 def _run_triage(settings: Settings, incident_id: str) -> None:
@@ -389,21 +391,94 @@ def _run_triage(settings: Settings, incident_id: str) -> None:
         log.exception("triage task failed for %s", incident_id)
 
 
-@app.post("/api/incidents/{incident_id}/triage", status_code=202, dependencies=[Depends(require_verifier)])
-def start_triage(incident_id: str, background: BackgroundTasks, settings: Settings = Depends(get_settings)) -> dict:
-    """Start a triage run in the background. It takes about a minute; poll the incident for the result."""
+def _run_batch(settings: Settings, ids: list[str]) -> None:
+    for i in ids:
+        with db.session(settings.db_path) as conn:
+            if triage_control.usage_today(conn)["runs"] >= settings.triage_daily_cap:
+                log.warning("daily triage cap reached; %s and later incidents in the batch were not run", i)
+                return
+        _run_triage(settings, i)
+
+
+def _client(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _control(fn):
+    try:
+        return fn()
+    except triage_control.ControlError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail)
+
+
+class CodeIn(BaseModel):
+    code: str = Field(default="", max_length=64)
+
+
+class BatchIn(CodeIn):
+    incident_ids: list[str] = Field(default_factory=list, max_length=100)
+
+
+class ModeIn(CodeIn):
+    mode: str
+
+
+def _require_model(settings: Settings) -> None:
     if not settings.model_api_key:
         raise HTTPException(status_code=503, detail="MODEL_API_KEY is not configured")
+
+
+def _not_running(conn, incident_id: str) -> bool:
+    running = conn.execute(
+        "SELECT started_at FROM agent_runs WHERE incident_id=? AND outcome='running' ORDER BY id DESC LIMIT 1", (incident_id,)
+    ).fetchone()
+    return not (running and datetime.fromisoformat(running["started_at"]) > datetime.now(timezone.utc) - timedelta(minutes=STALE_RUN_MINUTES))
+
+
+@app.post("/api/incidents/{incident_id}/triage", status_code=202, dependencies=[Depends(require_verifier)])
+def start_triage(incident_id: str, body: CodeIn, request: Request, background: BackgroundTasks, settings: Settings = Depends(get_settings)) -> dict:
+    """Triage one incident in the background. Needs the execution code; counts toward the daily cap."""
+    _require_model(settings)
+    _control(lambda: triage_control.check_code(settings, body.code, _client(request)))
     with db.session(settings.db_path) as conn:
-        if not conn.execute("SELECT 1 FROM incidents WHERE id=?", (incident_id,)).fetchone():
-            raise HTTPException(status_code=404, detail="incident not found")
-        running = conn.execute(
-            "SELECT started_at FROM agent_runs WHERE incident_id=? AND outcome='running' ORDER BY id DESC LIMIT 1", (incident_id,)
-        ).fetchone()
-    if running and datetime.fromisoformat(running["started_at"]) > datetime.now(timezone.utc) - timedelta(minutes=STALE_RUN_MINUTES):
-        raise HTTPException(status_code=409, detail="a triage run is already in progress for this incident")
-    background.add_task(_run_triage, settings, incident_id)
+        ids = _control(lambda: triage_control.validate_batch(settings, conn, [incident_id]))
+        if not _not_running(conn, incident_id):
+            raise HTTPException(status_code=409, detail="a triage run is already in progress for this incident")
+        triage_control.record_batch(conn, ids, "single")
+    background.add_task(_run_batch, settings, ids)
     return {"incident_id": incident_id, "status": "triaging"}
+
+
+@app.post("/api/triage/batch", status_code=202, dependencies=[Depends(require_verifier)])
+def start_batch(body: BatchIn, request: Request, background: BackgroundTasks, settings: Settings = Depends(get_settings)) -> dict:
+    """Triage a deliberate selection (checked in the list or drawn on the map), at most triage_batch_limit."""
+    _require_model(settings)
+    _control(lambda: triage_control.check_code(settings, body.code, _client(request)))
+    with db.session(settings.db_path) as conn:
+        ids = _control(lambda: triage_control.validate_batch(settings, conn, body.incident_ids))
+        skipped = [i for i in ids if not _not_running(conn, i)]
+        ids = [i for i in ids if i not in skipped]
+        if ids:
+            triage_control.record_batch(conn, ids, "selection")
+    if ids:
+        background.add_task(_run_batch, settings, ids)
+    return {"accepted": ids, "skipped_running": skipped, "est_cost_usd": round(len(ids) * triage_control.EST_COST_USD, 3)}
+
+
+@app.get("/api/triage/control", dependencies=[Depends(require_verifier)])
+def triage_status(settings: Settings = Depends(get_settings)) -> dict:
+    with db.session(settings.db_path) as conn:
+        return triage_control.status(settings, conn)
+
+
+@app.put("/api/triage/control/mode", dependencies=[Depends(require_verifier)])
+def triage_mode(body: ModeIn, request: Request, settings: Settings = Depends(get_settings)) -> dict:
+    """Change the schedule: off, daily (default), or hourly. Needs the execution code."""
+    _control(lambda: triage_control.check_code(settings, body.code, _client(request)))
+    with db.session(settings.db_path) as conn:
+        _control(lambda: triage_control.set_mode(conn, body.mode))
+    with db.session(settings.db_path) as conn:
+        return triage_control.status(settings, conn)
 
 
 @app.get("/api/incidents/{incident_id}/runs", dependencies=[Depends(require_verifier)])
