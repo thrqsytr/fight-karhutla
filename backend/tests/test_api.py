@@ -102,6 +102,8 @@ def test_citizen_report_is_public_only_after_approval(settings):
         assert c.get("/api/incidents/INC-20261027-9001").status_code == 404
         c.post("/api/incidents/INC-20261027-9001/verdict", json={"decision": "reject"}, headers=AUTH)
         assert "INC-20261027-9001" not in ids()
+        # Changing a decision means revoking it first; both steps stay on record.
+        assert c.post("/api/incidents/INC-20261027-9001/verdict", json={"decision": "revoke"}, headers=AUTH).status_code == 200
         c.post("/api/incidents/INC-20261027-9001/verdict", json={"decision": "approve"}, headers=AUTH)
         assert "INC-20261027-9001" in ids()
         assert c.get("/api/incidents/INC-20261027-9001").status_code == 200
@@ -143,3 +145,39 @@ def test_information_pages_are_served_in_both_languages(settings):
             r = c.get(f"/{slug}/")
             assert r.status_code == 200, slug
             assert 'article class="card doc-body" lang="id"' in r.text and 'lang="en"' in r.text
+
+
+def test_a_decision_can_be_revoked_and_stays_in_history(settings):
+    with client(settings) as c:
+        items = c.get("/api/incidents", headers=AUTH).json()["items"]
+        inc_id = items[0]["id"]
+        post = lambda d: c.post(f"/api/incidents/{inc_id}/verdict", json={"decision": d, "note": "test"}, headers=AUTH)
+        assert post("revoke").status_code == 409  # nothing to revoke yet
+        assert post("approve").status_code == 200
+        assert post("approve").status_code == 409  # one standing decision at a time
+        listed = next(i for i in c.get("/api/incidents", headers=AUTH).json()["items"] if i["id"] == inc_id)
+        assert listed["latest_verdict"] == "approve"
+        assert post("revoke").status_code == 200
+        listed = next(i for i in c.get("/api/incidents", headers=AUTH).json()["items"] if i["id"] == inc_id)
+        assert listed["latest_verdict"] is None
+        assert [v["decision"] for v in c.get(f"/api/incidents/{inc_id}", headers=AUTH).json()["verdicts"]] == ["approve", "revoke"]
+        assert post("reject").status_code == 200
+
+
+def test_old_verdict_table_is_migrated_with_its_rows(tmp_path):
+    import sqlite3
+
+    from backend import db
+
+    path = tmp_path / "old.sqlite3"
+    old = db.SCHEMA.replace("CHECK (decision IN ('approve', 'reject', 'revoke'))", "CHECK (decision IN ('approve', 'reject'))")
+    conn = sqlite3.connect(path)
+    conn.executescript(old)
+    conn.execute("INSERT INTO incidents (id, trigger, status, lat, lon, first_seen, last_seen, hotspot_count, simulation, created_at, updated_at) VALUES ('INC-1','hotspot_cluster','pending_triage',0,116,'x','x',1,0,'x','x')")
+    conn.execute("INSERT INTO verdicts (incident_id, verifier_hash, decision, channel, created_at) VALUES ('INC-1','h','approve','dashboard','t')")
+    conn.commit()
+    conn.close()
+    db.init(path)
+    with db.session(path) as c:
+        assert [tuple(r) for r in c.execute("SELECT id, decision FROM verdicts")] == [(1, "approve")]
+        c.execute("INSERT INTO verdicts (incident_id, verifier_hash, decision, channel, created_at) VALUES ('INC-1','h','revoke','dashboard','t')")

@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS verdicts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     incident_id TEXT NOT NULL REFERENCES incidents(id),
     verifier_hash TEXT NOT NULL,
-    decision TEXT NOT NULL CHECK (decision IN ('approve', 'reject')),
+    decision TEXT NOT NULL CHECK (decision IN ('approve', 'reject', 'revoke')),
     note TEXT,
     channel TEXT NOT NULL,
     created_at TEXT NOT NULL
@@ -116,6 +116,29 @@ def init(path: Path) -> None:
             for name, ddl in cols.items():
                 if name not in have:
                     conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
+        _allow_revoke(conn)
+
+
+def _allow_revoke(conn: sqlite3.Connection) -> None:
+    """Databases made before 'revoke' existed carry the old CHECK. SQLite cannot alter a CHECK, so the
+    table is rebuilt once with the same rows and ids."""
+    row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='verdicts'").fetchone()
+    if row is None or "'revoke'" in row[0]:
+        return
+    conn.executescript("""
+        ALTER TABLE verdicts RENAME TO verdicts_old;
+        CREATE TABLE verdicts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            incident_id TEXT NOT NULL REFERENCES incidents(id),
+            verifier_hash TEXT NOT NULL,
+            decision TEXT NOT NULL CHECK (decision IN ('approve', 'reject', 'revoke')),
+            note TEXT,
+            channel TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        INSERT INTO verdicts SELECT * FROM verdicts_old;
+        DROP TABLE verdicts_old;
+    """)
 
 
 @contextmanager

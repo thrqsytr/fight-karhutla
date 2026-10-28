@@ -47,6 +47,13 @@ export const DASHBOARD_ID = {
   "Verified wildfire triage for Indonesia": "Triase karhutla terverifikasi untuk Indonesia",
   "The AI only gathers evidence and drafts a recommendation. A human verifier approves or rejects every incident; nothing is sent to anyone automatically.":
     "AI hanya mengumpulkan bukti dan menyusun rekomendasi. Verifikator manusia yang menyetujui atau menolak setiap insiden; tidak ada yang dikirim otomatis ke siapa pun.",
+  "Cancel this decision": "Batalkan keputusan", "Approved": "Disetujui", "Decided on {when}.": "Diputuskan pada {when}.",
+  "Reason (optional)": "Alasan (opsional)", "Cancel the approval?": "Batalkan persetujuan?", "Cancel the rejection?": "Batalkan penolakan?",
+  "The incident goes back to waiting for a verifier. If it rests on citizen reports only, it leaves the public map until it is approved again. The original approval stays in the history.":
+    "Insiden kembali menunggu verifikator. Bila hanya berdasarkan laporan warga, insiden hilang dari peta publik sampai disetujui lagi. Persetujuan awal tetap tercatat di riwayat.",
+  "The incident goes back to waiting for a verifier. The original rejection stays in the history.": "Insiden kembali menunggu verifikator. Penolakan awal tetap tercatat di riwayat.",
+  "Keep it": "Biarkan", "Decision cancelled. The incident waits for a verifier again.": "Keputusan dibatalkan. Insiden kembali menunggu verifikator.",
+  "cancelled": "dibatalkan",
   "Verified": "Terverifikasi", "Rejected": "Ditolak", "Not triaged yet": "Belum ditriase",
   "A human verifier approved this incident on {when}.": "Verifikator manusia menyetujui insiden ini pada {when}.",
   "A human verifier rejected this incident on {when}.": "Verifikator manusia menolak insiden ini pada {when}.",

@@ -486,6 +486,14 @@ function verifierContent(inc) {
     return [el("p", { class: "empty" }, t("Approving or rejecting needs verifier mode.")),
       el("div", { class: "actions" }, el("button", { class: "btn btn-primary", type: "button", onclick: () => openSignIn(t) }, svg("shield", "icon icon-sm"), t("Verifier sign in")))];
   }
+  const standing = activeVerdict(inc);
+  if (standing) {
+    const undo = el("button", { class: "btn", type: "button", onclick: () => revokeDialog(inc, standing) }, svg("reset", "icon icon-sm"), t("Cancel this decision"));
+    return [el("div", { class: `phead ${standing.decision === "approve" ? "ok" : "bad"}` }, svg(standing.decision === "approve" ? "check" : "x", "icon"),
+      el("div", {}, el("strong", {}, t(standing.decision === "approve" ? "Approved" : "Rejected")), el("span", {}, t("Decided on {when}.", { when: fmtTime(standing.created_at) })),
+        standing.note ? el("span", {}, `"${standing.note}"`) : null)),
+      el("div", { class: "actions" }, undo)];
+  }
   const approve = el("button", { class: "btn btn-primary" }, svg("check", "icon icon-sm"), t("Approve"));
   const reject = el("button", { class: "btn btn-ghost-danger" }, svg("x", "icon icon-sm"), t("Reject"));
   const decide = async (decision) => {
@@ -504,7 +512,41 @@ function verifierContent(inc) {
   return [el("div", { class: "actions" }, approve, reject)];
 }
 
+/** The decision that stands: the latest verdict, unless it was revoked. */
+function activeVerdict(inc) {
+  const last = inc.verdicts.at(-1);
+  return last && last.decision !== "revoke" ? last : null;
+}
+
+function revokeDialog(inc, standing) {
+  const note = el("input", { class: "input", maxlength: 500, placeholder: t("Reason (optional)"), "aria-label": t("Reason (optional)") });
+  const err = el("p", { class: "form-error", hidden: true });
+  const ok = el("button", { class: "btn btn-primary", type: "button" }, svg("reset", "icon icon-sm"), t("Cancel this decision"));
+  const dlg = modal({
+    title: t(standing.decision === "approve" ? "Cancel the approval?" : "Cancel the rejection?"),
+    body: [el("p", { style: "margin:0" }, t(standing.decision === "approve"
+      ? "The incident goes back to waiting for a verifier. If it rests on citizen reports only, it leaves the public map until it is approved again. The original approval stays in the history."
+      : "The incident goes back to waiting for a verifier. The original rejection stays in the history.")), note, err],
+    actions: [el("button", { class: "btn", type: "button", onclick: () => dlg.close() }, t("Keep it")), ok],
+  });
+  ok.onclick = async () => {
+    ok.disabled = true;
+    try {
+      await api(`/api/incidents/${inc.id}/verdict`, { method: "POST", body: JSON.stringify({ decision: "revoke", note: note.value.trim() || null }) });
+      dlg.close();
+      toast(t("Decision cancelled. The incident waits for a verifier again."));
+      openIncident(inc.id);
+      api("/api/incidents").then((r) => { state.incidents = r.items; setMapData(); }).catch(() => {});
+    } catch (e) {
+      err.hidden = false;
+      fill(err, svg("alert", "icon icon-sm"), el("span", {}, e.message));
+      ok.disabled = false;
+    }
+  };
+}
+
 /* Evidence rows. Citizen media is fetched with the verifier token, so it never sits at a public URL. */
+const VERDICT_LABEL = { approve: "approved", reject: "rejected", revoke: "cancelled" };
 const TRIGGER_LABEL = { hotspot_cluster: "hotspot cluster", citizen_report: "citizen report", merged: "hotspots + citizen report" };
 
 async function mediaUrl(mediaId) {
@@ -1026,7 +1068,7 @@ function reportLink(inc) {
 function progressCard(inc) {
   const types = new Set(inc.evidence.map((e) => e.type));
   const tri = inc.triage;
-  const verdict = inc.verdicts.at(-1);
+  const verdict = activeVerdict(inc);
   const triagedAt = inc.gate?.triaged_at;
   const has = {
     hotspot: types.has("hotspot"), weather: types.has("weather"), osm: types.has("osm"), satellite: types.has("satellite"),
@@ -1172,7 +1214,8 @@ async function openIncident(id) {
         inc.hotspots.length > 25 ? el("p", { class: "empty" }, t("Showing 25 of {n}.", { n: inc.hotspots.length })) : null,
       ] }),
     section({ icon: "gavel", title: t("Verdicts"), count: inc.verdicts.length,
-      content: inc.verdicts.length ? inc.verdicts.map((d) => el("div", { class: "ev" }, el("span", { class: "ev-id" }, t(d.decision)), el("span", {}, `${d.channel} · ${fmtTime(d.created_at)}`)))
+      content: inc.verdicts.length ? inc.verdicts.map((d) => el("div", { class: "ev" }, el("span", { class: "ev-id" }, t(VERDICT_LABEL[d.decision] || d.decision)),
+        el("span", {}, `${d.channel} · ${fmtTime(d.created_at)}`, d.note ? ` · "${d.note}"` : "")))
                                    : el("p", { class: "empty" }, t("No verdict yet.")) }),
     section({ icon: "check", title: t("Verifier decision"), open: true, tip: t("Approve or reject is recorded as a label. Labels calibrate the evidence gate thresholds."), content: verifierContent(inc) }),
   ];

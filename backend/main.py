@@ -178,7 +178,7 @@ def list_incidents(request: Request, verifier: bool = Depends(is_verifier), sett
     public_filter = "" if verifier else f"WHERE i.trigger IN {PUBLIC_TRIGGERS!r} OR lv.decision = 'approve'"
     with db.session(settings.db_path) as conn:
         rows = conn.execute(
-            f"""SELECT i.*, {SEVERITY_COLUMNS}, lv.decision AS latest_verdict FROM incidents i
+            f"""SELECT i.*, {SEVERITY_COLUMNS}, CASE WHEN lv.decision IN ('approve', 'reject') THEN lv.decision END AS latest_verdict FROM incidents i
                 LEFT JOIN ({SEVERITY_SUBQUERY}) s ON s.incident_id = i.id
                 LEFT JOIN ({LATEST_VERDICT_SUBQUERY}) lv ON lv.incident_id = i.id
                 {public_filter}
@@ -228,7 +228,7 @@ def get_incident(incident_id: str, verifier: bool = Depends(is_verifier), settin
 
 
 class VerdictIn(BaseModel):
-    decision: Literal["approve", "reject"]
+    decision: Literal["approve", "reject", "revoke"]
     note: str | None = Field(default=None, max_length=500)
 
 
@@ -238,6 +238,13 @@ def post_verdict(incident_id: str, body: VerdictIn, settings: Settings = Depends
     with db.session(settings.db_path) as conn:
         if not conn.execute("SELECT 1 FROM incidents WHERE id=?", (incident_id,)).fetchone():
             raise HTTPException(status_code=404, detail="incident not found")
+        last = conn.execute("SELECT decision FROM verdicts WHERE incident_id=? ORDER BY id DESC LIMIT 1", (incident_id,)).fetchone()
+        active = last["decision"] if last and last["decision"] != "revoke" else None
+        # One standing decision at a time: change it by revoking first, so every change is on record.
+        if body.decision == "revoke" and active is None:
+            raise HTTPException(status_code=409, detail="there is no decision to revoke")
+        if body.decision != "revoke" and active is not None:
+            raise HTTPException(status_code=409, detail=f"already decided ({active}); revoke it first")
         cur = conn.execute(
             "INSERT INTO verdicts (incident_id, verifier_hash, decision, note, channel, created_at) VALUES (?,?,?,?,?,?)",
             (incident_id, verifier_hash, body.decision, body.note, "dashboard", db.utcnow()),
