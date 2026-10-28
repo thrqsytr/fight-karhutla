@@ -9,8 +9,8 @@
   "id": "Titik panas yang bekas terbakarnya terlihat di Sentinel-2. Agen membaca pasangan citra dan luas dNBR dihitung kode.",
   "en": "Hotspots whose burn scar shows on Sentinel-2. The agent reads the image pair and code computes the dNBR area."
  },
- "recorded_with": "meta-models/muse-spark-open-1026",
- "recorded_at": "2026-10-28T07:59:02+00:00",
+ "recorded_with": "muse-spark-1.3",
+ "recorded_at": "2026-10-28T11:04:23+00:00",
  "source": {
   "eval_id": "EVAL-15",
   "label": "burned",
@@ -30,10 +30,10 @@
   "hotspot_count": 4,
   "status": "likely_fire",
   "confidence": 0.82,
-  "risk_score": 78.0,
-  "triage_json": "{\"incident_id\": \"{INC}\", \"location\": {\"lat\": -0.76999, \"lon\": 110.78767, \"admin\": \"unknown\", \"accuracy_m\": 3293.0}, \"status\": \"likely_fire\", \"confidence\": 0.82, \"evidence\": [{\"id\": \"EV-001\", \"type\": \"hotspot\", \"source\": \"NASA FIRMS\", \"retrieved_at\": \"2026-10-28T07:56:40+00:00\", \"summary\": \"4 FIRMS hotspot(s), max FRP 42.94 MW, confidence: 2 high, 2 nominal\"}, {\"id\": \"EV-002\", \"type\": \"weather\", \"source\": \"Open-Meteo\", \"retrieved_at\": \"2026-10-28T07:56:40+00:00\", \"summary\": \"Wind 1.12 m/s from 201 deg, humidity 56%, rain 24 h 0.4 mm\"}, {\"id\": \"EV-003\", \"type\": \"osm\", \"source\": \"OpenStreetMap (offline extract Geofabrik Indonesia 2026-10-27)\", \"retrieved_at\": \"2026-10-28T07:56:40+00:00\", \"summary\": \"Nearest: settlement 3.3 km, road 1.8 km, river 8.3 km, lake or pond 8.7 km, no fire station within 30 km\"}, {\"id\": \"EV-004\", \"type\": \"satellite\", \"source\": \"Sentinel-2 L2A (Earth Search)\", \"retrieved_at\": \"2026-10-28T07:57:53+00:00\", \"summary\": \"Sentinel-2 dNBR, before 2025-09-22 and after 2025-11-01: 22.16 ha at dNBR >= 0.27 within 306.88 ha of clear ground; 12.84 ha more at low severity\"}], \"claims\": [{\"text\": \"4 FIRMS hotspot detections were recorded with first and last acquisition at 2025-09-26T05:31:00+00:00 and max FRP 42.94 MW with confidence 2 high and 2 nominal\", \"evidence_ids\": [\"EV-001\"]}, {\"text\": \"Weather observed at 2025-09-26T05:00:00+00:00 shows wind 1.12 m/s from 201 deg with relative humidity 56% and 24 hour rain 0.4 mm\", \"evidence_ids\": [\"EV-002\"]}, {\"text\": \"Nearest settlement is a village at 3293 m and nearest tertiary road at 1823 m with nearest river at 8311 m and nearest lake or pond at 8665 m and no fire station within 30000 m\", \"evidence_ids\": [\"EV-003\"]}, {\"text\": \"Sentinel-2 dNBR comparison between 2025-09-22 and 2025-11-01 shows 22.16 ha burned at dNBR >= 0.27 within 306.88 ha of clear ground with an additional 12.84 ha of low severity area, which indicates burned ground not active fire\", \"evidence_ids\": [\"EV-004\"]}, {\"text\": \"Wind from 201 deg indicates likely smoke and fire spread toward the opposite direction around 21 deg to the north northeast\", \"evidence_ids\": [\"EV-002\"]}], \"risk\": {\"score\": 78.0, \"drivers\": [\"4 hotspots with max FRP 42.94 MW including 2 high confidence\", \"22.16 ha burn scar within 306.88 ha clear ground plus 12.84 ha low severity\", \"dry conditions with 0.4 mm rain in 24 hours and 56% humidity with light wind 1.12 m/s from 201 deg spreading toward 21 deg\", \"settlement 3293 m away with no fire station within 30000 m and road access 1823 m away\", \"water sources distant at river 8311 m and lake 8665 m complicating suppression\"], \"spread_direction_deg\": 21.0}, \"burn_area_ha\": {\"value\": 22.16, \"method\": \"dnbr\", \"evidence_id\": \"EV-004\"}, \"recommended_actions\": [\"Coordinate immediately with village officials at nearest settlement 3293 m for ground verification and access guidance\", \"Approach via nearest tertiary road at 1823 m and assess passability for emergency vehicles\", \"Identify and prepare water points at river 8311 m and lake or pond 8665 m given no fire station within 30000 m\", \"Monitor north northeast spread direction around 21 deg opposite wind from 201 deg and prioritize protection toward that sector\", \"Request support from nearest fire management officers outside 30000 m radius due to limited local capacity\"], \"dispatch_brief\": {\"id\": \"Kebakaran terkonfirmasi. 4 hotspot terdeteksi dengan FRP maksimum 42.94 MW dengan kepercayaan tinggi 2 dan nominal 2. Citra Sentinel-2 antara 2025-09-22 dan 2025-11-01 menunjukkan 22.16 ha lahan terbakar dalam 306.88 ha area jelas dengan tambahan 12.84 ha tingkat rendah. Cuaca kering dengan kelembapan 56 persen dan hujan 0.4 mm serta angin 1.12 m per detik dari 201 derajat mengarah sebaran ke utara timur laut sekitar 21 derajat. Pemukiman terdekat 3293 m akses jalan 1823 m sumber air sungai 8311 m dan danau 8665 m tidak ada pos pemadam dalam 30000 m. Perlu verifikasi lapangan segera.\", \"en\": \"Confirmed fire. 4 hotspots detected with maximum FRP 42.94 MW with high confidence 2 and nominal 2. Sentinel-2 image between 2025-09-22 and 2025-11-01 shows 22.16 ha burned within 306.88 ha clear area with additional 12.84 ha low severity. Dry weather with humidity 56 percent and rain 0.4 mm and wind 1.12 m per second from 201 degrees directing spread to north northeast around 21 degrees. Nearest settlement 3293 m road access 1823 m water source river 8311 m and lake 8665 m no fire station within 30000 m. Immediate field verification required.\"}, \"uncertainties\": [\"Exact settlement name is tidak diketahui as OSM record has null name for village at 3293 m\", \"Active fire status after 2025-11-01 not confirmed, dNBR shows burned ground not current flames\", \"Perimeter beyond 306.88 ha clear ground not analysed due to cloud cover in after scene with 0.701 clear share\", \"Ground fuel conditions and on site access beyond 1823 m road distance require human verification\"], \"needs_human\": true}",
-  "gate_json": "{\"accepted\": true, \"claims_total\": 5, \"claims_passed\": 5, \"claims_dropped\": [], \"corrections\": [{\"where\": \"burn_area_ha.value\", \"claimed\": 2.0, \"corrected\": 22.16}], \"violations\": [], \"downgrades\": [], \"schema_errors\": [], \"grounding_rate\": 1.0, \"critique\": {\"reviewed\": 6, \"disputed\": [], \"brief_disputed\": [], \"providers\": [\"baseten:meta-models/muse-spark-open-1026\"], \"errors\": []}, \"seconds\": 68.2, \"cost_usd\": 0, \"triaged_at\": \"2026-10-28T07:59:02+00:00\", \"outcome\": \"ok\"}",
-  "enriched_at": "2026-10-28T07:57:56+00:00",
+  "risk_score": 75.0,
+  "triage_json": "{\"incident_id\": \"{INC}\", \"location\": {\"lat\": -0.76999, \"lon\": 110.78767, \"admin\": \"unknown\", \"accuracy_m\": 3293.0}, \"status\": \"likely_fire\", \"confidence\": 0.82, \"evidence\": [{\"id\": \"EV-001\", \"type\": \"hotspot\", \"source\": \"NASA FIRMS\", \"retrieved_at\": \"2026-10-28T11:01:35+00:00\", \"summary\": \"4 FIRMS hotspot(s), max FRP 42.94 MW, confidence: 2 high, 2 nominal\"}, {\"id\": \"EV-002\", \"type\": \"weather\", \"source\": \"Open-Meteo\", \"retrieved_at\": \"2026-10-28T11:01:35+00:00\", \"summary\": \"Wind 1.12 m/s from 201 deg, humidity 56%, rain 24 h 0.4 mm\"}, {\"id\": \"EV-003\", \"type\": \"osm\", \"source\": \"OpenStreetMap (offline extract Geofabrik Indonesia 2026-10-27)\", \"retrieved_at\": \"2026-10-28T11:01:35+00:00\", \"summary\": \"Nearest: settlement 3.3 km, road 1.8 km, river 8.3 km, lake or pond 8.7 km, no fire station within 30 km\"}, {\"id\": \"EV-004\", \"type\": \"satellite\", \"source\": \"Sentinel-2 L2A (Earth Search)\", \"retrieved_at\": \"2026-10-28T11:01:56+00:00\", \"summary\": \"Sentinel-2 dNBR, before 2025-09-22 and after 2025-11-01: 22.16 ha at dNBR >= 0.27 within 306.88 ha of clear ground; 12.84 ha more at low severity\"}], \"claims\": [{\"text\": \"4 FIRMS hotspots recorded at 2025-09-26T05:31:00+00:00 with max FRP 42.94 MW and confidence counts 2 high and 2 nominal.\", \"evidence_ids\": [\"EV-001\"]}, {\"text\": \"Sentinel-2 dNBR before 2025-09-22 and after 2025-11-01 shows 22.16 ha at dNBR >= 0.27 within 306.88 ha of clear ground plus 12.84 ha more at low severity.\", \"evidence_ids\": [\"EV-004\"]}, {\"text\": \"dNBR burn scar shows burned ground, not active fire.\", \"evidence_ids\": [\"EV-004\"]}, {\"text\": \"Observed weather shows wind 1.12 m/s from 201 deg with humidity 56% and rain 24 h 0.4 mm.\", \"evidence_ids\": [\"EV-002\"]}, {\"text\": \"Smoke and fire tend to move opposite the wind FROM 201 deg toward about 21 deg.\", \"evidence_ids\": [\"EV-002\"]}, {\"text\": \"Nearest settlement is a village 3293 m away with name unknown, nearest tertiary road is 1823 m away, nearest river is 8311 m away, nearest lake or pond water is 8665 m away, and no fire station was found within [angka tidak terverifikasi].\", \"evidence_ids\": [\"EV-003\"]}], \"risk\": {\"score\": 75.0, \"drivers\": [\"22.16 ha dNBR burn scar with 4 hotspots\", \"max FRP 42.94 MW\", \"dry conditions with 0.4 mm rain\", \"no fire station within 30 km\"], \"spread_direction_deg\": 21.0}, \"burn_area_ha\": {\"value\": 22.16, \"method\": \"dnbr\", \"evidence_id\": \"EV-004\"}, \"recommended_actions\": [\"Coordinate with nearest village officers for ground verification and access guidance via tertiary road 1823 m away.\", \"Check water points for operations at river 8311 m away and lake or pond 8665 m away.\", \"Coordinate with nearest officers for monitoring toward 21 deg because no fire station was found within 30 km.\"], \"dispatch_brief\": {\"id\": \"Kemungkinan kebakaran di dekat desa tidak diketahui. Terdeteksi 4 titik panas dengan maksimal 42.94 MW dengan rincian 2 tinggi dan 2 nominal. Satelit menunjukkan 22.16 ha terbakar dengan tambahan 12.84 ha rendah dalam 306.88 ha lahan jelas. Angin 1.12 m/s dari 201 deg dengan kelembaban 56 persen dan hujan 0.4 mm. Sebaran menuju sekitar 21 deg. Jalan 1823 m, permukiman 3293 m, sungai 8311 m, danau 8665 m. Tidak ada stasiun pemadam dalam 30 km.\", \"en\": \"Likely fire near a village with unknown name. 4 hotspots with max 42.94 MW including 2 high and 2 nominal. Satellite shows 22.16 ha burned with 12.84 ha additional low severity within 306.88 ha clear ground. Wind 1.12 m/s from 201 deg with 56 percent humidity and 0.4 mm rain. Spread toward about 21 deg. Road 1823 m, settlement 3293 m, river 8311 m, lake 8665 m. No fire station within 30 km.\"}, \"uncertainties\": [\"Settlement name is unknown so exact admin boundary needs confirmation.\", \"No citizen photo, voice note or field report is available to confirm current active flames.\", \"After image clear coverage is partial so small cloud covered patches may remain unchecked.\"], \"needs_human\": true}",
+  "gate_json": "{\"accepted\": true, \"claims_total\": 6, \"claims_passed\": 6, \"claims_dropped\": [], \"corrections\": [{\"where\": \"claims[5]\", \"claimed\": \"30 km\", \"corrected\": null, \"note\": \"no matching tool value\"}], \"violations\": [], \"downgrades\": [], \"schema_errors\": [], \"grounding_rate\": 1.0, \"critique\": {\"reviewed\": 7, \"disputed\": [], \"brief_disputed\": [], \"providers\": [], \"errors\": [\"public claims not reviewed: Expecting property name enclosed in double quotes: line 4 column 24113 (char 27268)\"]}, \"seconds\": 146.7, \"cost_usd\": 0.045086, \"triaged_at\": \"2026-10-28T11:04:23+00:00\", \"outcome\": \"ok\"}",
+  "enriched_at": "2026-10-28T11:02:03+00:00",
   "enrichment_json": "{\"hotspot\": \"ok\", \"weather\": \"ok\", \"osm\": \"ok (offline extract)\"}",
   "reporter_count": 0
  },
@@ -92,7 +92,7 @@
    "id": "EV-001",
    "type": "hotspot",
    "source": "NASA FIRMS",
-   "retrieved_at": "2026-10-28T07:56:40+00:00",
+   "retrieved_at": "2026-10-28T11:01:35+00:00",
    "summary": "4 FIRMS hotspot(s), max FRP 42.94 MW, confidence: 2 high, 2 nominal",
    "payload": {
     "lat": -0.76999,
@@ -120,7 +120,7 @@
    "id": "EV-002",
    "type": "weather",
    "source": "Open-Meteo",
-   "retrieved_at": "2026-10-28T07:56:40+00:00",
+   "retrieved_at": "2026-10-28T11:01:35+00:00",
    "summary": "Wind 1.12 m/s from 201 deg, humidity 56%, rain 24 h 0.4 mm",
    "payload": {
     "observed_hour": "2025-09-26T05:00:00+00:00",
@@ -172,7 +172,7 @@
    "id": "EV-003",
    "type": "osm",
    "source": "OpenStreetMap (offline extract Geofabrik Indonesia 2026-10-27)",
-   "retrieved_at": "2026-10-28T07:56:40+00:00",
+   "retrieved_at": "2026-10-28T11:01:35+00:00",
    "summary": "Nearest: settlement 3.3 km, road 1.8 km, river 8.3 km, lake or pond 8.7 km, no fire station within 30 km",
    "payload": {
     "lat": -0.769995,
@@ -219,7 +219,7 @@
    "id": "EV-004",
    "type": "satellite",
    "source": "Sentinel-2 L2A (Earth Search)",
-   "retrieved_at": "2026-10-28T07:57:53+00:00",
+   "retrieved_at": "2026-10-28T11:01:56+00:00",
    "summary": "Sentinel-2 dNBR, before 2025-09-22 and after 2025-11-01: 22.16 ha at dNBR >= 0.27 within 306.88 ha of clear ground; 12.84 ha more at low severity",
    "payload": {
     "aoi_bbox": [
@@ -293,12 +293,12 @@
  ],
  "runs": [
   {
-   "started_at": "2026-10-28T07:57:53+00:00",
-   "finished_at": "2026-10-28T07:59:02+00:00",
+   "started_at": "2026-10-28T11:01:56+00:00",
+   "finished_at": "2026-10-28T11:04:23+00:00",
    "outcome": "ok",
    "error": null,
-   "seconds": 68.2,
-   "cost_usd": 0.0,
+   "seconds": 146.7,
+   "cost_usd": 0.045086,
    "detail": {
     "tools": [
      {
@@ -329,55 +329,53 @@
     "usage": {
      "calls": [
       {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 1738,
-       "cached_tokens": 1664,
-       "output_tokens": 698,
-       "reasoning_tokens": 525,
-       "cost_usd": null
+       "model": "muse-spark-1.3",
+       "input_tokens": 1646,
+       "cached_tokens": 881,
+       "output_tokens": 1482,
+       "reasoning_tokens": 1311,
+       "cost_usd": 0.0073869
+      },
+      {
+       "model": "muse-spark-1.3",
+       "input_tokens": 2860,
+       "cached_tokens": 2801,
+       "output_tokens": 3919,
+       "reasoning_tokens": 2977,
+       "cost_usd": 0.017149650000000002
+      },
+      {
+       "model": "muse-spark-1.3",
+       "input_tokens": 3462,
+       "cached_tokens": 881,
+       "output_tokens": 4045,
+       "reasoning_tokens": 3058,
+       "cost_usd": 0.020549650000000003
       },
       {
        "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 2912,
-       "cached_tokens": 1792,
-       "output_tokens": 9336,
-       "reasoning_tokens": 8408,
-       "cost_usd": null
-      },
-      {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 2166,
-       "cached_tokens": 1152,
-       "output_tokens": 5792,
-       "reasoning_tokens": 4537,
-       "cost_usd": null
-      },
-      {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 3278,
+       "input_tokens": 3857,
        "cached_tokens": 128,
-       "output_tokens": 5023,
-       "reasoning_tokens": 5003,
+       "output_tokens": 32768,
+       "reasoning_tokens": 5492,
        "cost_usd": null
       }
      ],
-     "cost_usd": 0,
-     "unpriced_calls": 4
+     "cost_usd": 0.045086,
+     "unpriced_calls": 1
     },
     "critique": {
-     "reviewed": 6,
+     "reviewed": 7,
      "disputed": [],
      "brief_disputed": [],
-     "providers": [
-      "baseten:meta-models/muse-spark-open-1026"
-     ],
-     "errors": []
+     "providers": [],
+     "errors": [
+      "public claims not reviewed: Expecting property name enclosed in double quotes: line 4 column 24113 (char 27268)"
+     ]
     },
     "models": {
-     "triage": "meta-models/muse-spark-open-1026",
-     "critique": [
-      "baseten:meta-models/muse-spark-open-1026"
-     ]
+     "triage": "muse-spark-1.3",
+     "critique": []
     }
    }
   }

@@ -48,7 +48,7 @@
   "post_scene": "S2C_50NMF_20261026_0_L2A",
   "pre_scene": "S2B_50NMF_20261001_0_L2A",
   "attribution": "Contains modified Copernicus Sentinel data 2026, via Earth Search (Element 84)",
-  "burned_ha_sentinel2": 489.72
+  "burned_ha_sentinel2": 238.76
  },
  "renderer": "Blender 5.2 EEVEE, sim/build_scene.py",
  "frames": [
@@ -189,8 +189,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 5421,
-   "truth_burned_fraction": 0.0078
+   "truth_burned_px": 0,
+   "truth_burned_fraction": 0.0
   },
   {
    "seq": 10,
@@ -217,8 +217,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 554175,
-   "truth_burned_fraction": 0.7924
+   "truth_burned_px": 451444,
+   "truth_burned_fraction": 0.6455
   },
   {
    "seq": 12,
@@ -231,8 +231,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 593443,
+   "truth_burned_fraction": 0.8485
   },
   {
    "seq": 13,
@@ -245,8 +245,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 689485,
-   "truth_burned_fraction": 0.9858
+   "truth_burned_px": 348996,
+   "truth_burned_fraction": 0.499
   },
   {
    "seq": 14,
@@ -259,8 +259,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 581672,
+   "truth_burned_fraction": 0.8317
   },
   {
    "seq": 15,
@@ -273,8 +273,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 665585,
+   "truth_burned_fraction": 0.9517
   },
   {
    "seq": 16,
@@ -287,8 +287,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 0.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 678401,
+   "truth_burned_fraction": 0.97
   },
   {
    "seq": 17,
@@ -301,8 +301,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 0.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 676036,
+   "truth_burned_fraction": 0.9666
   },
   {
    "seq": 18,
@@ -315,8 +315,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 0.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 489296,
+   "truth_burned_fraction": 0.6996
   },
   {
    "seq": 19,
@@ -329,8 +329,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 0.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 274856,
+   "truth_burned_fraction": 0.393
   },
   {
    "seq": 20,
@@ -343,8 +343,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 0.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 694951,
-   "truth_burned_fraction": 0.9937
+   "truth_burned_px": 183386,
+   "truth_burned_fraction": 0.2622
   },
   {
    "seq": 21,
@@ -357,8 +357,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 0.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 667382,
-   "truth_burned_fraction": 0.9542
+   "truth_burned_px": 188059,
+   "truth_burned_fraction": 0.2689
   },
   {
    "seq": 22,
@@ -371,8 +371,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 0.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 484601,
-   "truth_burned_fraction": 0.6929
+   "truth_burned_px": 218693,
+   "truth_burned_fraction": 0.3127
   },
   {
    "seq": 23,
@@ -385,8 +385,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 0.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 95820,
-   "truth_burned_fraction": 0.137
+   "truth_burned_px": 79740,
+   "truth_burned_fraction": 0.114
   },
   {
    "seq": 24,
@@ -399,8 +399,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 640383,
-   "truth_burned_fraction": 0.9156
+   "truth_burned_px": 586271,
+   "truth_burned_fraction": 0.8383
   },
   {
    "seq": 25,
@@ -413,8 +413,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 462707,
+   "truth_burned_fraction": 0.6616
   },
   {
    "seq": 26,
@@ -427,8 +427,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 688201,
-   "truth_burned_fraction": 0.984
+   "truth_burned_px": 470162,
+   "truth_burned_fraction": 0.6722
   },
   {
    "seq": 27,
@@ -441,8 +441,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 561808,
+   "truth_burned_fraction": 0.8033
   },
   {
    "seq": 28,
@@ -455,8 +455,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 645553,
+   "truth_burned_fraction": 0.923
   },
   {
    "seq": 29,
@@ -525,8 +525,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 0.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 689210,
+   "truth_burned_fraction": 0.9854
   },
   {
    "seq": 34,
@@ -623,8 +623,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 544427,
+   "truth_burned_fraction": 0.7784
   },
   {
    "seq": 41,
@@ -693,8 +693,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 665218,
+   "truth_burned_fraction": 0.9511
   },
   {
    "seq": 46,
@@ -707,8 +707,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 609842,
+   "truth_burned_fraction": 0.872
   },
   {
    "seq": 47,
@@ -721,8 +721,8 @@
    "altitude_agl_m": 120,
    "heading_deg": 180.0,
    "gimbal_pitch_deg": -90.0,
-   "truth_burned_px": 699392,
-   "truth_burned_fraction": 1.0
+   "truth_burned_px": 532867,
+   "truth_burned_fraction": 0.7619
   }
  ],
  "truth_note": "Truth is the burned ground rendered in each frame (planimetric, before canopy and smoke). Synthetic, not real-world accuracy.",

@@ -209,3 +209,26 @@ def test_triage_endpoint_requires_key_and_token(settings):
         inc_id = c.get("/api/incidents").json()["items"][0]["id"]
         assert c.post(f"/api/incidents/{inc_id}/triage", json={"code": "x"}).status_code == 401
         assert c.post(f"/api/incidents/{inc_id}/triage", json={"code": "x"}, headers=AUTH).status_code == 503  # no MODEL_API_KEY in tests
+
+
+def test_missing_previous_response_is_retried(ready, monkeypatch):
+    """Meta sometimes answers 400 "referenced response not found" right after returning that response."""
+    import httpx
+    import openai
+
+    live, inc = ready
+    responses = FakeResponses([[("get_weather", "{}")]], good_output(inc["id"], inc["lat"], inc["lon"]))
+    real, failed = responses.create, []
+
+    def flaky(**kw):
+        if kw.get("previous_response_id") and not failed:
+            failed.append(kw["previous_response_id"])
+            req = httpx.Request("POST", "https://api.meta.ai/v1/responses")
+            raise openai.BadRequestError("referenced response not found or expired", response=httpx.Response(400, request=req), body=None)
+        return real(**kw)
+
+    responses.create = flaky
+    install(monkeypatch, responses, FakeChat([]))
+    monkeypatch.setattr(agent.time, "sleep", lambda s: None)
+    r = agent.triage(live, inc["id"])
+    assert failed and r["outcome"] == "ok"

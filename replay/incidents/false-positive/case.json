@@ -9,8 +9,8 @@
   "id": "Titik panas dengan keyakinan nominal, tetapi Sentinel-2 hampir tidak menemukan bekas terbakar. Agen mengklaim likely_fire; gerbang bukti menurunkannya ke possible_fire karena luas terukur di bawah 1 ha.",
   "en": "A nominal-confidence hotspot, but Sentinel-2 finds almost no burn scar. The agent claimed likely_fire; the evidence gate lowered it to possible_fire because the measured burn is under 1 ha."
  },
- "recorded_with": "meta-models/muse-spark-open-1026",
- "recorded_at": "2026-10-28T08:01:11+00:00",
+ "recorded_with": "muse-spark-1.3",
+ "recorded_at": "2026-10-28T11:06:01+00:00",
  "source": {
   "eval_id": "EVAL-30",
   "label": "not_burned",
@@ -29,11 +29,11 @@
   "last_seen": "2025-08-28T06:14:00+00:00",
   "hotspot_count": 1,
   "status": "possible_fire",
-  "confidence": 0.5,
-  "risk_score": 38.0,
-  "triage_json": "{\"incident_id\": \"{INC}\", \"location\": {\"lat\": -1.10406, \"lon\": 111.43173, \"admin\": \"Nanga Ora\", \"accuracy_m\": 5564.0}, \"status\": \"possible_fire\", \"confidence\": 0.5, \"evidence\": [{\"id\": \"EV-001\", \"type\": \"hotspot\", \"source\": \"NASA FIRMS\", \"retrieved_at\": \"2026-10-28T07:59:02+00:00\", \"summary\": \"1 FIRMS hotspot(s), max FRP 8.02 MW, confidence: 1 nominal\"}, {\"id\": \"EV-002\", \"type\": \"weather\", \"source\": \"Open-Meteo\", \"retrieved_at\": \"2026-10-28T07:59:02+00:00\", \"summary\": \"Wind 1.35 m/s from 176 deg, humidity 66%, rain 24 h 2.4 mm\"}, {\"id\": \"EV-003\", \"type\": \"osm\", \"source\": \"OpenStreetMap (offline extract Geofabrik Indonesia 2026-10-27)\", \"retrieved_at\": \"2026-10-28T07:59:02+00:00\", \"summary\": \"Nearest: settlement 5.6 km (Nanga Ora), no road within 10 km, river 5.1 km (Sungai Pinoh), no lake or pond within 10 km, no fire station within 30 km\"}, {\"id\": \"EV-004\", \"type\": \"satellite\", \"source\": \"Sentinel-2 L2A (Earth Search)\", \"retrieved_at\": \"2026-10-28T08:00:20+00:00\", \"summary\": \"Sentinel-2 dNBR, before 2025-08-18 and after 2025-10-07: 0.28 ha at dNBR >= 0.27 within 360.04 ha of clear ground; 0.6 ha more at low severity\"}], \"claims\": [{\"text\": \"FIRMS recorded 1 hotspot at centre with max FRP 8.02 MW and confidence count n 1 nominal at first and last acquired time 2025 08 28T06 14 00Z\", \"evidence_ids\": [\"EV-001\"]}, {\"text\": \"Weather at observed hour 2025 08 28T06 00 00Z shows wind 1.35 m/s from 176 deg relative humidity 66 percent and rain 2.4 mm in 24 h with forecast light winds\", \"evidence_ids\": [\"EV-002\"], \"disputed\": \"EV-002 provides observed hour (2025-08-28T06:00:00Z) wind 1.35 m/s from 176deg humidity 66% rain 2.4mm/24h. It contains no forecast. Claim adds 'with forecast light winds' which is not in data - goes beyond evidence.\"}, {\"text\": \"Sentinel 2 dNBR pair before 2025 08 18 and after 2025 10 07 shows 0.28 ha at dNBR threshold 0.27 within clear area 360.04 ha plus 0.6 ha low severity area indicating burned ground not active fire\", \"evidence_ids\": [\"EV-004\"]}, {\"text\": \"Nearest settlement is village Nanga Ora at distance 5564 m about 5.6 km no road within [angka tidak terverifikasi] no lake or pond within [angka tidak terverifikasi] no fire station within [angka tidak terverifikasi] and nearest river Sungai Pinoh at distance 5147 m about 5.1 km\", \"evidence_ids\": [\"EV-003\"]}, {\"text\": \"Wind from 176 deg suggests smoke movement toward about 356 deg to the north\", \"evidence_ids\": [\"EV-002\"]}], \"risk\": {\"score\": 38.0, \"drivers\": [\"small confirmed burn scar 0.28 ha plus 0.6 ha low severity indicates fire occurred\", \"single nominal hotspot with FRP 8.02 MW suggests limited intensity\", \"light wind 1.35 m/s and humidity 66 percent with rain 2.4 mm in 24 h limiting immediate spread\", \"remote location no road within 10 km and no fire station within 30 km hampering response\", \"settlement Nanga Ora 5564 m away and river Sungai Pinoh 5147 m away defines access and water point\"], \"spread_direction_deg\": 356.0}, \"burn_area_ha\": {\"value\": 0.28, \"method\": \"dnbr\", \"evidence_id\": \"EV-004\"}, \"recommended_actions\": [\"Coordinate with village authorities in Nanga Ora about 5564 m from centre for local information\", \"Assess access via river Sungai Pinoh about 5147 m away as no road within 10 km\", \"Prepare water logistics as no lake or pond within 10 km and no fire station within 30 km\", \"Propose drone survey for human approval to verify perimeter and remaining hot areas\", \"Monitor weather for changes in wind direction and humidity\"], \"dispatch_brief\": {\"id\": \"Satu hotspot nominal FRP 8.02 MW terdeteksi 28 Agustus 2025 dekat Nanga Ora 5.6 km. Citra Sentinel 2 menunjukkan bekas bakar 0.28 ha tambah 0.6 ha keparahan rendah dalam 360.04 ha lahan jelas. Angin ringan 1.35 m per s dari 176 derajat kelembapan 66 persen hujan 2.4 mm dalam 24 jam. Tidak ada jalan dalam 10 km tidak ada pos pemadam dalam 30 km sungai terdekat Sungai Pinoh 5.1 km. Asap diperkirakan bergerak ke utara sekitar 356 derajat. Perlu verifikasi manusia.\", \"en\": \"One nominal hotspot FRP 8.02 MW detected 28 Aug 2025 near Nanga Ora 5.6 km away. Sentinel 2 image shows burn scar 0.28 ha plus 0.6 ha low severity within 360.04 ha clear ground. Light wind 1.35 m per s from 176 deg humidity 66 percent rain 2.4 mm in 24 h. No road within 10 km no fire station within 30 km nearest river Sungai Pinoh 5.1 km away. Smoke likely drifts north around 356 deg. Human verification required.\"}, \"uncertainties\": [\"Long interval between before 2025 08 18 and after 2025 10 07 limits precise attribution of burn to hotspot date\", \"No citizen photo voice note or ground report to confirm active fire\", \"Exact fire perimeter and current activity unknown without field check\"], \"needs_human\": true}",
-  "gate_json": "{\"accepted\": true, \"claims_total\": 5, \"claims_passed\": 5, \"claims_dropped\": [], \"corrections\": [{\"where\": \"claims[3]\", \"claimed\": \"10 km\", \"corrected\": null, \"note\": \"no matching tool value\"}, {\"where\": \"claims[3]\", \"claimed\": \"10 km\", \"corrected\": null, \"note\": \"no matching tool value\"}, {\"where\": \"claims[3]\", \"claimed\": \"30 km\", \"corrected\": null, \"note\": \"no matching tool value\"}], \"violations\": [], \"downgrades\": [\"likely_fire -> possible_fire: likely_fire needs independent evidence (image, voice, or a satellite burn of at least 1 ha)\"], \"schema_errors\": [], \"grounding_rate\": 1.0, \"critique\": {\"reviewed\": 6, \"disputed\": [{\"index\": 1, \"reason\": \"EV-002 provides observed hour (2025-08-28T06:00:00Z) wind 1.35 m/s from 176deg humidity 66% rain 2.4mm/24h. It contains no forecast. Claim adds 'with forecast light winds' which is not in data - goes beyond evidence.\"}], \"brief_disputed\": [], \"providers\": [\"baseten:meta-models/muse-spark-open-1026\"], \"errors\": []}, \"seconds\": 50.2, \"cost_usd\": 0, \"triaged_at\": \"2026-10-28T08:01:11+00:00\", \"outcome\": \"ok\"}",
-  "enriched_at": "2026-10-28T08:00:22+00:00",
+  "confidence": 0.68,
+  "risk_score": 35.0,
+  "triage_json": "{\"incident_id\": \"{INC}\", \"location\": {\"lat\": -1.10406, \"lon\": 111.43173, \"admin\": \"Nanga Ora\", \"accuracy_m\": 1000.0}, \"status\": \"possible_fire\", \"confidence\": 0.68, \"evidence\": [{\"id\": \"EV-001\", \"type\": \"hotspot\", \"source\": \"NASA FIRMS\", \"retrieved_at\": \"2026-10-28T11:04:23+00:00\", \"summary\": \"1 FIRMS hotspot(s), max FRP 8.02 MW, confidence: 1 nominal\"}, {\"id\": \"EV-002\", \"type\": \"weather\", \"source\": \"Open-Meteo\", \"retrieved_at\": \"2026-10-28T11:04:23+00:00\", \"summary\": \"Wind 1.35 m/s from 176 deg, humidity 66%, rain 24 h 2.4 mm\"}, {\"id\": \"EV-003\", \"type\": \"osm\", \"source\": \"OpenStreetMap (offline extract Geofabrik Indonesia 2026-10-27)\", \"retrieved_at\": \"2026-10-28T11:04:23+00:00\", \"summary\": \"Nearest: settlement 5.6 km (Nanga Ora), no road within 10 km, river 5.1 km (Sungai Pinoh), no lake or pond within 10 km, no fire station within 30 km\"}, {\"id\": \"EV-004\", \"type\": \"satellite\", \"source\": \"Sentinel-2 L2A (Earth Search)\", \"retrieved_at\": \"2026-10-28T11:04:41+00:00\", \"summary\": \"Sentinel-2 dNBR, before 2025-08-18 and after 2025-10-07: 0.28 ha at dNBR >= 0.27 within 360.04 ha of clear ground; 0.6 ha more at low severity\"}], \"claims\": [{\"text\": \"1 FIRMS hotspot was recorded with first acquired 2025-08-28T06:14:00+00:00 and last acquired 2025-08-28T06:14:00+00:00 with max FRP 8.02 MW and confidence count 1 nominal.\", \"evidence_ids\": [\"EV-001\"]}, {\"text\": \"Observed weather shows wind 1.35 m/s from 176 deg with relative humidity 66 percent and rain 2.4 mm in 24 h.\", \"evidence_ids\": [\"EV-002\"]}, {\"text\": \"Wind blows FROM 176 deg so smoke and fire tend to move toward 356 deg.\", \"evidence_ids\": [\"EV-002\"]}, {\"text\": \"Nearest settlement is village Nanga Ora at 5564 m with no road within 10000 m.\", \"evidence_ids\": [\"EV-003\"]}, {\"text\": \"Nearest river is Sungai Pinoh at 5147 m with no lake within 10000 m and no fire station within 30000 m.\", \"evidence_ids\": [\"EV-003\"]}, {\"text\": \"Sentinel-2 dNBR between 2025-08-18 and 2025-10-07 shows 0.28 ha at threshold 0.27 within 360.04 ha of clear ground with 0.6 ha more at low severity.\", \"evidence_ids\": [\"EV-004\"]}, {\"text\": \"dNBR burn scar shows burned ground, not active fire.\", \"evidence_ids\": [\"EV-004\"]}], \"risk\": {\"score\": 35.0, \"drivers\": [\"single nominal hotspot\", \"0.28 ha burn scar\", \"remote access with no road\"], \"spread_direction_deg\": 356.0}, \"burn_area_ha\": {\"value\": 0.28, \"method\": \"dnbr\", \"evidence_id\": \"EV-004\"}, \"recommended_actions\": [\"Coordinate with village officials in Nanga Ora for ground verification\", \"Assess access route given no road within 10000 m\", \"Prepare water supply plan from Sungai Pinoh at 5147 m\", \"Coordinate with nearest officers given no fire station within 30000 m\"], \"dispatch_brief\": {\"id\": \"Satu titik panas nominal dengan FRP 8.02 MW terdeteksi. Citra satelit menunjukkan 0.28 ha lahan terbakar serta 0.6 ha rendah tambahan. Angin dari 176 deg kecepatan 1.35 m/s sehingga asap ke 356 deg. Kelembapan 66 persen dan hujan 2.4 mm dalam 24 jam. Permukiman terdekat Nanga Ora 5564 m. Tidak ada jalan dalam 10000 m dan tidak ada pos pemadam dalam 30000 m. Sumber air terdekat Sungai Pinoh 5147 m.\", \"en\": \"One nominal hotspot with FRP 8.02 MW was detected. Satellite imagery shows 0.28 ha of burned land plus 0.6 ha additional low severity. Wind from 176 deg at 1.35 m/s so smoke toward 356 deg. Humidity 66 percent and rain 2.4 mm in 24 hours. Nearest settlement Nanga Ora 5564 m. No road within 10000 m and no fire post within 30000 m. Nearest water source Sungai Pinoh 5147 m.\"}, \"uncertainties\": [\"No citizen photo or field report to confirm active fire\", \"dNBR period between 2025-08-18 and 2025-10-07 does not show current activity\"], \"needs_human\": true}",
+  "gate_json": "{\"accepted\": true, \"claims_total\": 7, \"claims_passed\": 7, \"claims_dropped\": [], \"corrections\": [], \"violations\": [], \"downgrades\": [\"likely_fire -> possible_fire: likely_fire needs independent evidence (image, voice, or a satellite burn of at least 1 ha)\"], \"schema_errors\": [], \"grounding_rate\": 1.0, \"critique\": {\"reviewed\": 8, \"disputed\": [], \"brief_disputed\": [], \"providers\": [\"baseten:meta-models/muse-spark-open-1026\"], \"errors\": []}, \"seconds\": 79.7, \"cost_usd\": 0.056415, \"triaged_at\": \"2026-10-28T11:06:01+00:00\", \"outcome\": \"ok\"}",
+  "enriched_at": "2026-10-28T11:04:47+00:00",
   "enrichment_json": "{\"hotspot\": \"ok\", \"weather\": \"ok\", \"osm\": \"ok (offline extract)\"}",
   "reporter_count": 0
  },
@@ -56,7 +56,7 @@
    "id": "EV-001",
    "type": "hotspot",
    "source": "NASA FIRMS",
-   "retrieved_at": "2026-10-28T07:59:02+00:00",
+   "retrieved_at": "2026-10-28T11:04:23+00:00",
    "summary": "1 FIRMS hotspot(s), max FRP 8.02 MW, confidence: 1 nominal",
    "payload": {
     "lat": -1.10406,
@@ -80,7 +80,7 @@
    "id": "EV-002",
    "type": "weather",
    "source": "Open-Meteo",
-   "retrieved_at": "2026-10-28T07:59:02+00:00",
+   "retrieved_at": "2026-10-28T11:04:23+00:00",
    "summary": "Wind 1.35 m/s from 176 deg, humidity 66%, rain 24 h 2.4 mm",
    "payload": {
     "observed_hour": "2025-08-28T06:00:00+00:00",
@@ -132,7 +132,7 @@
    "id": "EV-003",
    "type": "osm",
    "source": "OpenStreetMap (offline extract Geofabrik Indonesia 2026-10-27)",
-   "retrieved_at": "2026-10-28T07:59:02+00:00",
+   "retrieved_at": "2026-10-28T11:04:23+00:00",
    "summary": "Nearest: settlement 5.6 km (Nanga Ora), no road within 10 km, river 5.1 km (Sungai Pinoh), no lake or pond within 10 km, no fire station within 30 km",
    "payload": {
     "lat": -1.10406,
@@ -169,7 +169,7 @@
    "id": "EV-004",
    "type": "satellite",
    "source": "Sentinel-2 L2A (Earth Search)",
-   "retrieved_at": "2026-10-28T08:00:20+00:00",
+   "retrieved_at": "2026-10-28T11:04:41+00:00",
    "summary": "Sentinel-2 dNBR, before 2025-08-18 and after 2025-10-07: 0.28 ha at dNBR >= 0.27 within 360.04 ha of clear ground; 0.6 ha more at low severity",
    "payload": {
     "aoi_bbox": [
@@ -243,12 +243,12 @@
  ],
  "runs": [
   {
-   "started_at": "2026-10-28T08:00:20+00:00",
-   "finished_at": "2026-10-28T08:01:11+00:00",
+   "started_at": "2026-10-28T11:04:41+00:00",
+   "finished_at": "2026-10-28T11:06:01+00:00",
    "outcome": "ok",
    "error": null,
-   "seconds": 50.2,
-   "cost_usd": 0.0,
+   "seconds": 79.7,
+   "cost_usd": 0.056415,
    "detail": {
     "tools": [
      {
@@ -279,49 +279,44 @@
     "usage": {
      "calls": [
       {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 1744,
-       "cached_tokens": 1664,
-       "output_tokens": 408,
-       "reasoning_tokens": 231,
-       "cost_usd": null
+       "model": "muse-spark-1.3",
+       "input_tokens": 1652,
+       "cached_tokens": 1265,
+       "output_tokens": 1039,
+       "reasoning_tokens": 860,
+       "cost_usd": 0.00508925
+      },
+      {
+       "model": "muse-spark-1.3",
+       "input_tokens": 2818,
+       "cached_tokens": 1649,
+       "output_tokens": 6992,
+       "reasoning_tokens": 6030,
+       "cost_usd": 0.0314246
+      },
+      {
+       "model": "muse-spark-1.3",
+       "input_tokens": 3440,
+       "cached_tokens": 881,
+       "output_tokens": 3899,
+       "reasoning_tokens": 2940,
+       "cost_usd": 0.01990165
       },
       {
        "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 2862,
-       "cached_tokens": 1920,
-       "output_tokens": 3693,
-       "reasoning_tokens": 2729,
-       "cost_usd": null
-      },
-      {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 2116,
-       "cached_tokens": 768,
-       "output_tokens": 7465,
-       "reasoning_tokens": 6360,
-       "cost_usd": null
-      },
-      {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 3157,
+       "input_tokens": 4014,
        "cached_tokens": 128,
-       "output_tokens": 3613,
-       "reasoning_tokens": 3513,
+       "output_tokens": 2178,
+       "reasoning_tokens": 2162,
        "cost_usd": null
       }
      ],
-     "cost_usd": 0,
-     "unpriced_calls": 4
+     "cost_usd": 0.056415,
+     "unpriced_calls": 1
     },
     "critique": {
-     "reviewed": 6,
-     "disputed": [
-      {
-       "index": 1,
-       "reason": "EV-002 provides observed hour (2025-08-28T06:00:00Z) wind 1.35 m/s from 176deg humidity 66% rain 2.4mm/24h. It contains no forecast. Claim adds 'with forecast light winds' which is not in data - goes beyond evidence."
-      }
-     ],
+     "reviewed": 8,
+     "disputed": [],
      "brief_disputed": [],
      "providers": [
       "baseten:meta-models/muse-spark-open-1026"
@@ -329,7 +324,7 @@
      "errors": []
     },
     "models": {
-     "triage": "meta-models/muse-spark-open-1026",
+     "triage": "muse-spark-1.3",
      "critique": [
       "baseten:meta-models/muse-spark-open-1026"
      ]

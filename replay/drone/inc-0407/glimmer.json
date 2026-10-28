@@ -3,10 +3,10 @@
  "runtime": "llama.cpp server-cuda on Modal A10G (ground station stand-in)",
  "reasoning_strength": "low",
  "frames": 48,
- "uplinked": 34,
- "dropped": 14,
+ "uplinked": 36,
+ "dropped": 12,
  "unparsed": 0,
- "wall_seconds": 443.7,
+ "wall_seconds": 418.0,
  "results": [
   {
    "file": "F000.jpg",
@@ -15,20 +15,20 @@
     "flames": false,
     "burned_ground": false,
     "uplink": false,
-    "reason": "Only green trees on bare ground, no fire signs"
+    "reason": "Only green trees and dry ground, no smoke flames or burned area visible"
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Only green trees on bare ground, no fire signs\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Only green trees and dry ground, no smoke flames or burned area visible\"}",
    "finish_reason": "stop",
-   "seconds": 9.23,
+   "seconds": 7.83,
    "usage": {
-    "completion_tokens": 191,
+    "completion_tokens": 163,
     "prompt_tokens": 1037,
-    "total_tokens": 1228,
+    "total_tokens": 1200,
     "prompt_tokens_details": {
      "cached_tokens": 0
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F001.jpg",
@@ -37,11 +37,11 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Brown charred ground with blackened trunks indicates recent burn area"
+    "reason": "Brown charred ground with blackened trunks indicates recent burn."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred ground with blackened trunks indicates recent burn area\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred ground with blackened trunks indicates recent burn.\"}",
    "finish_reason": "stop",
-   "seconds": 6.77,
+   "seconds": 6.32,
    "usage": {
     "completion_tokens": 135,
     "prompt_tokens": 1037,
@@ -50,7 +50,7 @@
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F002.jpg",
@@ -59,20 +59,20 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Brown scorched ground visible with sparse trees, indicating burn area."
+    "reason": "Scorched brown ground visible with trees, no smoke or flames"
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched ground visible with sparse trees, indicating burn area.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Scorched brown ground visible with trees, no smoke or flames\"}",
    "finish_reason": "stop",
-   "seconds": 9.31,
+   "seconds": 7.37,
    "usage": {
-    "completion_tokens": 202,
+    "completion_tokens": 165,
     "prompt_tokens": 1037,
-    "total_tokens": 1239,
+    "total_tokens": 1202,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F003.jpg",
@@ -85,16 +85,16 @@
    },
    "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched area with dead trunks indicates burned ground, no smoke or flames.\"}",
    "finish_reason": "stop",
-   "seconds": 5.98,
+   "seconds": 5.53,
    "usage": {
-    "completion_tokens": 114,
+    "completion_tokens": 113,
     "prompt_tokens": 1037,
-    "total_tokens": 1151,
+    "total_tokens": 1150,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F004.jpg",
@@ -103,20 +103,20 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Brown scorched area with dead trees indicates burned ground, no smoke or flames."
+    "reason": "Brown scorched area with dead trees indicates burned ground."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched area with dead trees indicates burned ground, no smoke or flames.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched area with dead trees indicates burned ground.\"}",
    "finish_reason": "stop",
-   "seconds": 6.06,
+   "seconds": 5.38,
    "usage": {
-    "completion_tokens": 116,
+    "completion_tokens": 110,
     "prompt_tokens": 1037,
-    "total_tokens": 1153,
+    "total_tokens": 1147,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F005.jpg",
@@ -125,20 +125,20 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Brown scorched patch visible between green canopy, indicating burned ground."
+    "reason": "Brown scorched patch visible between green canopy, no smoke or flames."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched patch visible between green canopy, indicating burned ground.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched patch visible between green canopy, no smoke or flames.\"}",
    "finish_reason": "stop",
-   "seconds": 5.91,
+   "seconds": 5.54,
    "usage": {
-    "completion_tokens": 112,
+    "completion_tokens": 114,
     "prompt_tokens": 1037,
-    "total_tokens": 1149,
+    "total_tokens": 1151,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F006.jpg",
@@ -147,20 +147,20 @@
     "flames": false,
     "burned_ground": false,
     "uplink": false,
-    "reason": "Healthy green forest canopy, no smoke flames or burn visible"
+    "reason": "Healthy green forest canopy only, no fire indicators visible."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Healthy green forest canopy, no smoke flames or burn visible\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Healthy green forest canopy only, no fire indicators visible.\"}",
    "finish_reason": "stop",
-   "seconds": 5.65,
+   "seconds": 4.74,
    "usage": {
-    "completion_tokens": 105,
+    "completion_tokens": 92,
     "prompt_tokens": 1037,
-    "total_tokens": 1142,
+    "total_tokens": 1129,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F007.jpg",
@@ -169,20 +169,20 @@
     "flames": false,
     "burned_ground": false,
     "uplink": false,
-    "reason": "Dense healthy green canopy, no smoke flames or burn visible"
+    "reason": "Healthy green forest canopy only, no fire indicators visible."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Dense healthy green canopy, no smoke flames or burn visible\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Healthy green forest canopy only, no fire indicators visible.\"}",
    "finish_reason": "stop",
-   "seconds": 5.62,
+   "seconds": 4.73,
    "usage": {
-    "completion_tokens": 104,
+    "completion_tokens": 92,
     "prompt_tokens": 1037,
-    "total_tokens": 1141,
+    "total_tokens": 1129,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F008.jpg",
@@ -195,7 +195,7 @@
    },
    "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Healthy green forest canopy only, no fire indicators visible.\"}",
    "finish_reason": "stop",
-   "seconds": 5.17,
+   "seconds": 4.75,
    "usage": {
     "completion_tokens": 92,
     "prompt_tokens": 1037,
@@ -204,7 +204,7 @@
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F009.jpg",
@@ -217,16 +217,16 @@
    },
    "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Healthy green forest canopy only, no fire indicators visible.\"}",
    "finish_reason": "stop",
-   "seconds": 5.42,
+   "seconds": 4.95,
    "usage": {
-    "completion_tokens": 99,
+    "completion_tokens": 98,
     "prompt_tokens": 1037,
-    "total_tokens": 1136,
+    "total_tokens": 1135,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F010.jpg",
@@ -235,20 +235,20 @@
     "flames": false,
     "burned_ground": false,
     "uplink": false,
-    "reason": "Only healthy green canopy and bare soil, no fire signs visible."
+    "reason": "Only healthy green canopy visible, no fire indicators present."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Only healthy green canopy and bare soil, no fire signs visible.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Only healthy green canopy visible, no fire indicators present.\"}",
    "finish_reason": "stop",
-   "seconds": 7.95,
+   "seconds": 6.58,
    "usage": {
-    "completion_tokens": 166,
+    "completion_tokens": 143,
     "prompt_tokens": 1037,
-    "total_tokens": 1203,
+    "total_tokens": 1180,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F011.jpg",
@@ -257,20 +257,20 @@
     "flames": false,
     "burned_ground": false,
     "uplink": false,
-    "reason": "Green canopy over bare soil, no smoke flames or burned area visible"
+    "reason": "Only green canopy and bare ground, no fire indicators visible."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Green canopy over bare soil, no smoke flames or burned area visible\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Only green canopy and bare ground, no fire indicators visible.\"}",
    "finish_reason": "stop",
-   "seconds": 7.43,
+   "seconds": 6.24,
    "usage": {
-    "completion_tokens": 152,
+    "completion_tokens": 133,
     "prompt_tokens": 1037,
-    "total_tokens": 1189,
+    "total_tokens": 1170,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F012.jpg",
@@ -279,20 +279,20 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Charred brown ground with blackened trunks indicates recent burn area."
+    "reason": "Brown scorched ground visible between green trees, no smoke or flames."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Charred brown ground with blackened trunks indicates recent burn area.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched ground visible between green trees, no smoke or flames.\"}",
    "finish_reason": "stop",
-   "seconds": 6.3,
+   "seconds": 7.0,
    "usage": {
-    "completion_tokens": 122,
+    "completion_tokens": 155,
     "prompt_tokens": 1037,
-    "total_tokens": 1159,
+    "total_tokens": 1192,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F013.jpg",
@@ -301,20 +301,20 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Brown mottled terrain with charred sticks indicates burned ground, no smoke or flames."
+    "reason": "Brown scorched area adjacent to green forest indicates burned ground."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown mottled terrain with charred sticks indicates burned ground, no smoke or flames.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched area adjacent to green forest indicates burned ground.\"}",
    "finish_reason": "stop",
-   "seconds": 8.09,
+   "seconds": 7.01,
    "usage": {
-    "completion_tokens": 169,
+    "completion_tokens": 155,
     "prompt_tokens": 1037,
-    "total_tokens": 1206,
+    "total_tokens": 1192,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F014.jpg",
@@ -323,42 +323,42 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Charred brown ground with blackened trunks indicates recent burn."
+    "reason": "Brown scorched ground visible between green trees, no smoke or flames"
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Charred brown ground with blackened trunks indicates recent burn.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched ground visible between green trees, no smoke or flames\"}",
    "finish_reason": "stop",
-   "seconds": 6.35,
+   "seconds": 7.77,
    "usage": {
-    "completion_tokens": 123,
+    "completion_tokens": 176,
     "prompt_tokens": 1037,
-    "total_tokens": 1160,
+    "total_tokens": 1213,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F015.jpg",
    "decision": {
     "smoke": false,
     "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Brown charred mottled terrain indicates burned ground, no smoke or flames visible."
+    "burned_ground": false,
+    "uplink": false,
+    "reason": "Green tree on dry ground, no smoke flames or burn visible"
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred mottled terrain indicates burned ground, no smoke or flames visible.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Green tree on dry ground, no smoke flames or burn visible\"}",
    "finish_reason": "stop",
-   "seconds": 7.52,
+   "seconds": 8.05,
    "usage": {
-    "completion_tokens": 153,
+    "completion_tokens": 183,
     "prompt_tokens": 1037,
-    "total_tokens": 1190,
+    "total_tokens": 1220,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F016.jpg",
@@ -367,20 +367,20 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Charred brown ground with blackened trunks indicates recent burn."
+    "reason": "Brown mottled ground indicates burn scar, no smoke or flames visible."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Charred brown ground with blackened trunks indicates recent burn.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown mottled ground indicates burn scar, no smoke or flames visible.\"}",
    "finish_reason": "stop",
-   "seconds": 6.24,
+   "seconds": 6.86,
    "usage": {
-    "completion_tokens": 120,
+    "completion_tokens": 151,
     "prompt_tokens": 1037,
-    "total_tokens": 1157,
+    "total_tokens": 1188,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F017.jpg",
@@ -389,20 +389,20 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Brown charred ground with black debris indicates recent burn, no smoke or flames visible."
+    "reason": "Brown charred ground with blackened sticks, no smoke or flames visible"
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred ground with black debris indicates recent burn, no smoke or flames visible.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred ground with blackened sticks, no smoke or flames visible\"}",
    "finish_reason": "stop",
-   "seconds": 6.43,
+   "seconds": 6.6,
    "usage": {
-    "completion_tokens": 125,
+    "completion_tokens": 144,
     "prompt_tokens": 1037,
-    "total_tokens": 1162,
+    "total_tokens": 1181,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F018.jpg",
@@ -411,111 +411,23 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Brown mottled terrain suggests burned ground, no smoke or flames visible."
+    "reason": "Brown scorched area adjacent to green forest indicates burned ground."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown mottled terrain suggests burned ground, no smoke or flames visible.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched area adjacent to green forest indicates burned ground.\"}",
    "finish_reason": "stop",
-   "seconds": 8.79,
+   "seconds": 5.2,
    "usage": {
-    "completion_tokens": 187,
+    "completion_tokens": 105,
     "prompt_tokens": 1037,
-    "total_tokens": 1224,
+    "total_tokens": 1142,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F019.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": false,
-    "uplink": false,
-    "reason": "Image shows skin texture not aerial wildfire scene, no fire indicators."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Image shows skin texture not aerial wildfire scene, no fire indicators.\"}",
-   "finish_reason": "stop",
-   "seconds": 8.77,
-   "usage": {
-    "completion_tokens": 186,
-    "prompt_tokens": 1037,
-    "total_tokens": 1223,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F020.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Brown charred terrain with dead trunks indicates burned area, no smoke or flames."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred terrain with dead trunks indicates burned area, no smoke or flames.\"}",
-   "finish_reason": "stop",
-   "seconds": 6.48,
-   "usage": {
-    "completion_tokens": 126,
-    "prompt_tokens": 1037,
-    "total_tokens": 1163,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F021.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": false,
-    "uplink": false,
-    "reason": "Nadir view shows forest canopy, no smoke flames or burned ground visible."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Nadir view shows forest canopy, no smoke flames or burned ground visible.\"}",
-   "finish_reason": "stop",
-   "seconds": 9.11,
-   "usage": {
-    "completion_tokens": 195,
-    "prompt_tokens": 1037,
-    "total_tokens": 1232,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F022.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Brown scorched ground surrounds green trees, indicating recent burn."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched ground surrounds green trees, indicating recent burn.\"}",
-   "finish_reason": "stop",
-   "seconds": 6.83,
-   "usage": {
-    "completion_tokens": 135,
-    "prompt_tokens": 1037,
-    "total_tokens": 1172,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F023.jpg",
    "decision": {
     "smoke": false,
     "flames": false,
@@ -525,7 +437,95 @@
    },
    "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Dense green canopy only, no smoke flames or burned ground visible\"}",
    "finish_reason": "stop",
-   "seconds": 6.19,
+   "seconds": 6.41,
+   "usage": {
+    "completion_tokens": 139,
+    "prompt_tokens": 1037,
+    "total_tokens": 1176,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F020.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": false,
+    "uplink": false,
+    "reason": "Dense green canopy only, no smoke flames or burned ground visible."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Dense green canopy only, no smoke flames or burned ground visible.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.47,
+   "usage": {
+    "completion_tokens": 140,
+    "prompt_tokens": 1037,
+    "total_tokens": 1177,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F021.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown patch visible through trees indicates burned ground."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown patch visible through trees indicates burned ground.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.54,
+   "usage": {
+    "completion_tokens": 142,
+    "prompt_tokens": 1037,
+    "total_tokens": 1179,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F022.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown scorched patch visible between trees, no smoke or flames."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched patch visible between trees, no smoke or flames.\"}",
+   "finish_reason": "stop",
+   "seconds": 9.18,
+   "usage": {
+    "completion_tokens": 215,
+    "prompt_tokens": 1037,
+    "total_tokens": 1252,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F023.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": false,
+    "uplink": false,
+    "reason": "Only healthy green canopy visible, no fire indicators present"
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Only healthy green canopy visible, no fire indicators present\"}",
+   "finish_reason": "stop",
+   "seconds": 5.68,
    "usage": {
     "completion_tokens": 118,
     "prompt_tokens": 1037,
@@ -534,7 +534,7 @@
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F024.jpg",
@@ -543,275 +543,11 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Brown mottled area indicates burned ground with green vegetation remaining."
+    "reason": "Brown mottled area indicates burned ground, no smoke or flames visible."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown mottled area indicates burned ground with green vegetation remaining.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown mottled area indicates burned ground, no smoke or flames visible.\"}",
    "finish_reason": "stop",
-   "seconds": 7.41,
-   "usage": {
-    "completion_tokens": 150,
-    "prompt_tokens": 1037,
-    "total_tokens": 1187,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F025.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Mottled brown charred surface indicates burned ground, no smoke or flames."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Mottled brown charred surface indicates burned ground, no smoke or flames.\"}",
-   "finish_reason": "stop",
-   "seconds": 7.53,
-   "usage": {
-    "completion_tokens": 153,
-    "prompt_tokens": 1037,
-    "total_tokens": 1190,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F026.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": false,
-    "uplink": false,
-    "reason": "No smoke, flames or burned ground visible, only green trees on brown terrain."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"No smoke, flames or burned ground visible, only green trees on brown terrain.\"}",
-   "finish_reason": "stop",
-   "seconds": 8.26,
-   "usage": {
-    "completion_tokens": 172,
-    "prompt_tokens": 1037,
-    "total_tokens": 1209,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F027.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Brown charred ground with black snags indicates recent burn area."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred ground with black snags indicates recent burn area.\"}",
-   "finish_reason": "stop",
-   "seconds": 6.39,
-   "usage": {
-    "completion_tokens": 123,
-    "prompt_tokens": 1037,
-    "total_tokens": 1160,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F028.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": false,
-    "uplink": false,
-    "reason": "No fire indicators visible, appears to be non-aerial texture."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"No fire indicators visible, appears to be non-aerial texture.\"}",
-   "finish_reason": "stop",
-   "seconds": 8.1,
-   "usage": {
-    "completion_tokens": 168,
-    "prompt_tokens": 1037,
-    "total_tokens": 1205,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F029.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Brown mottled terrain with charred appearance suggests burned ground visible."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown mottled terrain with charred appearance suggests burned ground visible.\"}",
-   "finish_reason": "stop",
-   "seconds": 7.65,
-   "usage": {
-    "completion_tokens": 156,
-    "prompt_tokens": 1037,
-    "total_tokens": 1193,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F030.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": true,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Orange flames visible top left, ground appears burned."
-   },
-   "raw": "{\"smoke\": false, \"flames\": true, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Orange flames visible top left, ground appears burned.\"}",
-   "finish_reason": "stop",
-   "seconds": 10.68,
-   "usage": {
-    "completion_tokens": 235,
-    "prompt_tokens": 1037,
-    "total_tokens": 1272,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F031.jpg",
-   "decision": {
-    "smoke": true,
-    "flames": true,
-    "burned_ground": false,
-    "uplink": true,
-    "reason": "Smoke plume visible and active flames along fire line."
-   },
-   "raw": "{\"smoke\": true, \"flames\": true, \"burned_ground\": false, \"uplink\": true, \"reason\": \"Smoke plume visible and active flames along fire line.\"}",
-   "finish_reason": "stop",
-   "seconds": 7.32,
-   "usage": {
-    "completion_tokens": 147,
-    "prompt_tokens": 1037,
-    "total_tokens": 1184,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F032.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": true,
-    "burned_ground": false,
-    "uplink": true,
-    "reason": "Orange flame-like shapes visible on left edge of frame."
-   },
-   "raw": "{\"smoke\": false, \"flames\": true, \"burned_ground\": false, \"uplink\": true, \"reason\": \"Orange flame-like shapes visible on left edge of frame.\"}",
-   "finish_reason": "stop",
-   "seconds": 8.69,
-   "usage": {
-    "completion_tokens": 183,
-    "prompt_tokens": 1037,
-    "total_tokens": 1220,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F033.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Charred brown ground with blackened stumps indicates recent burn."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Charred brown ground with blackened stumps indicates recent burn.\"}",
-   "finish_reason": "stop",
-   "seconds": 6.37,
-   "usage": {
-    "completion_tokens": 122,
-    "prompt_tokens": 1037,
-    "total_tokens": 1159,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F034.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Brown charred ground with black debris indicates burned area."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred ground with black debris indicates burned area.\"}",
-   "finish_reason": "stop",
-   "seconds": 7.09,
-   "usage": {
-    "completion_tokens": 141,
-    "prompt_tokens": 1037,
-    "total_tokens": 1178,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F035.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Brown mottled terrain with charred appearance indicates burned ground."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown mottled terrain with charred appearance indicates burned ground.\"}",
-   "finish_reason": "stop",
-   "seconds": 6.77,
-   "usage": {
-    "completion_tokens": 133,
-    "prompt_tokens": 1037,
-    "total_tokens": 1170,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F036.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Charred ground with blackened trunks, no smoke or flames visible."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Charred ground with blackened trunks, no smoke or flames visible.\"}",
-   "finish_reason": "stop",
-   "seconds": 6.51,
+   "seconds": 5.95,
    "usage": {
     "completion_tokens": 126,
     "prompt_tokens": 1037,
@@ -820,32 +556,230 @@
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
-   "file": "F037.jpg",
+   "file": "F025.jpg",
    "decision": {
-    "smoke": true,
+    "smoke": false,
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Brown scorched terrain with smoke haze top right, no flames visible."
+    "reason": "Brown scorched area visible, no smoke or flames."
    },
-   "raw": "{\"smoke\": true, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched terrain with smoke haze top right, no flames visible.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched area visible, no smoke or flames.\"}",
    "finish_reason": "stop",
-   "seconds": 7.72,
+   "seconds": 7.75,
    "usage": {
-    "completion_tokens": 158,
+    "completion_tokens": 176,
     "prompt_tokens": 1037,
-    "total_tokens": 1195,
+    "total_tokens": 1213,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
-   "file": "F038.jpg",
+   "file": "F026.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown scorched area indicates burned ground, no smoke or flames visible."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched area indicates burned ground, no smoke or flames visible.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.15,
+   "usage": {
+    "completion_tokens": 131,
+    "prompt_tokens": 1037,
+    "total_tokens": 1168,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F027.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown charred area with blackened trunks indicates burned ground."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred area with blackened trunks indicates burned ground.\"}",
+   "finish_reason": "stop",
+   "seconds": 5.85,
+   "usage": {
+    "completion_tokens": 123,
+    "prompt_tokens": 1037,
+    "total_tokens": 1160,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F028.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": false,
+    "uplink": false,
+    "reason": "Only green trees on dry ground, no smoke flames or burned area visible"
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Only green trees on dry ground, no smoke flames or burned area visible\"}",
+   "finish_reason": "stop",
+   "seconds": 6.61,
+   "usage": {
+    "completion_tokens": 144,
+    "prompt_tokens": 1037,
+    "total_tokens": 1181,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F029.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown charred ground texture indicates burned area, no smoke or flames visible"
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred ground texture indicates burned area, no smoke or flames visible\"}",
+   "finish_reason": "stop",
+   "seconds": 7.25,
+   "usage": {
+    "completion_tokens": 162,
+    "prompt_tokens": 1037,
+    "total_tokens": 1199,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F030.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": true,
+    "burned_ground": false,
+    "uplink": true,
+    "reason": "Orange flame-like shapes visible top left, no smoke or burned ground."
+   },
+   "raw": "{\"smoke\": false, \"flames\": true, \"burned_ground\": false, \"uplink\": true, \"reason\": \"Orange flame-like shapes visible top left, no smoke or burned ground.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.91,
+   "usage": {
+    "completion_tokens": 152,
+    "prompt_tokens": 1037,
+    "total_tokens": 1189,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F031.jpg",
+   "decision": {
+    "smoke": true,
+    "flames": true,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Orange flames with smoke over brown burned ground visible."
+   },
+   "raw": "{\"smoke\": true, \"flames\": true, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Orange flames with smoke over brown burned ground visible.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.73,
+   "usage": {
+    "completion_tokens": 147,
+    "prompt_tokens": 1037,
+    "total_tokens": 1184,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F032.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": true,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Orange flames visible on left edge, dark burned patch bottom right."
+   },
+   "raw": "{\"smoke\": false, \"flames\": true, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Orange flames visible on left edge, dark burned patch bottom right.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.68,
+   "usage": {
+    "completion_tokens": 145,
+    "prompt_tokens": 1037,
+    "total_tokens": 1182,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F033.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown scorched terrain with sparse sticks, no smoke or flames visible."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched terrain with sparse sticks, no smoke or flames visible.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.42,
+   "usage": {
+    "completion_tokens": 139,
+    "prompt_tokens": 1037,
+    "total_tokens": 1176,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F034.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown charred mottled ground indicates recent burn, no smoke or flames visible"
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred mottled ground indicates recent burn, no smoke or flames visible\"}",
+   "finish_reason": "stop",
+   "seconds": 6.36,
+   "usage": {
+    "completion_tokens": 137,
+    "prompt_tokens": 1037,
+    "total_tokens": 1174,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F035.jpg",
    "decision": {
     "smoke": false,
     "flames": false,
@@ -855,16 +789,82 @@
    },
    "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred terrain with blackened trunks indicates recent burn.\"}",
    "finish_reason": "stop",
-   "seconds": 7.39,
+   "seconds": 5.95,
    "usage": {
-    "completion_tokens": 149,
+    "completion_tokens": 126,
     "prompt_tokens": 1037,
-    "total_tokens": 1186,
+    "total_tokens": 1163,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F036.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown charred ground with blackened trunks indicates recent burn."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred ground with blackened trunks indicates recent burn.\"}",
+   "finish_reason": "stop",
+   "seconds": 7.1,
+   "usage": {
+    "completion_tokens": 158,
+    "prompt_tokens": 1037,
+    "total_tokens": 1195,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F037.jpg",
+   "decision": {
+    "smoke": true,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "White haze suggests smoke and ground appears charred brown."
+   },
+   "raw": "{\"smoke\": true, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"White haze suggests smoke and ground appears charred brown.\"}",
+   "finish_reason": "stop",
+   "seconds": 7.1,
+   "usage": {
+    "completion_tokens": 158,
+    "prompt_tokens": 1037,
+    "total_tokens": 1195,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F038.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown charred ground with blackened trunks indicates recent burn."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred ground with blackened trunks indicates recent burn.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.7,
+   "usage": {
+    "completion_tokens": 146,
+    "prompt_tokens": 1037,
+    "total_tokens": 1183,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
   },
   {
    "file": "F039.jpg",
@@ -873,20 +873,20 @@
     "flames": false,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Brown mottled terrain indicates burned ground with small green trees remaining."
+    "reason": "Brown mottled terrain suggests burned ground, no smoke or flames visible."
    },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown mottled terrain indicates burned ground with small green trees remaining.\"}",
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown mottled terrain suggests burned ground, no smoke or flames visible.\"}",
    "finish_reason": "stop",
-   "seconds": 7.54,
+   "seconds": 8.22,
    "usage": {
-    "completion_tokens": 153,
+    "completion_tokens": 188,
     "prompt_tokens": 1037,
-    "total_tokens": 1190,
+    "total_tokens": 1225,
     "prompt_tokens_details": {
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
   },
   {
    "file": "F040.jpg",
@@ -895,165 +895,11 @@
     "flames": true,
     "burned_ground": true,
     "uplink": true,
-    "reason": "Orange flames visible top left over brown charred ground."
+    "reason": "Orange flame line visible top left, brown ground indicates burn."
    },
-   "raw": "{\"smoke\": false, \"flames\": true, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Orange flames visible top left over brown charred ground.\"}",
+   "raw": "{\"smoke\": false, \"flames\": true, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Orange flame line visible top left, brown ground indicates burn.\"}",
    "finish_reason": "stop",
-   "seconds": 8.19,
-   "usage": {
-    "completion_tokens": 170,
-    "prompt_tokens": 1037,
-    "total_tokens": 1207,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F041.jpg",
-   "decision": {
-    "smoke": true,
-    "flames": true,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Visible flames and smoke plume over brown terrain."
-   },
-   "raw": "{\"smoke\": true, \"flames\": true, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Visible flames and smoke plume over brown terrain.\"}",
-   "finish_reason": "stop",
-   "seconds": 10.04,
-   "usage": {
-    "completion_tokens": 218,
-    "prompt_tokens": 1037,
-    "total_tokens": 1255,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F042.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Brown charred ground with blackened sticks visible, no smoke or flames."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred ground with blackened sticks visible, no smoke or flames.\"}",
-   "finish_reason": "stop",
-   "seconds": 6.71,
-   "usage": {
-    "completion_tokens": 131,
-    "prompt_tokens": 1037,
-    "total_tokens": 1168,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F043.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": false,
-    "uplink": false,
-    "reason": "Mottled brown texture with no clear smoke, flames or burned ground."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"Mottled brown texture with no clear smoke, flames or burned ground.\"}",
-   "finish_reason": "stop",
-   "seconds": 8.08,
-   "usage": {
-    "completion_tokens": 167,
-    "prompt_tokens": 1037,
-    "total_tokens": 1204,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F044.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Brown charred terrain with blackened sticks indicates burned ground."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred terrain with blackened sticks indicates burned ground.\"}",
-   "finish_reason": "stop",
-   "seconds": 7.13,
-   "usage": {
-    "completion_tokens": 142,
-    "prompt_tokens": 1037,
-    "total_tokens": 1179,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F045.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "Brown mottled charred surface with sparse black remnants indicates burned ground."
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown mottled charred surface with sparse black remnants indicates burned ground.\"}",
-   "finish_reason": "stop",
-   "seconds": 6.83,
-   "usage": {
-    "completion_tokens": 134,
-    "prompt_tokens": 1037,
-    "total_tokens": 1171,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F046.jpg",
-   "decision": {
-    "smoke": false,
-    "flames": false,
-    "burned_ground": false,
-    "uplink": false,
-    "reason": "No fire indicators visible, appears as textured surface not aerial scene"
-   },
-   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": false, \"uplink\": false, \"reason\": \"No fire indicators visible, appears as textured surface not aerial scene\"}",
-   "finish_reason": "stop",
-   "seconds": 9.31,
-   "usage": {
-    "completion_tokens": 199,
-    "prompt_tokens": 1037,
-    "total_tokens": 1236,
-    "prompt_tokens_details": {
-     "cached_tokens": 49
-    }
-   },
-   "server_load_s": 12.1
-  },
-  {
-   "file": "F047.jpg",
-   "decision": {
-    "smoke": true,
-    "flames": false,
-    "burned_ground": true,
-    "uplink": true,
-    "reason": "White plume indicates smoke over brown charred ground."
-   },
-   "raw": "{\"smoke\": true, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"White plume indicates smoke over brown charred ground.\"}",
-   "finish_reason": "stop",
-   "seconds": 8.94,
+   "seconds": 8.27,
    "usage": {
     "completion_tokens": 189,
     "prompt_tokens": 1037,
@@ -1062,7 +908,161 @@
      "cached_tokens": 49
     }
    },
-   "server_load_s": 12.1
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F041.jpg",
+   "decision": {
+    "smoke": true,
+    "flames": true,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Flames along line with smoke plume over brown ground."
+   },
+   "raw": "{\"smoke\": true, \"flames\": true, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Flames along line with smoke plume over brown ground.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.98,
+   "usage": {
+    "completion_tokens": 154,
+    "prompt_tokens": 1037,
+    "total_tokens": 1191,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F042.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown charred ground with blackened sticks indicates burned area."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred ground with blackened sticks indicates burned area.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.6,
+   "usage": {
+    "completion_tokens": 143,
+    "prompt_tokens": 1037,
+    "total_tokens": 1180,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F043.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown charred texture indicates burned ground, no smoke or flames visible."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown charred texture indicates burned ground, no smoke or flames visible.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.62,
+   "usage": {
+    "completion_tokens": 144,
+    "prompt_tokens": 1037,
+    "total_tokens": 1181,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F044.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Charred brown ground with blackened trunks indicates recent burn."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Charred brown ground with blackened trunks indicates recent burn.\"}",
+   "finish_reason": "stop",
+   "seconds": 5.76,
+   "usage": {
+    "completion_tokens": 120,
+    "prompt_tokens": 1037,
+    "total_tokens": 1157,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F045.jpg",
+   "decision": {
+    "smoke": false,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Brown scorched ground with sparse vegetation indicates recent burn."
+   },
+   "raw": "{\"smoke\": false, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Brown scorched ground with sparse vegetation indicates recent burn.\"}",
+   "finish_reason": "stop",
+   "seconds": 5.99,
+   "usage": {
+    "completion_tokens": 127,
+    "prompt_tokens": 1037,
+    "total_tokens": 1164,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F046.jpg",
+   "decision": {
+    "smoke": true,
+    "flames": false,
+    "burned_ground": true,
+    "uplink": true,
+    "reason": "Smoke haze top left and brown scorched ground with charred sticks visible."
+   },
+   "raw": "{\"smoke\": true, \"flames\": false, \"burned_ground\": true, \"uplink\": true, \"reason\": \"Smoke haze top left and brown scorched ground with charred sticks visible.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.41,
+   "usage": {
+    "completion_tokens": 138,
+    "prompt_tokens": 1037,
+    "total_tokens": 1175,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
+  },
+  {
+   "file": "F047.jpg",
+   "decision": {
+    "smoke": true,
+    "flames": false,
+    "burned_ground": false,
+    "uplink": true,
+    "reason": "White plume indicates smoke over forest canopy, no flames visible."
+   },
+   "raw": "{\"smoke\": true, \"flames\": false, \"burned_ground\": false, \"uplink\": true, \"reason\": \"White plume indicates smoke over forest canopy, no flames visible.\"}",
+   "finish_reason": "stop",
+   "seconds": 6.47,
+   "usage": {
+    "completion_tokens": 140,
+    "prompt_tokens": 1037,
+    "total_tokens": 1177,
+    "prompt_tokens_details": {
+     "cached_tokens": 49
+    }
+   },
+   "server_load_s": 30.1
   }
  ]
 }

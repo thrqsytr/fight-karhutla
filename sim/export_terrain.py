@@ -34,17 +34,13 @@ def main(incident_id: str, out: Path) -> None:
     shape10 = (shape20[0] * 2, shape20[1] * 2)
     read = sentinel.read_window
 
-    def nbr(item):
-        ns, no = sentinel._scale(item, "nir")
-        ss, so = sentinel._scale(item, "swir22")
-        nir = read(item["assets"]["nir"]["href"], bounds, shape20, "average", 1)[0].astype("f4") * ns + no
-        sw = read(item["assets"]["swir22"]["href"], bounds, shape20, "nearest", 1)[0].astype("f4") * ss + so
-        return (nir - sw) / np.maximum(nir + sw, 1e-4)
-
     scl_pre = read(pre["assets"]["scl"]["href"], bounds, shape20, "nearest", 1)[0]
     scl_post = read(post["assets"]["scl"]["href"], bounds, shape20, "nearest", 1)[0]
-    valid = np.isin(scl_pre, sentinel.CLEAR_CLASSES) & np.isin(scl_post, sentinel.CLEAR_CLASSES)
-    burned = valid & ((nbr(pre) - nbr(post)) >= sentinel.DNBR_BURNED)
+    # The app's own NBR, so dark pixels (water, deep shadow) are excluded exactly as in the stored evidence.
+    pre_nbr, pre_ok = sentinel._nbr(pre, bounds, shape20, read)
+    post_nbr, post_ok = sentinel._nbr(post, bounds, shape20, read)
+    valid = np.isin(scl_pre, sentinel.CLEAR_CLASSES) & np.isin(scl_post, sentinel.CLEAR_CLASSES) & pre_ok & post_ok
+    burned = valid & ((pre_nbr - post_nbr) >= sentinel.DNBR_BURNED)
     print("burned px (20 m):", int(burned.sum()), "=", round(int(burned.sum()) * 0.04, 2), "ha; app stored", sat["burned_area_ha"])
     up = lambda m: np.kron(m, np.ones((2, 2), dtype=bool))
     Image.fromarray((up(burned) * 255).astype("u1")).save(out / "burned.png")

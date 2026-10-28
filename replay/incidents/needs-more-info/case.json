@@ -9,26 +9,26 @@
   "id": "Citra setelah kejadian tertutup awan atau asap, jadi luas tidak diklaim dan agen meminta bukti lain.",
   "en": "The after image is covered by cloud or smoke, so no area is claimed and the agent asks for other evidence."
  },
- "recorded_with": "meta-models/muse-spark-open-1026",
- "recorded_at": "2026-10-28T08:03:00+00:00",
+ "recorded_with": "muse-spark-1.3",
+ "recorded_at": "2026-10-28T11:13:21+00:00",
  "source": {
-  "eval_id": "kalbar_2025-08-28_0.00552_110.23471",
+  "eval_id": "kalbar_2025-09-26_-0.92048_110.76862",
   "label": "no_post_image",
   "dnbr_near": null
  },
  "incident": {
   "trigger": "hotspot_cluster",
-  "lat": 0.005519090909090909,
-  "lon": 110.23471363636364,
-  "first_seen": "2025-08-28T06:14:00+00:00",
-  "last_seen": "2025-08-28T06:14:00+00:00",
-  "hotspot_count": 11,
+  "lat": -0.92048,
+  "lon": 110.76862,
+  "first_seen": "2025-09-27T06:52:00+00:00",
+  "last_seen": "2025-09-27T06:52:00+00:00",
+  "hotspot_count": 1,
   "status": "needs_more_info",
-  "confidence": 0.0,
-  "risk_score": 58.0,
-  "triage_json": "{\"incident_id\": \"{INC}\", \"location\": {\"lat\": 0.00552, \"lon\": 110.23471, \"admin\": \"Beginjan\", \"accuracy_m\": 1761.0}, \"status\": \"needs_more_info\", \"confidence\": 0.0, \"evidence\": [{\"id\": \"EV-001\", \"type\": \"hotspot\", \"source\": \"NASA FIRMS\", \"retrieved_at\": \"2026-10-28T08:01:15+00:00\", \"summary\": \"11 FIRMS hotspot(s), max FRP 39.4 MW, confidence: 11 nominal\"}, {\"id\": \"EV-002\", \"type\": \"weather\", \"source\": \"Open-Meteo\", \"retrieved_at\": \"2026-10-28T08:01:15+00:00\", \"summary\": \"Wind 1.1 m/s from 294 deg, humidity 59%, rain 24 h 0.3 mm\"}, {\"id\": \"EV-003\", \"type\": \"osm\", \"source\": \"OpenStreetMap (offline extract Geofabrik Indonesia 2026-10-27)\", \"retrieved_at\": \"2026-10-28T08:01:15+00:00\", \"summary\": \"Nearest: settlement 1.8 km (Beginjan), road 5.1 km, river 5.5 km (Sungai Kapuas), lake or pond 9.0 km, no fire station within 30 km\"}], \"claims\": [{\"text\": \"11 FIRMS hotspot(s) recorded at centre lat 0.00552 lon 110.23471 with first seen 2025-08-28T06:14:00+00:00 and last seen 2025-08-28T06:14:00+00:00 and max FRP 39.4 MW with confidence 11 nominal\", \"evidence_ids\": [\"EV-001\"]}, {\"text\": \"Weather observed at 2025-08-28T06:00:00+00:00 shows wind 1.1 m/s from 294 deg, relative humidity 59%, rain 24 h 0.3 mm\", \"evidence_ids\": [\"EV-002\"]}, {\"text\": \"Forecast for 2025-08-28T09:00:00+00:00 shows wind 1.1 m/s from 317 deg indicating light to moderate wind with variable direction\", \"evidence_ids\": [\"EV-002\"]}, {\"text\": \"Nearest settlement is Beginjan village 1761 m away and nearest road is secondary road 5102 m away\", \"evidence_ids\": [\"EV-003\"]}, {\"text\": \"Nearest water sources are river Sungai Kapuas 5549 m away and lake 8990 m away\", \"evidence_ids\": [\"EV-003\"]}, {\"text\": \"No fire station within 30000 m search radius\", \"evidence_ids\": [\"EV-003\"]}, {\"text\": \"Wind from 294 deg suggests likely smoke and fire spread toward 114 deg opposite the wind direction\", \"evidence_ids\": [\"EV-002\"]}], \"risk\": {\"score\": 58.0, \"drivers\": [\"11 hotspot nominal confidence with max FRP 39.4 MW\", \"settlement Beginjan 1761 m away\", \"no fire station within 30000 m\", \"access limited road 5102 m\", \"light rain 0.3 mm and humidity 59 percent\"], \"spread_direction_deg\": 114.0}, \"burn_area_ha\": {\"value\": null, \"method\": null, \"evidence_id\": null}, \"recommended_actions\": [\"Coordinate immediately with village officials in Beginjan 1761 m from centre for ground check\", \"Assess access via secondary road 5102 m away and plan approach route\", \"Identify water supply at Sungai Kapuas 5549 m and lake 8990 m for operations\", \"Propose drone survey for human approval to obtain independent visual confirmation due to lack of citizen report or clear satellite image\", \"Monitor wind shift from 294 deg to 317 deg and possible increase to 3.47 m/s\"], \"dispatch_brief\": {\"id\": \"Klustrer 11 hotspot nominal dengan FRP maksimum 39.4 MW di sekitar Beginjan 1761 m. Angin 1.1 m/s dari 294 deg dengan sebaran kemungkinan ke 114 deg, kelembapan 59 persen, hujan 24 jam 0.3 mm. Akses jalan 5102 m, sumber air Sungai Kapuas 5549 m, tidak ada pos pemadam dalam 30000 m. Status perlu verifikasi lapangan, tidak diketahui api aktif tanpa foto warga atau citra satelit jelas. Perlu survei drone dan cek lapangan.\", \"en\": \"Cluster of 11 hotspot nominal with max FRP 39.4 MW near Beginjan 1761 m away. Wind 1.1 m/s from 294 deg with likely spread toward 114 deg, humidity 59 percent, 24 h rain 0.3 mm. Road access 5102 m, water at Sungai Kapuas 5549 m, no fire station within 30000 m. Status needs field verification, unknown active fire without citizen photo or clear satellite image. Drone survey and ground check needed.\"}, \"uncertainties\": [\"No independent confirmation of active fire, citizen reports 0\", \"No clear satellite image, 6 scenes since detection none at least 60 percent clear over area\", \"Need burn scar dNBR measurement currently unavailable\", \"Need ground verification of access conditions and water availability\"], \"needs_human\": true}",
-  "gate_json": "{\"accepted\": true, \"claims_total\": 7, \"claims_passed\": 7, \"claims_dropped\": [], \"corrections\": [{\"where\": \"claims[2]\", \"claimed\": \"3.47 m/s\", \"corrected\": \"1.1 m/s\"}], \"violations\": [], \"downgrades\": [], \"schema_errors\": [], \"grounding_rate\": 1.0, \"critique\": {\"reviewed\": 8, \"disputed\": [], \"brief_disputed\": [], \"providers\": [\"baseten:meta-models/muse-spark-open-1026\"], \"errors\": []}, \"seconds\": 85.9, \"cost_usd\": 0, \"triaged_at\": \"2026-10-28T08:03:00+00:00\", \"outcome\": \"ok\"}",
-  "enriched_at": "2026-10-28T08:02:06+00:00",
+  "confidence": 0.35,
+  "risk_score": 25.0,
+  "triage_json": "{\"incident_id\": \"{INC}\", \"location\": {\"lat\": -0.92048, \"lon\": 110.76862, \"admin\": \"Tanjung Lambai\", \"accuracy_m\": 1000.0}, \"status\": \"needs_more_info\", \"confidence\": 0.35, \"evidence\": [{\"id\": \"EV-001\", \"type\": \"hotspot\", \"source\": \"NASA FIRMS\", \"retrieved_at\": \"2026-10-28T11:10:11+00:00\", \"summary\": \"1 FIRMS hotspot(s), max FRP 4.77 MW, confidence: 1 nominal\"}, {\"id\": \"EV-002\", \"type\": \"weather\", \"source\": \"Open-Meteo\", \"retrieved_at\": \"2026-10-28T11:10:11+00:00\", \"summary\": \"Wind 0.76 m/s from 82 deg, humidity 44%, rain 24 h 0.3 mm\"}, {\"id\": \"EV-003\", \"type\": \"osm\", \"source\": \"OpenStreetMap (offline extract Geofabrik Indonesia 2026-10-27)\", \"retrieved_at\": \"2026-10-28T11:10:11+00:00\", \"summary\": \"Nearest: settlement 2.4 km (Tanjung Lambai), road 2.0 km, river 2.3 km, lake or pond 2.3 km, no fire station within 30 km\"}], \"claims\": [{\"text\": \"FIRMS recorded 1 hotspot with max FRP 4.77 MW and confidence 1 nominal.\", \"evidence_ids\": [\"EV-001\"]}, {\"text\": \"Weather at observed hour showed wind 0.76 m/s from 82 deg with humidity 44% and rain 24 h 0.3 mm.\", \"evidence_ids\": [\"EV-002\"]}, {\"text\": \"Wind speed 0.76 m/s is rendah.\", \"evidence_ids\": [\"EV-002\"]}, {\"text\": \"Likely smoke movement is toward 262 deg because wind blows from 82 deg.\", \"evidence_ids\": [\"EV-002\"]}, {\"text\": \"Nearest settlement is Tanjung Lambai at 2439 m.\", \"evidence_ids\": [\"EV-003\"]}, {\"text\": \"Nearest road is tertiary at 1980 m.\", \"evidence_ids\": [\"EV-003\"]}, {\"text\": \"Nearest river is at 2332 m and nearest lake or pond is at 2306 m.\", \"evidence_ids\": [\"EV-003\"]}, {\"text\": \"No fire station was found within 30000 m so assistance location is tidak diketahui.\", \"evidence_ids\": [\"EV-003\"]}], \"risk\": {\"score\": 25.0, \"drivers\": [\"Single nominal hotspot with 4.77 MW\", \"Low wind 0.76 m/s from 82 deg\", \"No fire station within 30000 m\"], \"spread_direction_deg\": 262.0}, \"burn_area_ha\": {\"value\": null, \"method\": null, \"evidence_id\": null}, \"recommended_actions\": [\"Coordinate with village officers near Tanjung Lambai for ground verification.\", \"Survey access via tertiary road at 1980 m.\", \"Check water points at river 2332 m and lake or pond 2306 m.\", \"Propose drone survey for human approval to obtain visual confirmation.\"], \"dispatch_brief\": {\"id\": \"Satu titik panas nominal dengan FRP 4.77 MW terdeteksi dekat Tanjung Lambai pada jarak 2439 m. Angin rendah 0.76 m/s dari 82 deg dengan kelembapan 44% dan hujan 0.3 mm dalam 24 h. Perkiraan asap ke arah 262 deg. Jalan tertiary 1980 m, sungai 2332 m dan danau 2306 m. Tidak ada stasiun pemadam dalam 30000 m sehingga lokasi bantuan tidak diketahui.\", \"en\": \"One nominal hotspot with FRP 4.77 MW detected near Tanjung Lambai at 2439 m. Low wind 0.76 m/s from 82 deg with humidity 44% and 0.3 mm rain in 24 h. Estimated smoke toward 262 deg. Tertiary road 1980 m, river 2332 m and lake 2306 m. No fire station within 30000 m so assistance location is unknown.\"}, \"uncertainties\": [\"No citizen photo, voice note or report is available for independent confirmation. Need ground verification.\", \"No clear satellite image is available. Need clear optical image to confirm burn scar.\", \"Single nominal hotspot cannot confirm active fire. Need field check to confirm active fire versus thermal anomaly.\"], \"needs_human\": true}",
+  "gate_json": "{\"accepted\": true, \"claims_total\": 8, \"claims_passed\": 8, \"claims_dropped\": [], \"corrections\": [], \"violations\": [], \"downgrades\": [], \"schema_errors\": [], \"grounding_rate\": 1.0, \"critique\": {\"reviewed\": 9, \"disputed\": [], \"brief_disputed\": [], \"providers\": [\"baseten:meta-models/muse-spark-open-1026\"], \"errors\": []}, \"seconds\": 173.0, \"cost_usd\": 0.10274, \"triaged_at\": \"2026-10-28T11:13:21+00:00\", \"outcome\": \"ok\"}",
+  "enriched_at": "2026-10-28T11:11:49+00:00",
   "enrichment_json": "{\"hotspot\": \"ok\", \"weather\": \"ok\", \"osm\": \"ok (offline extract)\"}",
   "reporter_count": 0
  },
@@ -36,133 +36,13 @@
   {
    "id": "{INC}-H000",
    "source": "VIIRS_SNPP_SP",
-   "lat": -0.00027,
-   "lon": 110.24286,
-   "acquired_at": "2025-08-28T06:14:00+00:00",
+   "lat": -0.92048,
+   "lon": 110.76862,
+   "acquired_at": "2025-09-27T06:52:00+00:00",
    "satellite": "N",
    "instrument": "VIIRS",
    "confidence": "n",
-   "frp": 6.83,
-   "daynight": ""
-  },
-  {
-   "id": "{INC}-H001",
-   "source": "VIIRS_SNPP_SP",
-   "lat": -0.00201,
-   "lon": 110.25452,
-   "acquired_at": "2025-08-28T06:14:00+00:00",
-   "satellite": "N",
-   "instrument": "VIIRS",
-   "confidence": "n",
-   "frp": 39.4,
-   "daynight": ""
-  },
-  {
-   "id": "{INC}-H002",
-   "source": "VIIRS_SNPP_SP",
-   "lat": -0.00372,
-   "lon": 110.24336,
-   "acquired_at": "2025-08-28T06:14:00+00:00",
-   "satellite": "N",
-   "instrument": "VIIRS",
-   "confidence": "n",
-   "frp": 6.83,
-   "daynight": ""
-  },
-  {
-   "id": "{INC}-H003",
-   "source": "VIIRS_SNPP_SP",
-   "lat": -0.00481,
-   "lon": 110.21316,
-   "acquired_at": "2025-08-28T06:14:00+00:00",
-   "satellite": "N",
-   "instrument": "VIIRS",
-   "confidence": "n",
-   "frp": 33.18,
-   "daynight": ""
-  },
-  {
-   "id": "{INC}-H004",
-   "source": "VIIRS_SNPP_SP",
-   "lat": 0.00257,
-   "lon": 110.26145,
-   "acquired_at": "2025-08-28T06:14:00+00:00",
-   "satellite": "N",
-   "instrument": "VIIRS",
-   "confidence": "n",
-   "frp": 9.24,
-   "daynight": ""
-  },
-  {
-   "id": "{INC}-H005",
-   "source": "VIIRS_SNPP_SP",
-   "lat": 0.00433,
-   "lon": 110.22691,
-   "acquired_at": "2025-08-28T06:14:00+00:00",
-   "satellite": "N",
-   "instrument": "VIIRS",
-   "confidence": "n",
-   "frp": 4.29,
-   "daynight": ""
-  },
-  {
-   "id": "{INC}-H006",
-   "source": "VIIRS_SNPP_SP",
-   "lat": 0.0049,
-   "lon": 110.23064,
-   "acquired_at": "2025-08-28T06:14:00+00:00",
-   "satellite": "N",
-   "instrument": "VIIRS",
-   "confidence": "n",
-   "frp": 6.32,
-   "daynight": ""
-  },
-  {
-   "id": "{INC}-H007",
-   "source": "VIIRS_SNPP_SP",
-   "lat": 0.00834,
-   "lon": 110.23013,
-   "acquired_at": "2025-08-28T06:14:00+00:00",
-   "satellite": "N",
-   "instrument": "VIIRS",
-   "confidence": "n",
-   "frp": 25.48,
-   "daynight": ""
-  },
-  {
-   "id": "{INC}-H008",
-   "source": "VIIRS_SNPP_SP",
-   "lat": 0.01178,
-   "lon": 110.22964,
-   "acquired_at": "2025-08-28T06:14:00+00:00",
-   "satellite": "N",
-   "instrument": "VIIRS",
-   "confidence": "n",
-   "frp": 25.48,
-   "daynight": ""
-  },
-  {
-   "id": "{INC}-H009",
-   "source": "VIIRS_SNPP_SP",
-   "lat": 0.01808,
-   "lon": 110.22485,
-   "acquired_at": "2025-08-28T06:14:00+00:00",
-   "satellite": "N",
-   "instrument": "VIIRS",
-   "confidence": "n",
-   "frp": 2.25,
-   "daynight": ""
-  },
-  {
-   "id": "{INC}-H010",
-   "source": "VIIRS_SNPP_SP",
-   "lat": 0.02152,
-   "lon": 110.22433,
-   "acquired_at": "2025-08-28T06:14:00+00:00",
-   "satellite": "N",
-   "instrument": "VIIRS",
-   "confidence": "n",
-   "frp": 6.35,
+   "frp": 4.77,
    "daynight": ""
   }
  ],
@@ -171,30 +51,20 @@
    "id": "EV-001",
    "type": "hotspot",
    "source": "NASA FIRMS",
-   "retrieved_at": "2026-10-28T08:01:15+00:00",
-   "summary": "11 FIRMS hotspot(s), max FRP 39.4 MW, confidence: 11 nominal",
+   "retrieved_at": "2026-10-28T11:10:11+00:00",
+   "summary": "1 FIRMS hotspot(s), max FRP 4.77 MW, confidence: 1 nominal",
    "payload": {
-    "lat": 0.00552,
-    "lon": 110.23471,
-    "count": 11,
+    "lat": -0.92048,
+    "lon": 110.76862,
+    "count": 1,
     "hotspot_ids": [
-     "{INC}-H000",
-     "{INC}-H001",
-     "{INC}-H002",
-     "{INC}-H003",
-     "{INC}-H004",
-     "{INC}-H005",
-     "{INC}-H006",
-     "{INC}-H007",
-     "{INC}-H008",
-     "{INC}-H009",
-     "{INC}-H010"
+     "{INC}-H000"
     ],
-    "first_acquired": "2025-08-28T06:14:00+00:00",
-    "last_acquired": "2025-08-28T06:14:00+00:00",
-    "max_frp_mw": 39.4,
+    "first_acquired": "2025-09-27T06:52:00+00:00",
+    "last_acquired": "2025-09-27T06:52:00+00:00",
+    "max_frp_mw": 4.77,
     "confidence_counts": {
-     "n": 11
+     "n": 1
     },
     "satellites": [
      "N"
@@ -205,96 +75,96 @@
    "id": "EV-002",
    "type": "weather",
    "source": "Open-Meteo",
-   "retrieved_at": "2026-10-28T08:01:15+00:00",
-   "summary": "Wind 1.1 m/s from 294 deg, humidity 59%, rain 24 h 0.3 mm",
+   "retrieved_at": "2026-10-28T11:10:11+00:00",
+   "summary": "Wind 0.76 m/s from 82 deg, humidity 44%, rain 24 h 0.3 mm",
    "payload": {
-    "observed_hour": "2025-08-28T06:00:00+00:00",
-    "wind_speed_ms": 1.1,
-    "wind_direction_deg": 294,
-    "relative_humidity_pct": 59,
+    "observed_hour": "2025-09-27T06:00:00+00:00",
+    "wind_speed_ms": 0.76,
+    "wind_direction_deg": 82,
+    "relative_humidity_pct": 44,
     "rain_24h_mm": 0.3,
     "rain_24h_hours_covered": 24,
     "forecast_6h": [
      {
-      "hour": "2025-08-28T07:00:00+00:00",
-      "wind_speed_ms": 1.37,
-      "wind_direction_deg": 294
+      "hour": "2025-09-27T07:00:00+00:00",
+      "wind_speed_ms": 0.3,
+      "wind_direction_deg": 90
      },
      {
-      "hour": "2025-08-28T08:00:00+00:00",
-      "wind_speed_ms": 1.57,
-      "wind_direction_deg": 287
+      "hour": "2025-09-27T08:00:00+00:00",
+      "wind_speed_ms": 0.67,
+      "wind_direction_deg": 312
      },
      {
-      "hour": "2025-08-28T09:00:00+00:00",
-      "wind_speed_ms": 3.47,
-      "wind_direction_deg": 317
+      "hour": "2025-09-27T09:00:00+00:00",
+      "wind_speed_ms": 0.89,
+      "wind_direction_deg": 322
      },
      {
-      "hour": "2025-08-28T10:00:00+00:00",
-      "wind_speed_ms": 2.21,
-      "wind_direction_deg": 265
+      "hour": "2025-09-27T10:00:00+00:00",
+      "wind_speed_ms": 0.62,
+      "wind_direction_deg": 14
      },
      {
-      "hour": "2025-08-28T11:00:00+00:00",
-      "wind_speed_ms": 3.09,
-      "wind_direction_deg": 209
+      "hour": "2025-09-27T11:00:00+00:00",
+      "wind_speed_ms": 0.45,
+      "wind_direction_deg": 84
      },
      {
-      "hour": "2025-08-28T12:00:00+00:00",
-      "wind_speed_ms": 1.78,
-      "wind_direction_deg": 169
+      "hour": "2025-09-27T12:00:00+00:00",
+      "wind_speed_ms": 0.56,
+      "wind_direction_deg": 117
      }
     ],
-    "grid_lat": 0.035149384,
-    "grid_lon": 110.25701,
+    "grid_lat": -0.9490334,
+    "grid_lon": 110.747444,
     "source_api": "archive",
-    "lat": 0.005519090909090909,
-    "lon": 110.23471363636364
+    "lat": -0.92048,
+    "lon": 110.76862
    }
   },
   {
    "id": "EV-003",
    "type": "osm",
    "source": "OpenStreetMap (offline extract Geofabrik Indonesia 2026-10-27)",
-   "retrieved_at": "2026-10-28T08:01:15+00:00",
-   "summary": "Nearest: settlement 1.8 km (Beginjan), road 5.1 km, river 5.5 km (Sungai Kapuas), lake or pond 9.0 km, no fire station within 30 km",
+   "retrieved_at": "2026-10-28T11:10:11+00:00",
+   "summary": "Nearest: settlement 2.4 km (Tanjung Lambai), road 2.0 km, river 2.3 km, lake or pond 2.3 km, no fire station within 30 km",
    "payload": {
-    "lat": 0.005519090909090909,
-    "lon": 110.23471363636364,
+    "lat": -0.92048,
+    "lon": 110.76862,
     "search_radius_m": 10000,
     "fire_station_search_radius_m": 30000,
     "nearest": {
      "settlement": {
-      "name": "Beginjan",
-      "kind": "village",
-      "distance_m": 1761,
-      "osm_id": "node/1308611762"
+      "name": "Tanjung Lambai",
+      "kind": "hamlet",
+      "distance_m": 2439,
+      "osm_id": "node/6704792332"
      },
      "road": {
       "name": null,
-      "kind": "secondary",
-      "distance_m": 5102,
-      "osm_id": "way/261082002"
+      "kind": "tertiary",
+      "distance_m": 1980,
+      "osm_id": "way/601799333"
      },
      "river": {
-      "name": "Sungai Kapuas",
+      "name": null,
       "kind": "river",
-      "distance_m": 5549,
-      "osm_id": "way/43996553"
+      "distance_m": 2332,
+      "osm_id": "way/601812071"
      },
      "lake": {
       "name": null,
-      "kind": "lake",
-      "distance_m": 8990,
-      "osm_id": "way/783686501"
+      "kind": "river",
+      "distance_m": 2306,
+      "osm_id": "way/601806960"
      },
      "fire_station": null
     },
     "osm_timestamp": "Geofabrik Indonesia 2026-10-27",
     "tile": [
-     0,
-     551
+     -5,
+     553
     ],
     "endpoint": "offline extract",
     "offline_source": "Geofabrik Indonesia 2026-10-27"
@@ -303,12 +173,12 @@
  ],
  "runs": [
   {
-   "started_at": "2026-10-28T08:01:34+00:00",
-   "finished_at": "2026-10-28T08:03:00+00:00",
+   "started_at": "2026-10-28T11:10:28+00:00",
+   "finished_at": "2026-10-28T11:13:21+00:00",
    "outcome": "ok",
    "error": null,
-   "seconds": 85.9,
-   "cost_usd": 0.0,
+   "seconds": 173.0,
+   "cost_usd": 0.10274,
    "detail": {
     "tools": [
      {
@@ -363,67 +233,67 @@
     "usage": {
      "calls": [
       {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 1666,
-       "cached_tokens": 1664,
-       "output_tokens": 262,
-       "reasoning_tokens": 88,
-       "cost_usd": null
+       "model": "muse-spark-1.3",
+       "input_tokens": 1570,
+       "cached_tokens": 1265,
+       "output_tokens": 353,
+       "reasoning_tokens": 181,
+       "cost_usd": 0.00207125
+      },
+      {
+       "model": "muse-spark-1.3",
+       "input_tokens": 2562,
+       "cached_tokens": 1265,
+       "output_tokens": 6696,
+       "reasoning_tokens": 5973,
+       "cost_usd": 0.030269
+      },
+      {
+       "model": "muse-spark-1.3",
+       "input_tokens": 2945,
+       "cached_tokens": 881,
+       "output_tokens": 3919,
+       "reasoning_tokens": 3133,
+       "cost_usd": 0.0193679
+      },
+      {
+       "model": "muse-spark-1.3",
+       "input_tokens": 1570,
+       "cached_tokens": 1521,
+       "output_tokens": 619,
+       "reasoning_tokens": 439,
+       "cost_usd": 0.0029201500000000003
+      },
+      {
+       "model": "muse-spark-1.3",
+       "input_tokens": 2570,
+       "cached_tokens": 1521,
+       "output_tokens": 5674,
+       "reasoning_tokens": 4877,
+       "cost_usd": 0.0256539
+      },
+      {
+       "model": "muse-spark-1.3",
+       "input_tokens": 3027,
+       "cached_tokens": 881,
+       "output_tokens": 4622,
+       "reasoning_tokens": 3740,
+       "cost_usd": 0.022458150000000003
       },
       {
        "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 2618,
-       "cached_tokens": 1792,
-       "output_tokens": 4251,
-       "reasoning_tokens": 3234,
-       "cost_usd": null
-      },
-      {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 1872,
-       "cached_tokens": 1024,
-       "output_tokens": 3249,
-       "reasoning_tokens": 2344,
-       "cost_usd": null
-      },
-      {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 1666,
-       "cached_tokens": 1664,
-       "output_tokens": 1020,
-       "reasoning_tokens": 854,
-       "cost_usd": null
-      },
-      {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 2618,
-       "cached_tokens": 2560,
-       "output_tokens": 7660,
-       "reasoning_tokens": 6541,
-       "cost_usd": null
-      },
-      {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 1872,
-       "cached_tokens": 1792,
-       "output_tokens": 4317,
-       "reasoning_tokens": 3427,
-       "cost_usd": null
-      },
-      {
-       "model": "meta-models/muse-spark-open-1026",
-       "input_tokens": 2877,
-       "cached_tokens": 0,
-       "output_tokens": 4208,
-       "reasoning_tokens": 4177,
+       "input_tokens": 3001,
+       "cached_tokens": 128,
+       "output_tokens": 5147,
+       "reasoning_tokens": 5130,
        "cost_usd": null
       }
      ],
-     "cost_usd": 0,
-     "unpriced_calls": 7
+     "cost_usd": 0.10274,
+     "unpriced_calls": 1
     },
     "critique": {
-     "reviewed": 8,
+     "reviewed": 9,
      "disputed": [],
      "brief_disputed": [],
      "providers": [
@@ -432,7 +302,7 @@
      "errors": []
     },
     "models": {
-     "triage": "meta-models/muse-spark-open-1026",
+     "triage": "muse-spark-1.3",
      "critique": [
       "baseten:meta-models/muse-spark-open-1026"
      ]

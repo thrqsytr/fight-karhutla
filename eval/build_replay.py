@@ -6,7 +6,8 @@ get_satellite_pair. The satellite pair is taken as it was 40 days after the firs
 so the replay shows what the system would have said then. The result is written as files with the incident
 ID replaced by {INC}; backend/replay.py loads them without network or model calls.
 
-Usage (repo root): .venv/Scripts/python eval/build_replay.py --burned EVAL-07 --false-positive EVAL-12 --needs-more-info EVAL-20 [--provider baseten]
+Usage (repo root): .venv/Scripts/python eval/build_replay.py [--burned ID] [--false-positive ID] [--needs-more-info ID] [--provider baseten|meta]
+An ID is an EVAL id or, for an unlabelled candidate, its label-cache key. Only the roles given are recorded.
 """
 
 import argparse
@@ -111,9 +112,9 @@ def record(role: str, cluster: dict, provider: str) -> Path:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--burned", required=True)
-    ap.add_argument("--false-positive", required=True)
-    ap.add_argument("--needs-more-info", required=True)
+    ap.add_argument("--burned")
+    ap.add_argument("--false-positive")
+    ap.add_argument("--needs-more-info")
     ap.add_argument("--provider", choices=("baseten", "meta"), default="baseten")
     a = ap.parse_args()
     fallback = run_eval.CACHE / "osm_fallback.sqlite"
@@ -124,6 +125,8 @@ def main() -> None:
     sentinel.HTTP_TIMEOUT_S = 180
     sentinel.RGB_SCALE = 1
     for role, ref in (("burned", a.burned), ("false_positive", a.false_positive), ("needs_more_info", a.needs_more_info)):
+        if not ref:
+            continue  # only the roles given are recorded again
         # A recording whose triage failed the schema twice is taken again (up to three times); the replay is meant to show
         # a completed triage. Failures stay counted in the evaluation, which never retries beyond the app's own one retry.
         for attempt in range(3):

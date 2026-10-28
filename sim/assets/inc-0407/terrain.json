@@ -32,7 +32,7 @@
  ],
  "pre_scene": "S2B_50NMF_20261001_0_L2A",
  "post_scene": "S2C_50NMF_20261026_0_L2A",
- "burned_ha_20m": 489.72,
+ "burned_ha_20m": 238.76,
  "hotspots": [
   {
    "lat": 0.01,
@@ -243,5 +243,6 @@
    "local_y": 3137.1
   }
  ],
- "attribution": "Contains modified Copernicus Sentinel data 2026, via Earth Search (Element 84)"
+ "attribution": "Contains modified Copernicus Sentinel data 2026, via Earth Search (Element 84)",
+ "burn_mask_source": "app evidence EV-006 of 2026-10-28 (dNBR with the dark-pixel guard), same scenes, cropped to this grid; replaces the first export (489.72 ha), which counted water and deep shadow as burned"
 }

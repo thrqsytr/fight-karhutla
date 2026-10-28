@@ -149,6 +149,25 @@ def _run_chat(settings: Settings, inc: dict, ev: list[dict], ctx: tools.ToolCont
     return json.loads(final.choices[0].message.content)
 
 
+CHAIN_ATTEMPTS = 3
+
+
+def _chained(client, **kwargs):
+    """responses.create with previous_response_id. On 2026-10-28, 3 of 30 evaluation runs got
+    400 "referenced response not found or expired" seconds after that response was returned; the same call
+    a moment later works. Only that error is retried; anything else is raised at once."""
+    import openai
+
+    for attempt in range(CHAIN_ATTEMPTS):
+        try:
+            return client.responses.create(**kwargs)
+        except openai.BadRequestError as exc:
+            if "referenced response not found" not in str(exc) or attempt == CHAIN_ATTEMPTS - 1:
+                raise
+            log.warning("previous response not found yet, retrying (%d): %s", attempt + 1, kwargs.get("previous_response_id"))
+            time.sleep(2 * (attempt + 1))
+
+
 def _run_model(settings: Settings, inc: dict, ev: list[dict], ctx: tools.ToolContext, allowed: set[str] | None = None) -> dict:
     client = meta_client.meta(settings)
     resp = client.responses.create(model=meta_client.SPARK, instructions=SYSTEM, input=_user_message(inc, ev), tools=_tool_defs(allowed), reasoning=REASONING)
@@ -163,13 +182,13 @@ def _run_model(settings: Settings, inc: dict, ev: list[dict], ctx: tools.ToolCon
             calls += 1
             result = _call(ctx, fc.name, fc.arguments, calls, allowed)
             outputs.append({"type": "function_call_output", "call_id": fc.call_id, "output": json.dumps(result, ensure_ascii=False)})
-        resp = client.responses.create(model=meta_client.SPARK, instructions=SYSTEM, input=outputs, previous_response_id=resp.id,
+        resp = _chained(client, model=meta_client.SPARK, instructions=SYSTEM, input=outputs, previous_response_id=resp.id,
                                        tools=_tool_defs(allowed), reasoning=REASONING)
         ctx.meter.spark(resp.usage)
         if calls > MAX_TOOL_CALLS:
             break
-    final = client.responses.create(
-        model=meta_client.SPARK, instructions=SYSTEM, previous_response_id=resp.id, reasoning=REASONING,
+    final = _chained(
+        client, model=meta_client.SPARK, instructions=SYSTEM, previous_response_id=resp.id, reasoning=REASONING,
         input="Return the triage now in the required format.",
         text={"format": {"type": "json_schema", "name": "triage", "schema": OUTPUT_SCHEMA, "strict": True}},
     )

@@ -60,17 +60,22 @@ Every deviation from the execution spec is recorded here with its reason.
 | 46 | Labelling runs on Modal next to the Sentinel-2 COGs in us-west. | From this PC a 10 m block read took about a minute; 768 candidates on Modal took a few minutes. Every window and label is cached, so a change of rule needs no new reads. |
 | 47 | Replay mode loads three recorded cases from `replay/incidents/` (one burned, one false positive, one needs more info) as SIMULASI, once, and removes only what it loaded. The recording runs the real pipeline at the time of the case (the Sentinel-2 pair as of 40 days after the first detection) and is retried if the triage fails the schema. | A demo must work with no active fire and no network. Recorded runs do not count as spend. |
 
+| 48 | The drone scene for INC-20261025-0407 was rebuilt on the corrected burn mask: same grid, flight plan, camera, and renderer; only `burned.png` changed (the app's evidence EV-006, cropped to the scene grid). Frames, truth, Glimmer, and SAM were all run again. | The first scene used the mask from before decision 43: inside the survey box 71.15 ha were burned in the scene against 61.02 ha in the corrected mask, so 10 ha (14%) of the scene's burned ground was water or shadow. |
+| 49 | The Meta tool loop retries a `previous_response_id` call up to 3 times when the API answers 400 "referenced response not found or expired"; any other error is raised at once. | 4 of 30 evaluation runs got that error seconds after the response was returned, and the same call worked moments later. Production triage uses the same loop. |
+| 50 | The replays are recorded with Muse Spark 1.3, the production model. The needs-more-info case is a single nominal hotspot (FRP 4.77 MW) with no clear Sentinel-2 pass since detection. | The first choice for that role (11 hotspots, FRP 39.4 MW, also cloudy) got `possible_fire` from Muse Spark 1.3, a fair call on that data. Re-recording until the model says what the role needs would be cherry picking, so the case was chosen by its data instead and the result kept. |
+
 ## Day 7 evaluation results (2026-10-28)
 
 See the README section "Evaluation". Candidates: 1752 clusters from 4 regions and 3 dates; 768 tried until 15 of each label, the rest had no clear pair (153 without a clear before image, 125 without a clear after image) or fell between the thresholds.
 
-## Day 5 drone simulation results (2026-10-28, synthetic)
+## Day 5 drone simulation results (synthetic; rebuilt 2026-10-28 on the corrected burn mask, decision 48)
 
 | Step | Result |
 | --- | --- |
-| Render | 48 frames plus 48 truth masks, Blender 5.2 EEVEE, about 4 s per frame on this PC |
-| Glimmer filter (Modal A10G, reasoning low) | 34 uplinked, 14 dropped, 0 unparsed; 7.4 s per frame, 444 s total. Against the render truth (burned share 5% or more): 34 true positives, 0 false positives, 10 misses. Four misses called the synthetic char "skin texture" or "not an aerial scene", a realism limit of the render. 11.99 ha of burned ground sat in dropped frames. |
-| SAM 3.1 "bare ground" | Masks on 3 of 34 uplinked frames (edge frames). On those: 3.42 ha against 3.77 ha truth (error -9.3%), median IoU 0.899. The other 31 frames are burned edge to edge and got no mask. Cost $0.085 (34 calls), plus about $0.04 of concept probes. |
+| Render | 48 frames plus 48 truth masks, Blender 5.2 EEVEE, about 4 s per frame on this PC. Mean burned share of the frames 0.71 (0.82 in the first build). |
+| Glimmer filter (Modal A10G, reasoning low) | 36 uplinked, 12 dropped, 0 unparsed; 6.5 s per frame, 418 s total. Against the render truth (burned share 5% or more): 36 true positives, 0 false positives, 8 misses, 4 correct drops. The misses described "green canopy" over frames whose ground is burned between trees. 6.55 ha of burned ground sat in dropped frames. |
+| SAM 3.1 "bare ground" | Masks on 7 of 36 uplinked frames. On those: 7.69 ha against 8.70 ha truth (error -11.6%), median IoU 0.859. The other 29 frames are burned edge to edge and got no mask. Cost $0.09 (36 calls). |
+| First build, for the record | On the uncorrected mask: 34 uplinked, 14 dropped, 10 misses; SAM on 3 frames, -9.3%, median IoU 0.899. |
 
 These numbers are against the render truth and are not real-world accuracy.
 
