@@ -229,21 +229,40 @@ function geo(items, props) {
 const busy = new Map();  // incident id -> Map(key -> label)
 const busyLabels = (id) => [...(busy.get(id)?.values() || []), ...(state.incidents.find((i) => i.id === id)?.status === "triaging" ? [t("Triage running")] : [])];
 
-async function track(id, key, label, btn, work) {
+async function track(id, key, label, work) {
   if (busy.get(id)?.has(key)) return toast(t("Already running: {what}", { what: label }), "alert");
   if (!busy.has(id)) busy.set(id, new Map());
   busy.get(id).set(key, label);
-  const restore = btn ? [...btn.childNodes] : null;
-  if (btn) { btn.disabled = true; btn.setAttribute("aria-busy", "true"); fill(btn, el("span", { class: "spinner", "aria-hidden": "true" }), `${label}...`); }
   refreshBusy();
   try {
     return await work();
   } finally {
     busy.get(id)?.delete(key);
     if (!busy.get(id)?.size) busy.delete(id);
-    if (btn?.isConnected) { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.replaceChildren(...restore); }
     refreshBusy();
   }
+}
+
+/* Buttons tagged data-busy="<key>" turn into a spinner while that action runs for the open incident, wherever
+   they sit (the same action is offered in the progress card and in its own section). */
+const busyOriginal = new WeakMap();
+function paintBusyButtons() {
+  const view = $("#detail-view");
+  const keys = busy.get(view.dataset.incident);
+  view.querySelectorAll("[data-busy]").forEach((b) => {
+    const label = keys?.get(b.dataset.busy);
+    if (label && !busyOriginal.has(b)) {
+      busyOriginal.set(b, [...b.childNodes]);
+      b.disabled = true;
+      b.setAttribute("aria-busy", "true");
+      fill(b, el("span", { class: "spinner", "aria-hidden": "true" }), b.classList.contains("btn-icon") ? null : `${label}...`);
+    } else if (!label && busyOriginal.has(b)) {
+      b.replaceChildren(...busyOriginal.get(b));
+      busyOriginal.delete(b);
+      b.disabled = false;
+      b.removeAttribute("aria-busy");
+    }
+  });
 }
 
 let busyTimer = null;
@@ -255,6 +274,7 @@ function refreshBusy() {
     li.querySelector(".busy-badge")?.remove();
     if (on) li.querySelector(".meta")?.append(el("span", { class: "busy-badge", title: busyLabels(li.dataset.id).join(", ") }, el("span", { class: "spinner", "aria-hidden": "true" }), t("In progress")));
   });
+  paintBusyButtons();
   // Banner in the open incident
   const view = $("#detail-view");
   view.querySelector(".busy-banner")?.remove();
@@ -561,6 +581,11 @@ function verifierContent(inc) {
   }
   const approve = el("button", { class: "btn btn-primary" }, svg("check", "icon icon-sm"), t("Approve"));
   const reject = el("button", { class: "btn btn-ghost-danger" }, svg("x", "icon icon-sm"), t("Reject"));
+  if (inc.status === "triaging") {
+    // Deciding while the AI is still writing would judge a brief nobody has read yet.
+    [approve, reject].forEach((b) => { b.setAttribute("aria-disabled", "true"); b.onclick = () => toast(t("Wait for the triage to finish, then decide."), "alert"); });
+    return [el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("AI triage is running. The decision opens when it finishes.")), el("div", { class: "actions" }, approve, reject)];
+  }
   const decide = async (decision) => {
     [approve, reject].forEach((b) => (b.disabled = true));
     try {
@@ -686,8 +711,8 @@ function drawBurnMask(inc, ev) {
 function satelliteContent(inc) {
   const ev = [...inc.evidence].reverse().find((e) => e.type === "satellite");
   const fetchBtn = token() ? (() => {
-    const b = el("button", { class: "btn", type: "button" }, svg("satellite", "icon icon-sm"), t(ev ? "Check for a newer pair" : "Find Sentinel-2 images"));
-    b.onclick = () => fetchSatellite(inc.id, b);
+    const b = el("button", { class: "btn", type: "button", dataset: { busy: "satellite" } }, svg("satellite", "icon icon-sm"), t(ev ? "Check for a newer pair" : "Find Sentinel-2 images"));
+    b.onclick = () => fetchSatellite(inc.id);
     return el("div", { class: "actions" }, b);
   })() : null;
   if (!ev) return [el("p", { class: "empty" }, t("No Sentinel-2 pair yet. Clouds often cover the area; a pass comes about every 5 days.")), fetchBtn];
@@ -703,8 +728,7 @@ function satelliteContent(inc) {
   if (views.length) pick(views[0][0]);
   const scene = (s) => `${fmtDate(s.datetime)} · ${t("{pct}% clear", { pct: Math.round(s.aoi_clear_frac * 100) })} · AOT ${s.aot_median}`;
   const ha = (v) => (v == null ? t("not claimed") : `${fmtNum(v)} ha`);
-  const showOnMap = el("button", { class: "btn", type: "button", onclick: () => { showBurnMask(inc, ev); map?.fitBounds([p.image_corners[3], p.image_corners[1]], { padding: 60, duration: 800 }); } },
-    svg("layers", "icon icon-sm"), t("Show scar on map"));
+  const showOnMap = mapToggle("scar", "Show scar on map", () => { showBurnMask(inc, ev); map?.fitBounds([p.image_corners[3], p.image_corners[1]], { padding: 60, duration: 800 }); }, () => showBurnMask(null));
   return [
     el("div", { class: "sat-head" }, el("span", { class: "ev-id" }, ev.id), seg),
     views.length ? img : null,
@@ -719,6 +743,22 @@ function satelliteContent(inc) {
     el("p", { class: "muted", style: "margin:0;font-size:11px" }, p.attribution || "Contains modified Copernicus Sentinel data"),
     el("div", { class: "actions" }, p.images?.mask ? showOnMap : null, fetchBtn?.firstChild || null),
   ];
+}
+
+/* A map overlay button shows its layer, then offers to hide it. Buttons of one group share the layer, so showing one
+   resets the others. */
+function mapToggle(group, label, show, hide) {
+  const b = el("button", { class: "btn", type: "button", dataset: { mapToggle: group }, "aria-pressed": "false" });
+  const paint = (on) => { fill(b, svg("layers", "icon icon-sm"), t(on ? "Hide from map" : label)); b.setAttribute("aria-pressed", String(on)); };
+  paint(false);
+  b.onclick = () => {
+    const on = b.getAttribute("aria-pressed") !== "true";
+    document.querySelectorAll(`[data-map-toggle="${group}"]`).forEach((x) => x !== b && x.getAttribute("aria-pressed") === "true" && x.dispatchEvent(new CustomEvent("reset")));
+    (on ? show : hide)();
+    paint(on);
+  };
+  b.addEventListener("reset", () => paint(false));
+  return b;
 }
 
 /* Drone survey proposals: a plan from the agent or a verifier, flown only after a human approves. */
@@ -790,21 +830,27 @@ function drawDrone(plan, st) {
 }
 
 /* Runs a flight on the map. clock() returns sim seconds; tick(state) updates the console. */
-function runFlight(p, tel, clock, tick, onStop) {
+function runFlight(p, tel, clock, tick, onStop, endStops = false) {
   stopFlight();
   showFlightPlan(p);
-  state.mapReady?.then(() => {
-    const step = () => {
-      if (!flight) return;
-      const s = Math.min(tel.duration_s, clock());
-      const st = telemetryAt(tel, s);
-      drawDrone(p.plan, st);
-      tick?.(st, s);
-      if (s >= tel.duration_s) { clearInterval(flight.timer); flight.timer = null; }
-    };
-    flight = { timer: setInterval(step, 120), onStop };
-    step();
-  });
+  // The run exists at once, so Stop works even before the map has loaded; drawing starts when it has.
+  const run = { timer: null, onStop, mapOk: false };
+  flight = run;
+  state.mapReady?.then(() => { run.mapOk = true; });
+  const step = () => {
+    if (flight !== run) return;
+    const s = Math.min(tel.duration_s, clock());
+    const st = telemetryAt(tel, s);
+    if (run.mapOk) drawDrone(p.plan, st);
+    tick?.(st, s);
+    if (s >= tel.duration_s) {
+      clearInterval(run.timer);
+      run.timer = null;
+      if (endStops) setTimeout(() => flight === run && stopFlight(), 1500);  // a preview or replay leaves the map clean
+    }
+  };
+  run.timer = setInterval(step, 120);
+  step();
 }
 
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -953,6 +999,19 @@ async function open3DView(inc, p, tel, clock, label) {
   }
 }
 
+/* A play button that turns into Stop while its run is on the map. */
+function runToggle(label, start, primary = false) {
+  const b = el("button", { class: `btn ${primary ? "btn-primary" : ""}`, type: "button" });
+  const paint = (on) => { fill(b, svg(on ? "stop" : "play", "icon icon-sm"), t(on ? "Stop" : label)); b.dataset.on = String(on); };
+  paint(false);
+  b.onclick = () => {
+    if (b.dataset.on === "true") { stopFlight(); return; }
+    start(() => paint(false));
+    paint(true);
+  };
+  return b;
+}
+
 /* What an approved plan shows: before a flight, during it, and after. */
 function flightBlock(inc, p) {
   const f = p.flight;
@@ -966,26 +1025,28 @@ function flightBlock(inc, p) {
     const started = Date.parse(f.started_at);
     const land = btn("btn-primary", "check", "Land and finish", () => (con.node.dataset.done === "true" ? finishFlight(inc, f, "completed") : toast(t("The route is not finished yet. Abort instead, or wait for the last frame."), "alert")));
     land.setAttribute("aria-disabled", "true");
+    const abort = btn("btn-ghost-danger", "x", "Abort flight", () => finishFlight(inc, f, "aborted"));
     runFlight(p, f.telemetry, () => ((Date.now() - started) / 1000) * f.speed, (st, s) => {
       const done = s >= f.telemetry.duration_s;
       con.update(f.telemetry, st, s, t(done ? "Route done: ready to land" : st.swapping ? "Battery swap on the ground" : "Flying (simulated pilot)"));
       con.node.dataset.done = String(done);
       land.setAttribute("aria-disabled", String(!done));
+      abort.hidden = done;
     });
     const live3d = btn("", "layers", "View in 3D", () => open3DView(inc, p, f.telemetry, () => ((Date.now() - started) / 1000) * f.speed,
       (st, s) => t(s >= f.telemetry.duration_s ? "Route done: ready to land" : st.swapping ? "Battery swap on the ground" : "Flying (simulated pilot)")));
     return [con.node, el("p", { class: "muted", style: "margin:0;font-size:11px" }, t("Played x{x} faster than real time.", { x: f.speed })),
-      el("div", { class: "actions" }, land, live3d, btn("btn-ghost-danger", "x", "Abort flight", () => finishFlight(inc, f, "aborted")))];
+      el("div", { class: "actions" }, land, live3d, abort)];
   }
   if (f?.state === "completed") {
     const tel = f.telemetry;
     const con = flightConsole();
     con.node.hidden = true;
-    const replay = btn("btn-primary", "play", "Replay flight", () => {
+    const replay = runToggle("Replay flight", (done) => {
       con.node.hidden = false;
       const t0 = performance.now();
-      runFlight(p, tel, () => ((performance.now() - t0) / 1000) * (tel.duration_s / PREVIEW_S), (st, s) => con.update(tel, st, s, t("Replay")));
-    });
+      runFlight(p, tel, () => ((performance.now() - t0) / 1000) * (tel.duration_s / PREVIEW_S), (st, s) => con.update(tel, st, s, t("Replay")), () => { con.node.hidden = true; done(); }, true);
+    }, true);
     return [
       el("dl", { class: "kv" },
         el("dt", {}, t("Landed")), el("dd", {}, fmtTime(f.finished_at)),
@@ -997,10 +1058,10 @@ function flightBlock(inc, p) {
         btn("", "layers", "Replay in 3D", () => { const t0 = performance.now(); open3DView(inc, p, tel, () => ((performance.now() - t0) / 1000) * (tel.duration_s / REPLAY_3D_S), () => t("Replay")); }),
         example)];
   }
-  const preview = btn("", "play", "Preview route", () => {
+  const preview = runToggle("Preview route", (done) => {
     const t0 = performance.now();
     const tel = { samples: plan.waypoints.map((w, i) => ({ ...w, t_s: i, alt_m: plan.altitude_agl_m, ground_speed_ms: 8, battery_pct: 100, pack: 1 })), duration_s: plan.waypoints.length - 1, packs: 1 };
-    runFlight(p, tel, () => ((performance.now() - t0) / 1000) * (tel.duration_s / PREVIEW_S), null);
+    runFlight(p, tel, () => ((performance.now() - t0) / 1000) * (tel.duration_s / PREVIEW_S), null, done, true);
   });
   const preview3d = btn("", "layers", "Preview in 3D", () => {
     const t0 = performance.now();
@@ -1010,7 +1071,8 @@ function flightBlock(inc, p) {
   });
   return [
     f?.state === "aborted" ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("Last flight aborted at frame {k} of {n}, {when}.", { k: f.frames_captured, n: f.telemetry.samples.length, when: fmtTime(f.finished_at) })) : null,
-    el("div", { class: "actions" }, btn("btn-primary", "play", f?.state === "aborted" ? "Fly again" : "Start flight (simulated pilot)", () => startFlightDialog(inc, p)), preview, preview3d, example,
+    p.otherFlying ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("Another plan of this incident is in the air. One drone flies at a time.")) : null,
+    el("div", { class: "actions" }, p.otherFlying ? null : btn("btn-primary", "play", f?.state === "aborted" ? "Fly again" : "Start flight (simulated pilot)", () => startFlightDialog(inc, p)), preview, preview3d, example,
       btn("btn-ghost-danger", "x", "Cancel plan", () => decideProposal(inc, p, "cancel")))];
 }
 
@@ -1030,9 +1092,9 @@ function showFlightPlan(p) {
   });
 }
 
-async function proposeDrone(inc, btn) {
+async function proposeDrone(inc) {
   let reload = false;
-  await track(inc.id, "drone", t("Planning a drone survey"), btn, async () => {
+  await track(inc.id, "drone", t("Planning a drone survey"), async () => {
     try {
       const r = await api(`/api/incidents/${inc.id}/drone-proposals`, { method: "POST", body: JSON.stringify({ reason: t("Planned by a verifier from the incident view.") }) });
       toast(t(r.created ? "Drone survey proposed. Approve it to send it to a pilot." : "An active plan already exists; showing it."), "check");
@@ -1090,7 +1152,7 @@ function proposalCard(inc, p) {
     p.note ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, `${t("Note")}: ${p.note}`) : null,
     p.status === "approved" ? flightBlock(inc, p) : null,
     el("div", { class: "actions" },
-      el("button", { class: "btn", type: "button", onclick: () => showFlightPlan(p) }, svg("layers", "icon icon-sm"), t("Show plan on map")),
+      mapToggle("plan", "Show plan on map", () => showFlightPlan(p), () => showFlightPlan(null)),
       p.status === "proposed" ? [
         el("button", { class: "btn btn-primary", type: "button", onclick: () => decideProposal(inc, p, "approve") }, svg("check", "icon icon-sm"), t("Approve mission")),
         el("button", { class: "btn btn-ghost-danger", type: "button", onclick: () => decideProposal(inc, p, "reject") }, svg("x", "icon icon-sm"), t("Reject"))] : null),
@@ -1103,13 +1165,17 @@ async function proposalSection(inc) {
   if (!r) return null;
   // One active plan (proposed or approved) per incident: the propose button appears only when none is active.
   const open = r.items.some((p) => p.status === "proposed" || (p.status === "approved" && p.flight?.state !== "completed"));
-  const btn = el("button", { class: "btn", type: "button" }, svg("target", "icon icon-sm"), t("Propose a drone survey"));
-  btn.onclick = () => proposeDrone(inc, btn);
-  return section({ icon: "target", title: t("Drone survey plan"), count: r.count, open: open,
+  const btn = el("button", { class: "btn", type: "button", dataset: { busy: "drone" } }, svg("target", "icon icon-sm"), t("Propose a drone survey"));
+  btn.onclick = () => proposeDrone(inc);
+  const flyingId = r.items.find((p) => p.flight?.state === "flying")?.id ?? null;
+  r.items.forEach((p) => { p.otherFlying = flyingId != null && flyingId !== p.id; });
+  const node = section({ icon: "target", title: t("Drone survey plan"), count: r.count, open: open,
     tip: t("A mapping flight planned over the hotspots: lawnmower lines at 120 m above ground. The AI agent may propose one when independent evidence is missing; only a verifier can approve it. Planning is free."),
     content: [r.items.length ? r.items.map((p) => proposalCard(inc, p)) : el("p", { class: "empty" }, t("No drone survey planned.")),
       open ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("One active plan per incident. Cancel the approved plan to make a new one."))
         : el("div", { class: "actions" }, btn)] });
+  node.dataset.activePlan = String(open);
+  return node;
 }
 
 /* Simulated drone survey (SIMULASI): shown beside the incident, never part of its evidence. */
@@ -1169,7 +1235,7 @@ function droneContent(m) {
       el("dt", {}, t("Cost")), el("dd", { class: "num" }, s.cost_usd == null ? "" : `$${s.cost_usd}`),
     ),
     el("p", { class: "muted", style: "margin:0;font-size:11px" }, t("Frames are rendered in Blender over the real Sentinel-2 burn mask of this incident. The error is against the render, not real-world accuracy. These numbers never enter the triage.")),
-    el("div", { class: "actions" }, el("button", { class: "btn", type: "button", onclick: () => showFootprints(m) }, svg("layers", "icon icon-sm"), t("Show footprints on map"))),
+    el("div", { class: "actions" }, mapToggle("footprints", "Show footprints on map", () => showFootprints(m), () => showFootprints(null))),
   ];
 }
 
@@ -1183,9 +1249,9 @@ async function droneSection(inc) {
     content: droneContent(m) });
 }
 
-async function fetchSatellite(id, btn) {
+async function fetchSatellite(id) {
   let reload = false;
-  await track(id, "satellite", t("Searching Sentinel-2"), btn, async () => {
+  await track(id, "satellite", t("Searching Sentinel-2"), async () => {
     try {
       const r = await api(`/api/incidents/${id}/satellite`, { method: "POST" });
       if (r.evidence_id) { toast(t(r.reused ? "Pair checked in the last 24 hours; showing it." : "Sentinel-2 pair stored as {id}.", { id: r.evidence_id }), "check"); reload = true; return; }
@@ -1197,9 +1263,9 @@ async function fetchSatellite(id, btn) {
   if (reload && state.selected === id) openIncident(id);
 }
 
-async function collectNow(id, btn) {
+async function collectNow(id) {
   let reload = false;
-  await track(id, "collect", t("Collecting evidence"), btn, async () => {
+  await track(id, "collect", t("Collecting evidence"), async () => {
     try {
       const r = await api(`/api/incidents/${id}/enrich`, { method: "POST" });
       const failed = Object.entries(r.sources).filter(([, v]) => String(v).startsWith("failed")).map(([k]) => k);
@@ -1211,6 +1277,13 @@ async function collectNow(id, btn) {
   });
   // Only reload the view if the reader is still on this incident; otherwise the ring and badge just disappear.
   if (reload && state.selected === id) openIncident(id);
+}
+
+/* Sources the collector can still add: absent, or failed last time. */
+function missingSources(inc) {
+  const have = new Set(inc.evidence.map((e) => e.type));
+  const st = inc.enrichment || {};
+  return ["hotspot", "weather", "osm"].filter((k) => (k === "hotspot" ? inc.hotspot_count > 0 : true) && (!have.has(k) || String(st[k] || "").startsWith("failed")));
 }
 
 /* Triage view: claims link to their evidence, disputes and gate actions are shown, never hidden. */
@@ -1551,7 +1624,7 @@ function progressCard(inc) {
 
   // What is missing, each with what fills it.
   const missing = [];
-  const act = (label, icon, onclick, primary) => el("button", { class: `btn ${primary ? "btn-primary" : ""}`, type: "button", onclick }, svg(icon, "icon icon-sm"), t(label));
+  const act = (label, icon, onclick, primary, busyKey) => el("button", { class: `btn ${primary ? "btn-primary" : ""}`, type: "button", onclick, dataset: busyKey ? { busy: busyKey } : {} }, svg(icon, "icon icon-sm"), t(label));
   if (!verdict) {
     if (!has.citizen && !has.satellite) missing.push({
       title: "Independent evidence", why: "A satellite hotspot is a heat signal, not a confirmed fire. To reach \"likely fire\" the AI needs a second, independent source: a photo, voice note, or report from the ground, or a burn scar in Sentinel-2 images.",
@@ -1560,11 +1633,11 @@ function progressCard(inc) {
           try { await navigator.clipboard.writeText(reportLink(inc)); toast(t("Link copied. Anyone near the site can send photos with it.")); }
           catch { toast(reportLink(inc)); }
         }),
-        token() ? act("Find Sentinel-2 images", "satellite", (e) => fetchSatellite(inc.id, e.currentTarget)) : null,
-        token() ? act("Propose a drone survey", "target", (e) => proposeDrone(inc, e.currentTarget)) : null,
+        token() ? act("Find Sentinel-2 images", "satellite", () => fetchSatellite(inc.id), false, "satellite") : null,
+        token() ? act("Propose a drone survey", "target", () => proposeDrone(inc), false, "drone") : null,
       ] });
     if (!has.weather) missing.push({ title: "Weather", why: "Wind and rain decide how fast a fire spreads and which way smoke goes.",
-      actions: [token() ? act("Collect missing evidence", "activity", (e) => collectNow(inc.id, e.currentTarget)) : null] });
+      actions: [token() ? act("Collect missing evidence", "activity", () => collectNow(inc.id), false, "collect") : null] });
     if (!has.osm) missing.push({ title: "Nearby settlements and water", why: "Distance to villages, roads, and water points from OpenStreetMap. The public OSM servers are often down; collection retries automatically.", actions: [] });
     if (tri?.status === "needs_more_info" || tri?.uncertainties?.length) missing.push({ title: "What the AI asked for", why: null,
       list: tri.uncertainties || [], actions: [] });
@@ -1591,12 +1664,14 @@ function progressCard(inc) {
 
 /* Share: a public link whose preview (title, summary, static map image) WhatsApp and Facebook show. */
 async function openShare(inc) {
+  if (document.querySelector(".share-card")) return;
   let s;
   try {
-    s = await api(`/api/incidents/${encodeURIComponent(inc.id)}/share?lang=${lang()}`);
+    s = await track(inc.id, "share", t("Preparing the share"), () => api(`/api/incidents/${encodeURIComponent(inc.id)}/share?lang=${lang()}`));
   } catch (e) {
     return toast(t("Not shareable yet: {e}", { e: e.message }), "alert");
   }
+  if (!s) return;
   const text = `${s.title}\n${s.description}\n${s.url}`;
   const img = el("img", { class: "share-img", src: s.image, alt: s.title });
   const copy = async (value, done) => {
@@ -1656,7 +1731,13 @@ async function openIncident(id) {
   $("#list-view").hidden = true;
   view.hidden = false;
   view.dataset.incident = id;
-  if (!saved) renderDetailSkeleton();
+  if (!saved) {
+    renderDetailSkeleton();
+    // Overlays belong to the incident they were shown for.
+    showBurnMask(null);
+    showFootprints(null);
+    showFlightPlan(null);
+  }
   if (map?.getLayer("incident-selected")) map.setFilter("incident-selected", ["==", ["get", "id"], id]);
   let inc;
   try {
@@ -1665,6 +1746,9 @@ async function openIncident(id) {
     fill($("#detail-view"), el("p", { class: "empty" }, t("Could not load {id}: {e}", { id, e: e.message })));
     return;
   }
+  // The list entry follows what was just read, so the list, map ring, and banner agree with the view.
+  const listed = state.incidents.find((i) => i.id === inc.id);
+  if (listed && listed.status !== inc.status) { listed.status = inc.status; setMapData(); }
   // The list can render before the map exists; the map then opens on the default view. A reload stays put.
   if (!saved) map?.flyTo({ center: [inc.lon, inc.lat], zoom: Math.max(map.getZoom(), 10.5), speed: 1.4 });
   const frpPct = inc.max_frp == null ? null : Math.min(100, (inc.max_frp / HEAT_MAX) * 100);
@@ -1673,7 +1757,7 @@ async function openIncident(id) {
   const head = el("div", { class: "card detail-head" },
     el("div", { class: "detail-title" }, el("h3", {}, inc.id),
       el("div", { class: "detail-title-right" }, el("span", { class: "status", dataset: { status: inc.status } }, statusLabel(inc.status)),
-        el("button", { class: "btn btn-icon", type: "button", title: t("Share"), "aria-label": t("Share"), onclick: () => openShare(inc) }, svg("share", "icon icon-sm")))),
+        el("button", { class: "btn btn-icon", type: "button", title: t("Share"), "aria-label": t("Share"), dataset: { busy: "share" }, onclick: () => openShare(inc) }, svg("share", "icon icon-sm")))),
     el("div", { class: "tags" },
       inc.simulation ? el("span", { class: "pill pill-sim" }, "SIMULASI") : null,
       recent ? el("span", { class: "pill pill-live" }, el("span", { class: "pulse" }), t("Active in last 6 h")) : null,
@@ -1719,7 +1803,9 @@ async function openIncident(id) {
       tip: t("Before and after images from Sentinel-2. dNBR is the drop in the normalized burn ratio; burned hectares count 20 m pixels at dNBR 0.27 or more, computed by code. Under heavy haze no hectares are claimed."),
       content: satelliteContent(inc) }),
     section({ icon: "activity", title: t("Evidence"), count: inc.evidence.length, open: inc.evidence.length > 0, tip: t("Every tool result is stored with a numbered ID. Claims link to these IDs. Citizen photos, voice, and text are shown to verifiers only."),
-      content: [evidenceRows(inc), token() ? el("div", { class: "actions" }, (() => { const b = el("button", { class: "btn", type: "button" }, svg("activity", "icon icon-sm"), t("Collect missing evidence")); b.onclick = () => collectNow(inc.id, b); return b; })()) : null] }),
+      content: [evidenceRows(inc), token() && missingSources(inc).length
+        ? el("div", { class: "actions" }, el("button", { class: "btn", type: "button", dataset: { busy: "collect" }, onclick: () => collectNow(inc.id) }, svg("activity", "icon icon-sm"), t("Collect missing evidence")))
+        : null] }),
     section({ icon: "flame", title: t("Hotspots"), count: inc.hotspots.length, live: recent, tip: t("NASA FIRMS detections. Confidence l, n, h means low, nominal, high."),
       content: [
         el("table", { class: "hs-table" },
@@ -1746,6 +1832,10 @@ async function openIncident(id) {
     const after = (node, s) => (node ? node.after(s) : $("#detail-view").append(s));
     if (plan) after(sat, plan);
     if (sim) after(plan || sat, sim);
+    if (plan?.dataset.activePlan === "true") {
+      document.querySelectorAll('#detail-view .progress-card [data-busy="drone"]').forEach((b) => b.replaceWith(
+        el("button", { class: "btn", type: "button", onclick: () => plan.scrollIntoView({ behavior: "smooth", block: "start" }) }, svg("target", "icon icon-sm"), t("See the drone survey plan"))));
+    }
     restoreDetailView(saved);  // again: these sections sit above much of the view and shift it
   });
 }

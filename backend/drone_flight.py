@@ -106,6 +106,8 @@ def start(conn, proposal_id: int, speed: int, pilot_hash: str) -> dict:
     last = latest_for(conn, proposal_id)
     if last and last["state"] in (FLYING, DONE):
         raise FlightError(409, f"this plan already has a {last['state']} flight")
+    if conn.execute("SELECT 1 FROM drone_flights WHERE incident_id=? AND state=?", (p["incident_id"], FLYING)).fetchone():
+        raise FlightError(409, "another plan of this incident is in the air; one drone flies at a time")
     tel = simulate(json.loads(p["plan_json"]), _wind(conn, p["incident_id"]))
     cur = conn.execute("INSERT INTO drone_flights (proposal_id, incident_id, state, speed, started_at, pilot_hash, telemetry_json) VALUES (?,?,?,?,?,?,?)",
                        (proposal_id, p["incident_id"], FLYING, speed, db.utcnow(), pilot_hash, json.dumps(tel)))

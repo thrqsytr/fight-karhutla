@@ -70,3 +70,20 @@ def test_pilot_flow(settings):
         again = c.post(f"/api/incidents/{inc_id}/drone-proposals", json={"reason": "second pass"}, headers=AUTH).json()
         assert again["created"]
         assert c.post(f"/api/drone-proposals/{p['id']}/flight", json={"speed": 60}, headers=AUTH).status_code == 409  # already flown
+
+
+def test_one_drone_in_the_air_per_incident(settings):
+    """Two approved plans (possible from before the one-active-plan rule) cannot fly at once."""
+    from backend.main import app
+
+    with TestClient(app) as c:
+        inc_id = c.get("/api/incidents").json()["items"][0]["id"]
+        first = c.post(f"/api/incidents/{inc_id}/drone-proposals", json={"reason": "a"}, headers=AUTH).json()
+        c.post(f"/api/drone-proposals/{first['id']}/decision", json={"decision": "approve"}, headers=AUTH)
+        with db.session(settings.db_path) as conn:  # a second approved plan, as an older database may hold
+            row = conn.execute("SELECT source, reason, plan_json, created_at FROM drone_proposals WHERE id=?", (first["id"],)).fetchone()
+            second = conn.execute("INSERT INTO drone_proposals (incident_id, source, reason, status, plan_json, created_at) VALUES (?,?,?,?,?,?)",
+                                  (inc_id, row["source"], "b", "approved", row["plan_json"], row["created_at"])).lastrowid
+        assert c.post(f"/api/drone-proposals/{first['id']}/flight", json={"speed": 60}, headers=AUTH).status_code == 201
+        r = c.post(f"/api/drone-proposals/{second}/flight", json={"speed": 60}, headers=AUTH)
+        assert r.status_code == 409 and "one drone" in r.json()["detail"]

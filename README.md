@@ -29,7 +29,7 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Dashboard with map, incident list, evidence panel, claims linked to evidence, gate details, and verifier approve or reject
 - Replay mode: three recorded incidents from the 2025 dry season (clearly burned, false positive, needs more info) load as SIMULASI from the admin panel, with no network and no model call
 - Evaluation on 30 historical clusters labelled with Sentinel-2 dNBR, three baselines, results below
-- 125 tests that run without a network
+- 126 tests that run without a network
 
 Not built yet: WhatsApp intake (no Business API credentials). Triage runs only on purpose: verifiers select incidents in the list or by drawing an area on the map (at most 5 per selection) and confirm with an execution code; a daily cap and a daily or hourly schedule over citizen reports bound the spend.
 
