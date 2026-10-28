@@ -423,6 +423,7 @@ function incidentCard(i) {
 }
 
 function renderList() {
+  stopFlight();
   state.selected = null;
   showBurnMask(null);
   showFootprints(null);
@@ -659,73 +660,221 @@ function satelliteContent(inc) {
 
 /* Drone survey proposals: a plan from the agent or a verifier, flown only after a human approves. */
 const PROPOSAL_LABEL = { proposed: "Proposed", approved: "Approved", rejected: "Rejected", cancelled: "Cancelled" };
-const ACTIVE_PLAN = ["proposed", "approved"];
 const EXAMPLE_SURVEY = "INC-20261025-0407";  // the incident with a simulated survey (frames, Glimmer, SAM)
 
-/* Simulated flight: a drone marker flies the approved route on the map with its camera footprint, faster than
-   real time. Only the route is simulated; a plan has no imagery until a pilot flies it. */
-const FLIGHT_PLAYBACK_S = 24;
-let flight = null;
+/* Simulated flight (SIMULASI). The server simulates telemetry for an approved plan once (backend/drone_flight.py)
+   and keeps a sim clock; the browser places the drone at the sim time on the map. A route preview uses the same
+   drawing with a local clock. No drone is connected in this build. */
+const PREVIEW_S = 24;
 const FLY_LAYERS = ["drone-fly-foot-fill", "drone-fly-foot-line", "drone-fly-shots", "drone-fly-pos"];
+let flight = null;  // { timer, onStop }
 
 function stopFlight() {
   if (!flight) return;
-  cancelAnimationFrame(flight.raf);
+  clearInterval(flight.timer);
   const done = flight.onStop;
   flight = null;
-  done?.(false);
+  done?.();
   if (!map) return;
   FLY_LAYERS.forEach((id) => map.getLayer(id) && map.removeLayer(id));
   ["drone-fly", "drone-fly-shots"].forEach((id) => map.getSource(id) && map.removeSource(id));
 }
 
-function flyPlan(p, statusEl, onStop) {
-  stopFlight();
-  showFlightPlan(p);
-  state.mapReady?.then(() => {
-    if (!map) return;
-    const plan = p.plan;
-    const wps = plan.waypoints;
-    const [fw, fh] = plan.footprint_m;  // across track, along track
-    const m = (a, b) => [(b.lon - a.lon) * 111320 * Math.cos((a.lat * Math.PI) / 180), (b.lat - a.lat) * 111320];
-    const legs = wps.slice(1).map((w, i) => Math.hypot(...m(wps[i], w)));
-    const total = legs.reduce((x, y) => x + y, 0);
-    const realS = plan.estimate.flight_minutes * 60;
+const metres = (a, b) => [(b.lon - a.lon) * 111320 * Math.cos((a.lat * Math.PI) / 180), (b.lat - a.lat) * 111320];
+
+/* Where the drone is at sim second s: between two frames it flies the leg; before leaving a frame after a
+   battery swap it waits on the ground. */
+function telemetryAt(tel, s) {
+  const S = tel.samples;
+  const shots = S.filter((x) => x.t_s <= s).length;
+  const i = S.findIndex((x) => x.t_s > s);
+  if (i === -1) { const z = S[S.length - 1]; return { ...z, shots, k: 1, a: S[S.length - 2] || z, b: z, done: true, swapping: false }; }
+  if (i === 0) return { ...S[0], shots, k: 0, a: S[0], b: S[1] || S[0], done: false, swapping: false };
+  const a = S[i - 1], b = S[i];
+  const fly = Math.hypot(...metres(a, b)) / b.ground_speed_ms;
+  const depart = b.t_s - fly - 2;  // 2 s per frame for the camera, as in the planner
+  const k = s <= depart ? 0 : Math.min(1, (s - depart) / fly);
+  const swapping = s < depart && b.pack !== a.pack;
+  return { lat: a.lat + (b.lat - a.lat) * k, lon: a.lon + (b.lon - a.lon) * k, a, b, k, shots, done: false, swapping,
+    alt_m: swapping ? 0 : b.alt_m, ground_speed_ms: s < depart ? 0 : b.ground_speed_ms, pack: swapping ? b.pack : a.pack,
+    battery_pct: swapping ? a.battery_pct : a.battery_pct + (b.battery_pct - a.battery_pct) * (b.pack === a.pack ? k : 0) };
+}
+
+function drawDrone(plan, st) {
+  if (!map) return;
+  if (!map.getSource("drone-fly")) {
     const empty = { type: "FeatureCollection", features: [] };
     map.addSource("drone-fly", { type: "geojson", data: empty });
     map.addSource("drone-fly-shots", { type: "geojson", data: empty });
     map.addLayer({ id: "drone-fly-shots", type: "circle", source: "drone-fly-shots", paint: { "circle-radius": 3, "circle-color": "#7a5af8", "circle-stroke-color": "#fff", "circle-stroke-width": 1 } });
     map.addLayer({ id: "drone-fly-foot-fill", type: "fill", source: "drone-fly", filter: ["==", ["get", "kind"], "foot"], paint: { "fill-color": "#7a5af8", "fill-opacity": 0.18 } });
     map.addLayer({ id: "drone-fly-foot-line", type: "line", source: "drone-fly", filter: ["==", ["get", "kind"], "foot"], paint: { "line-color": "#5b3fd6", "line-width": 1.5 } });
-    map.addLayer({ id: "drone-fly-pos", type: "circle", source: "drone-fly", filter: ["==", ["get", "kind"], "pos"], paint: { "circle-radius": 7, "circle-color": "#5b3fd6", "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
-    const start = performance.now();
-    const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-    const step = (now) => {
+    map.addLayer({ id: "drone-fly-pos", type: "circle", source: "drone-fly", filter: ["==", ["get", "kind"], "pos"], paint: { "circle-radius": 7, "circle-color": ["case", ["get", "ground"], "#f79009", "#5b3fd6"], "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
+  }
+  const [fw, fh] = plan.footprint_m;  // across track, along track
+  const [vx, vy] = metres(st.a, st.b);
+  const len = Math.hypot(vx, vy) || 1;
+  const ux = vx / len, uy = vy / len;
+  const toDeg = (x, y) => [st.lon + x / (111320 * Math.cos((st.lat * Math.PI) / 180)), st.lat + y / 111320];
+  const corner = (sa, sb) => toDeg(ux * sa * fh / 2 + uy * sb * fw / 2, uy * sa * fh / 2 - ux * sb * fw / 2);
+  const features = [{ type: "Feature", properties: { kind: "pos", ground: !!st.swapping }, geometry: { type: "Point", coordinates: [st.lon, st.lat] } }];
+  if (!st.swapping) features.push({ type: "Feature", properties: { kind: "foot" }, geometry: { type: "Polygon", coordinates: [[corner(1, 1), corner(1, -1), corner(-1, -1), corner(-1, 1), corner(1, 1)]] } });
+  map.getSource("drone-fly")?.setData({ type: "FeatureCollection", features });
+  map.getSource("drone-fly-shots")?.setData({ type: "FeatureCollection", features: plan.waypoints.slice(0, st.shots).map((w) =>
+    ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [w.lon, w.lat] } })) });
+}
+
+/* Runs a flight on the map. clock() returns sim seconds; tick(state) updates the console. */
+function runFlight(p, tel, clock, tick, onStop) {
+  stopFlight();
+  showFlightPlan(p);
+  state.mapReady?.then(() => {
+    const step = () => {
       if (!flight) return;
-      const f = Math.min(1, (now - start) / (FLIGHT_PLAYBACK_S * 1000));
-      let d = f * total, i = 0;
-      while (i < legs.length - 1 && d > legs[i]) { d -= legs[i]; i += 1; }
-      const a = wps[i], b = wps[Math.min(i + 1, wps.length - 1)];
-      const k = legs[i] ? Math.min(1, d / legs[i]) : 1;
-      const lon = a.lon + (b.lon - a.lon) * k, lat = a.lat + (b.lat - a.lat) * k;
-      const [vx, vy] = m(a, b);
-      const len = Math.hypot(vx, vy) || 1;
-      const ux = vx / len, uy = vy / len;  // along track, metres
-      const toDeg = (x, y) => [lon + x / (111320 * Math.cos((lat * Math.PI) / 180)), lat + y / 111320];
-      const corner = (sa, sb) => toDeg(ux * sa * fh / 2 + uy * sb * fw / 2, uy * sa * fh / 2 - ux * sb * fw / 2);
-      const foot = [corner(1, 1), corner(1, -1), corner(-1, -1), corner(-1, 1), corner(1, 1)];
-      const shots = f >= 1 ? wps.length : i + (k >= 1 ? 2 : 1);
-      map.getSource("drone-fly")?.setData({ type: "FeatureCollection", features: [
-        { type: "Feature", properties: { kind: "foot" }, geometry: { type: "Polygon", coordinates: [foot] } },
-        { type: "Feature", properties: { kind: "pos" }, geometry: { type: "Point", coordinates: [lon, lat] } }] });
-      map.getSource("drone-fly-shots")?.setData({ type: "FeatureCollection", features: wps.slice(0, shots).map((w) =>
-        ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [w.lon, w.lat] } })) });
-      if (statusEl) statusEl.textContent = t("Simulated flight: frame {k} of {n}, {done} of {total} flight time", { k: shots, n: wps.length, done: mmss(f * realS), total: mmss(realS) });
-      if (f < 1) flight.raf = requestAnimationFrame(step);
-      else { const done = flight.onStop; flight.onStop = null; done?.(true); }
+      const s = Math.min(tel.duration_s, clock());
+      const st = telemetryAt(tel, s);
+      drawDrone(p.plan, st);
+      tick?.(st, s);
+      if (s >= tel.duration_s) { clearInterval(flight.timer); flight.timer = null; }
     };
-    flight = { raf: requestAnimationFrame(step), onStop };
+    flight = { timer: setInterval(step, 120), onStop };
+    step();
   });
+}
+
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const windText = (w) => (w?.from_deg == null ? t("calm (no weather evidence)") : t("{v} m/s from {d} deg", { v: fmtNum(w.speed_ms), d: Math.round(w.from_deg) }));
+
+function flightConsole() {
+  const bar = el("span", { class: "flight-bar-fill" });
+  const cells = {};
+  const cell = (k, label) => { cells[k] = el("dd", { class: "num" }, "-"); return [el("dt", {}, t(label)), cells[k]]; };
+  const node = el("div", { class: "flight-console" },
+    el("div", { class: "flight-head" }, el("span", { class: "pill pill-sim" }, "SIMULASI"), el("strong", { class: "flight-state" }), el("span", { class: "muted flight-clock num" })),
+    el("div", { class: "flight-bar" }, bar),
+    el("dl", { class: "kv flight-kv" }, cell("frame", "Frame"), cell("battery", "Battery"), cell("speed", "Ground speed"), cell("alt", "Altitude"), cell("wind", "Wind")));
+  const update = (tel, st, s, label) => {
+    bar.style.width = `${Math.round((s / tel.duration_s) * 100)}%`;
+    node.querySelector(".flight-state").textContent = label;
+    node.querySelector(".flight-clock").textContent = `${mmss(s)} / ${mmss(tel.duration_s)}`;
+    cells.frame.textContent = `${st.shots} / ${tel.samples.length}`;
+    cells.battery.textContent = `${Math.round(st.battery_pct)}% · ${t("pack {n} of {m}", { n: st.pack, m: tel.packs })}`;
+    cells.speed.textContent = `${fmtNum(st.ground_speed_ms)} m/s`;
+    cells.alt.textContent = `${Math.round(st.alt_m)} m`;
+    cells.wind.textContent = windText(tel.wind);
+  };
+  return { node, update };
+}
+
+function startFlightDialog(inc, p) {
+  const plan = p.plan;
+  const weather = [...inc.evidence].reverse().find((e) => e.type === "weather")?.payload;
+  let speed = 30;
+  const seg = el("div", { class: "segmented", role: "group", "aria-label": t("Playback speed") }, [10, 30, 60].map((v) =>
+    el("button", { type: "button", "aria-pressed": String(v === speed), onclick: (e) => { speed = v; seg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b === e.currentTarget))); } }, `x${v}`)));
+  const err = el("p", { class: "form-error", hidden: true });
+  const ok = el("button", { class: "btn btn-primary", type: "button" }, svg("play", "icon icon-sm"), t("Take off"));
+  const dlg = modal({
+    title: t("Pre-flight check (simulated pilot)"),
+    body: [
+      el("ul", { class: "preflight" },
+        el("li", {}, svg("check", "icon icon-sm"), t("Plan approved by a verifier")),
+        el("li", {}, svg("check", "icon icon-sm"), t("{lines} lines x {n} frames, {alt} m above ground, GSD {gsd} m", { lines: plan.lines, n: plan.frames_per_line, alt: plan.altitude_agl_m, gsd: fmtNum(plan.gsd_m) })),
+        el("li", {}, svg("check", "icon icon-sm"), t("Wind from the incident's weather evidence: {w}", { w: windText(weather ? { speed_ms: weather.wind_speed_ms, from_deg: weather.wind_direction_deg } : null) })),
+        el("li", {}, svg("check", "icon icon-sm"), t("about {min} min, {km} km path, {b} battery(ies)", { min: fmtNum(plan.estimate.flight_minutes), km: fmtNum(plan.estimate.path_km), b: plan.estimate.batteries }))),
+      el("div", { class: "admin-setting-head" }, el("span", { class: "admin-label" }, t("Playback speed")), seg),
+      el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("No real drone is connected. The flight is simulated: telemetry is computed from the plan and the wind, and everyone who opens this incident sees the same flight.")), err],
+    actions: [el("button", { class: "btn", type: "button", onclick: () => dlg.close() }, t("Cancel")), ok],
+  });
+  ok.onclick = async () => {
+    ok.disabled = true;
+    try {
+      await api(`/api/drone-proposals/${p.id}/flight`, { method: "POST", body: JSON.stringify({ speed }) });
+      dlg.close();
+      toast(t("Take-off. The simulated flight is on the map."), "check");
+      openIncident(inc.id);
+    } catch (e) {
+      err.hidden = false;
+      fill(err, svg("alert", "icon icon-sm"), el("span", {}, e.message));
+      ok.disabled = false;
+    }
+  };
+}
+
+function finishFlight(inc, f, outcome) {
+  const note = el("input", { class: "input", maxlength: 300, placeholder: t("Note (optional)"), "aria-label": t("Note (optional)") });
+  const err = el("p", { class: "form-error", hidden: true });
+  const ok = el("button", { class: `btn ${outcome === "completed" ? "btn-primary" : "btn-ghost-danger"}`, type: "button" }, t(outcome === "completed" ? "Land and finish" : "Abort flight"));
+  const dlg = modal({
+    title: t(outcome === "completed" ? "Land and finish the flight?" : "Abort this flight?"),
+    body: [el("p", { style: "margin:0" }, t(outcome === "completed" ? "The drone lands and the flight is recorded as completed." : "The drone returns and the flight is recorded as aborted. The plan can be flown again.")), note, err],
+    actions: [el("button", { class: "btn", type: "button", onclick: () => dlg.close() }, t("Keep flying")), ok],
+  });
+  ok.onclick = async () => {
+    ok.disabled = true;
+    try {
+      await api(`/api/drone-flights/${f.id}/finish`, { method: "POST", body: JSON.stringify({ outcome, note: note.value.trim() || null }) });
+      dlg.close();
+      stopFlight();
+      toast(t(outcome === "completed" ? "Flight completed and recorded." : "Flight aborted and recorded."), "check");
+      openIncident(inc.id);
+    } catch (e) {
+      err.hidden = false;
+      fill(err, svg("alert", "icon icon-sm"), el("span", {}, e.message));
+      ok.disabled = false;
+    }
+  };
+}
+
+/* What an approved plan shows: before a flight, during it, and after. */
+function flightBlock(inc, p) {
+  const f = p.flight;
+  const plan = p.plan;
+  const btn = (cls, icon, label, onclick) => el("button", { class: `btn ${cls}`, type: "button", onclick }, svg(icon, "icon icon-sm"), t(label));
+  const example = inc.id === EXAMPLE_SURVEY
+    ? btn("", "camera", "See the survey result below", () => [...document.querySelectorAll("#detail-view .section")].find((s) => /Survei drone|Drone survey/.test(s.textContent))?.scrollIntoView({ behavior: "smooth" }))
+    : btn("", "camera", "See an example survey result", () => openIncident(EXAMPLE_SURVEY));
+  if (f?.state === "flying") {
+    const con = flightConsole();
+    const started = Date.parse(f.started_at);
+    const land = btn("btn-primary", "check", "Land and finish", () => (con.node.dataset.done === "true" ? finishFlight(inc, f, "completed") : toast(t("The route is not finished yet. Abort instead, or wait for the last frame."), "alert")));
+    land.setAttribute("aria-disabled", "true");
+    runFlight(p, f.telemetry, () => ((Date.now() - started) / 1000) * f.speed, (st, s) => {
+      const done = s >= f.telemetry.duration_s;
+      con.update(f.telemetry, st, s, t(done ? "Route done: ready to land" : st.swapping ? "Battery swap on the ground" : "Flying (simulated pilot)"));
+      con.node.dataset.done = String(done);
+      land.setAttribute("aria-disabled", String(!done));
+    });
+    return [con.node, el("p", { class: "muted", style: "margin:0;font-size:11px" }, t("Played x{x} faster than real time.", { x: f.speed })),
+      el("div", { class: "actions" }, land, btn("btn-ghost-danger", "x", "Abort flight", () => finishFlight(inc, f, "aborted")))];
+  }
+  if (f?.state === "completed") {
+    const tel = f.telemetry;
+    const con = flightConsole();
+    con.node.hidden = true;
+    const replay = btn("btn-primary", "play", "Replay flight", () => {
+      con.node.hidden = false;
+      const t0 = performance.now();
+      runFlight(p, tel, () => ((performance.now() - t0) / 1000) * (tel.duration_s / PREVIEW_S), (st, s) => con.update(tel, st, s, t("Replay")));
+    });
+    return [
+      el("dl", { class: "kv" },
+        el("dt", {}, t("Landed")), el("dd", {}, fmtTime(f.finished_at)),
+        el("dt", {}, t("Flight time")), el("dd", { class: "num" }, `${mmss(tel.duration_s)} · ${t("{n} battery pack(s)", { n: tel.packs })}`),
+        el("dt", {}, t("Frames")), el("dd", { class: "num" }, `${f.frames_captured} / ${tel.samples.length}`),
+        el("dt", {}, t("Wind")), el("dd", {}, windText(tel.wind)),
+        el("dt", {}, t("Imagery")), el("dd", {}, t(inc.id === EXAMPLE_SURVEY ? "Simulated survey of this incident: frames, Glimmer filter, SAM area below." : "None: only the route was simulated. A real flight would upload its frames here."))),
+      con.node, el("div", { class: "actions" }, replay, example)];
+  }
+  const preview = btn("", "play", "Preview route", () => {
+    const t0 = performance.now();
+    const tel = { samples: plan.waypoints.map((w, i) => ({ ...w, t_s: i, alt_m: plan.altitude_agl_m, ground_speed_ms: 8, battery_pct: 100, pack: 1 })), duration_s: plan.waypoints.length - 1, packs: 1 };
+    runFlight(p, tel, () => ((performance.now() - t0) / 1000) * (tel.duration_s / PREVIEW_S), null);
+  });
+  return [
+    f?.state === "aborted" ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("Last flight aborted at frame {k} of {n}, {when}.", { k: f.frames_captured, n: f.telemetry.samples.length, when: fmtTime(f.finished_at) })) : null,
+    el("div", { class: "actions" }, btn("btn-primary", "play", f?.state === "aborted" ? "Fly again" : "Start flight (simulated pilot)", () => startFlightDialog(inc, p)), preview, example,
+      btn("btn-ghost-danger", "x", "Cancel plan", () => decideProposal(inc, p, "cancel")))];
 }
 
 function showFlightPlan(p) {
@@ -789,35 +938,20 @@ function decideProposal(inc, p, decision) {
 function proposalCard(inc, p) {
   const plan = p.plan;
   const est = plan.estimate;
-  const flightStatus = el("p", { class: "muted flight-status", hidden: true });
-  const play = el("button", { class: "btn btn-primary", type: "button" });
-  const playing = (on) => {
-    fill(play, svg(on ? "stop" : "play", "icon icon-sm"), t(on ? "Stop" : "Play simulated flight"));
-    play.dataset.on = String(on);
-  };
-  playing(false);
-  play.onclick = () => {
-    if (play.dataset.on === "true") { stopFlight(); return; }
-    flightStatus.hidden = false;
-    playing(true);
-    flyPlan(p, flightStatus, () => playing(false));
-  };
-  return el("div", { class: `proposal ${p.status}` },
+  const flown = p.status === "approved" && p.flight?.state === "completed";
+  return el("div", { class: `proposal ${flown ? "flown" : p.status}` },
     el("div", { class: "sat-head" },
-      el("span", { class: `proposal-pill ${p.status}` }, t(PROPOSAL_LABEL[p.status])),
+      el("span", { class: `proposal-pill ${flown ? "flown" : p.flight?.state === "flying" ? "flying" : p.status}` },
+        t(flown ? "Flown" : p.flight?.state === "flying" ? "In flight" : PROPOSAL_LABEL[p.status])),
       el("span", { class: "muted", style: "font-size:12px" }, t(p.source === "agent" ? "proposed by the AI agent" : "proposed by a verifier"), " · ", fmtTime(p.created_at))),
     p.reason ? el("p", { class: "proposal-reason" }, `"${p.reason}"`) : null,
     el("dl", { class: "kv" },
       el("dt", {}, t("Area")), el("dd", {}, `${fmtNum(plan.area_km2)} km² · ${t("{lines} lines x {n} frames, {alt} m above ground, GSD {gsd} m", { lines: plan.lines, n: plan.frames_per_line, alt: plan.altitude_agl_m, gsd: fmtNum(plan.gsd_m) })}`),
       el("dt", {}, t("Flight")), el("dd", {}, t("about {min} min, {km} km path, {b} battery(ies)", { min: fmtNum(est.flight_minutes), km: fmtNum(est.path_km), b: est.batteries }))),
-    p.status === "approved" ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("Approved {when}. Waiting for a pilot: no drone is connected to this prototype. The simulated survey of INC-20261025-0407 shows what a flight returns.", { when: fmtTime(p.decided_at) })) : null,
-    p.status === "approved" ? [flightStatus, el("p", { class: "muted", style: "margin:0;font-size:11px" }, t("Flight replayed about {x} times faster. Only the route is simulated: this plan has no imagery until a pilot flies it.", { x: Math.round((est.flight_minutes * 60) / FLIGHT_PLAYBACK_S) }))] : null,
     p.note ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, `${t("Note")}: ${p.note}`) : null,
+    p.status === "approved" ? flightBlock(inc, p) : null,
     el("div", { class: "actions" },
-      p.status === "approved" ? play : null,
       el("button", { class: "btn", type: "button", onclick: () => showFlightPlan(p) }, svg("layers", "icon icon-sm"), t("Show plan on map")),
-      p.status === "approved" && inc.id !== EXAMPLE_SURVEY ? el("button", { class: "btn", type: "button", onclick: () => openIncident(EXAMPLE_SURVEY) }, svg("camera", "icon icon-sm"), t("See an example survey result")) : null,
-      p.status === "approved" ? el("button", { class: "btn btn-ghost-danger", type: "button", onclick: () => decideProposal(inc, p, "cancel") }, svg("x", "icon icon-sm"), t("Cancel plan")) : null,
       p.status === "proposed" ? [
         el("button", { class: "btn btn-primary", type: "button", onclick: () => decideProposal(inc, p, "approve") }, svg("check", "icon icon-sm"), t("Approve mission")),
         el("button", { class: "btn btn-ghost-danger", type: "button", onclick: () => decideProposal(inc, p, "reject") }, svg("x", "icon icon-sm"), t("Reject"))] : null),
@@ -829,7 +963,7 @@ async function proposalSection(inc) {
   const r = await api(`/api/incidents/${encodeURIComponent(inc.id)}/drone-proposals`).catch(() => null);
   if (!r) return null;
   // One active plan (proposed or approved) per incident: the propose button appears only when none is active.
-  const open = r.items.some((p) => ACTIVE_PLAN.includes(p.status));
+  const open = r.items.some((p) => p.status === "proposed" || (p.status === "approved" && p.flight?.state !== "completed"));
   const btn = el("button", { class: "btn", type: "button" }, svg("target", "icon icon-sm"), t("Propose a drone survey"));
   btn.onclick = () => proposeDrone(inc, btn);
   return section({ icon: "target", title: t("Drone survey plan"), count: r.count, open: open,
@@ -1373,6 +1507,7 @@ function restoreDetailView(saved) {
 }
 
 async function openIncident(id) {
+  stopFlight();  // a running flight belongs to the view being replaced; the new view starts it again if it is live
   const view = $("#detail-view");
   const saved = !view.hidden && view.dataset.incident === id ? saveDetailView() : null;
   state.selected = id;

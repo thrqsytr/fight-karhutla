@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin_settings, agent, db, drone_missions, drone_replay, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control
+from . import admin_settings, agent, db, drone_flight, drone_missions, drone_replay, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -670,6 +670,36 @@ def decide_proposal(proposal_id: int, body: ProposalDecisionIn, settings: Settin
     who = hashlib.sha256(("dashboard:" + settings.verifier_token).encode()).hexdigest()[:16]
     with db.session(settings.db_path) as conn:
         return _proposal(lambda: drone_missions.decide(conn, proposal_id, body.decision, who, body.note))
+
+
+class FlightIn(BaseModel):
+    speed: int = 30
+
+
+class FlightFinishIn(BaseModel):
+    outcome: Literal["completed", "aborted"]
+    note: str | None = Field(default=None, max_length=300)
+
+
+def _flight(fn):
+    try:
+        return fn()
+    except drone_flight.FlightError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail)
+
+
+@app.post("/api/drone-proposals/{proposal_id}/flight", status_code=201, dependencies=[Depends(require_verifier)])
+def start_flight(proposal_id: int, body: FlightIn, settings: Settings = Depends(get_settings)) -> dict:
+    """Simulated pilot: fly an approved plan. Telemetry is simulated from the plan and the incident's wind."""
+    who = hashlib.sha256(("pilot:" + settings.verifier_token).encode()).hexdigest()[:16]
+    with db.session(settings.db_path) as conn:
+        return _flight(lambda: drone_flight.start(conn, proposal_id, body.speed, who))
+
+
+@app.post("/api/drone-flights/{flight_id}/finish", dependencies=[Depends(require_verifier)])
+def finish_flight(flight_id: int, body: FlightFinishIn, settings: Settings = Depends(get_settings)) -> dict:
+    with db.session(settings.db_path) as conn:
+        return _flight(lambda: drone_flight.finish(conn, flight_id, body.outcome, body.note))
 
 
 @app.get("/api/auth/check", dependencies=[Depends(require_verifier)])

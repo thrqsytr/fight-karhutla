@@ -557,6 +557,17 @@ body.panel-hidden .panel { visibility: hidden; padding: 0; border: 0; }
 .proposal-pill.rejected { background: #fdecea; color: var(--st-likely); }
 .proposal-pill.cancelled { background: var(--line-soft); color: var(--ink-2); }
 .proposal.cancelled, .proposal.rejected { opacity: 0.75; }
+.proposal-pill.flying { background: #fef0c7; color: #b54708; }
+.proposal-pill.flown { background: var(--ok-soft); color: #067647; }
+.flight-console { border: 1px solid #d9d0fd; background: #faf8ff; border-radius: var(--r-sm); padding: 10px 12px; display: grid; gap: 8px; }
+.flight-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.flight-head .flight-clock { margin-left: auto; font-size: 12px; }
+.flight-bar { height: 6px; border-radius: 999px; background: var(--line-soft); overflow: hidden; }
+.flight-bar-fill { display: block; height: 100%; width: 0; background: #7a5af8; transition: width 0.12s linear; }
+.flight-kv dd { font-variant-numeric: tabular-nums; }
+.preflight { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.preflight li { display: flex; gap: 8px; align-items: flex-start; }
+.preflight .icon { color: var(--ok); flex: 0 0 auto; margin-top: 2px; }
 .flight-status { margin: 0; font-size: 12px; font-variant-numeric: tabular-nums; color: #5b3fd6; }
 .proposal-reason { margin: 0; font-size: 13px; color: var(--ink-2); }
 

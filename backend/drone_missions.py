@@ -13,7 +13,8 @@ from . import db, drone
 BUFFER_M = 300
 SPEED_MS = 8.0
 SECONDS_PER_FRAME = 2.0
-BATTERY_MIN = 25  # typical usable flight time of a small mapping drone
+BATTERY_MIN = 25  # typical flight time of a small mapping drone on one pack
+RESERVE = 0.2  # a pack is swapped at 20% left, as in the flight simulation (drone_flight.py)
 OPEN = "proposed"
 # A plan is active while it waits for a decision or for a pilot. One active plan per incident: proposing again
 # returns it, and an approved plan is cancelled (not rejected) before a new one is made.
@@ -53,7 +54,7 @@ def plan_for(points: list[tuple[float, float]], altitude_m: float = drone.MAX_AL
     path_m = sum(math.dist((a["utm_x"], a["utm_y"]), (b["utm_x"], b["utm_y"])) for a, b in zip(wps, wps[1:]))
     minutes = (path_m / SPEED_MS + SECONDS_PER_FRAME * len(wps)) / 60
     plan["estimate"] = {"path_km": round(path_m / 1000, 2), "flight_minutes": round(minutes, 1),
-                        "batteries": max(1, math.ceil(minutes / BATTERY_MIN)), "speed_ms": SPEED_MS}
+                        "batteries": max(1, math.ceil(minutes / (BATTERY_MIN * (1 - RESERVE)))), "speed_ms": SPEED_MS}
     return plan
 
 
@@ -64,7 +65,17 @@ def _row(r) -> dict:
 
 
 def list_for(conn, incident_id: str) -> list[dict]:
-    return [_row(r) for r in conn.execute("SELECT * FROM drone_proposals WHERE incident_id=? ORDER BY id DESC", (incident_id,))]
+    from . import drone_flight
+
+    out = [_row(r) for r in conn.execute("SELECT * FROM drone_proposals WHERE incident_id=? ORDER BY id DESC", (incident_id,))]
+    for p in out:
+        p["flight"] = drone_flight.latest_for(conn, p["id"])
+    return out
+
+
+# An approved plan stops being active once a simulated flight has completed it.
+ACTIVE_SQL = ("SELECT * FROM drone_proposals p WHERE incident_id=? AND (status=? OR (status='approved' AND NOT EXISTS "
+              "(SELECT 1 FROM drone_flights f WHERE f.proposal_id=p.id AND f.state='completed'))) ORDER BY id DESC LIMIT 1")
 
 
 def propose(conn, incident_id: str, *, source: str, reason: str) -> tuple[dict, bool]:
@@ -72,7 +83,7 @@ def propose(conn, incident_id: str, *, source: str, reason: str) -> tuple[dict, 
     inc = conn.execute("SELECT lat, lon FROM incidents WHERE id=?", (incident_id,)).fetchone()
     if inc is None:
         raise ProposalError(404, "incident not found")
-    open_ = conn.execute("SELECT * FROM drone_proposals WHERE incident_id=? AND status IN (?, ?) ORDER BY id DESC LIMIT 1", (incident_id, *ACTIVE)).fetchone()
+    open_ = conn.execute(ACTIVE_SQL, (incident_id, OPEN)).fetchone()
     if open_:
         return _row(open_), False
     points = [(r["lat"], r["lon"]) for r in conn.execute("SELECT lat, lon FROM hotspots WHERE incident_id=?", (incident_id,))] or [(inc["lat"], inc["lon"])]
@@ -92,6 +103,8 @@ def decide(conn, proposal_id: int, decision: str, verifier_hash: str, note: str 
         raise ProposalError(404, "proposal not found")
     if row["status"] != FROM_STATUS[decision]:
         raise ProposalError(409, f"proposal is {row['status']}; {decision} needs a {FROM_STATUS[decision]} plan")
+    if decision == "cancel" and conn.execute("SELECT 1 FROM drone_flights WHERE proposal_id=? AND state IN ('flying', 'completed')", (proposal_id,)).fetchone():
+        raise ProposalError(409, "this plan is in the air or already flown; abort the flight first, or propose a new plan")
     conn.execute("UPDATE drone_proposals SET status=?, decided_at=?, decided_by=?, note=? WHERE id=?",
                  (DECISIONS[decision], db.utcnow(), verifier_hash, (note or "").strip()[:300] or None, proposal_id))
     return _row(conn.execute("SELECT * FROM drone_proposals WHERE id=?", (proposal_id,)).fetchone())

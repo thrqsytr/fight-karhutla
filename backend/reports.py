@@ -138,6 +138,7 @@ def delete_citizen_data(conn, data_dir: Path, incident_id: str) -> dict:
     if removed_incident:
         conn.execute("DELETE FROM evidence WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM verdicts WHERE incident_id=?", (incident_id,))
+        conn.execute("DELETE FROM drone_flights WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM drone_proposals WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM incidents WHERE id=?", (incident_id,))
         shutil.rmtree(data_dir / "satellite" / incident_id, ignore_errors=True)

@@ -85,6 +85,19 @@ CREATE TABLE IF NOT EXISTS drone_proposals (
     note TEXT
 );
 CREATE INDEX IF NOT EXISTS drone_proposals_incident ON drone_proposals(incident_id);
+CREATE TABLE IF NOT EXISTS drone_flights (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    proposal_id INTEGER NOT NULL REFERENCES drone_proposals(id),
+    incident_id TEXT NOT NULL REFERENCES incidents(id),
+    state TEXT NOT NULL CHECK (state IN ('flying', 'completed', 'aborted')),
+    speed INTEGER NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    pilot_hash TEXT NOT NULL,
+    telemetry_json TEXT NOT NULL,
+    note TEXT
+);
+CREATE INDEX IF NOT EXISTS drone_flights_proposal ON drone_flights(proposal_id);
 
 CREATE TABLE IF NOT EXISTS verdicts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

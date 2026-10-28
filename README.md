@@ -20,6 +20,7 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Sentinel-2 burn scar evidence: a clear before and after pair from Earth Search, dNBR computed in code, burned hectares counted from 20 m pixels at dNBR 0.27 or more, no hectares under heavy haze, before, after, and burn scar images in the incident view and on the map
 - Drone survey simulator (SIMULASI): a Blender flyover of a real incident built on its Sentinel-2 burn mask, planned by the app's mission planner, filtered at the ground station by Muse Glimmer on Modal, measured with SAM 3.1 and georeferenced to hectares by code, compared with render truth. Shown beside the incident, never used in triage
 - Drone survey proposals: the agent's `plan_drone_survey` tool or a verifier plans a lawnmower flight over the hotspots; only a verifier can approve it, and no drone flies by itself
+- Simulated pilot: an approved plan is flown on the map with telemetry simulated from the plan and the incident's wind (battery packs, ground speed, frames), on a shared sim clock; abort, land, and replay
 - Offline OpenStreetMap fallback from a dated Geofabrik extract, used when every Overpass server is down
 - Share any public incident: a link with a WhatsApp and Facebook preview (summary plus a static map image with the hotspots)
 - Admin panel at `/admin/` (verifier token to view, execution code to save): FIRMS fetch interval from 30 minutes to 2 days, enrichment budgets, Sentinel-2 reuse window, triage caps and schedule, spend, recent runs, and source health
@@ -27,7 +28,7 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Dashboard with map, incident list, evidence panel, claims linked to evidence, gate details, and verifier approve or reject
 - Replay mode: three recorded incidents from the 2025 dry season (clearly burned, false positive, needs more info) load as SIMULASI from the admin panel, with no network and no model call
 - Evaluation on 30 historical clusters labelled with Sentinel-2 dNBR, three baselines, results below
-- 119 tests that run without a network
+- 122 tests that run without a network
 
 Not built yet: WhatsApp intake (no Business API credentials). Triage runs only on purpose: verifiers select incidents in the list or by drawing an area on the map (at most 5 per selection) and confirm with an execution code; a daily cap and a daily or hourly schedule over citizen reports bound the spend.
 
