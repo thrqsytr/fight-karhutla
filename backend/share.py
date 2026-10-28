@@ -37,7 +37,7 @@ TEXT = {
         "status": {"pending_triage": "Menunggu triase", "triaging": "Triase berjalan", "likely_fire": "Kemungkinan besar api",
                    "possible_fire": "Mungkin api", "unlikely": "Kecil kemungkinan", "needs_more_info": "Perlu info tambahan"},
         "ai": "rekomendasi AI", "verified": "TERVERIFIKASI", "rejected": "DITOLAK VERIFIKATOR", "sim": "SIMULASI",
-        "hotspots": "{n} titik panas", "frp": "FRP maks {v} MW", "near": "Dekat {name}, {km} km", "seen": "Terakhir terdeteksi {when} WITA",
+        "hotspots": "{n} titik panas", "frp": "FRP maks {v} MW", "burn": "Bekas terbakar Sentinel-2: {ha} ha", "near": "Dekat {name}, {km} km", "seen": "Terakhir terdeteksi {when} WITA",
         "tagline": "Triase karhutla terverifikasi", "emergency": "Bukan kanal darurat resmi. Darurat: hubungi 112.",
         "months": ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
     },
@@ -45,7 +45,7 @@ TEXT = {
         "status": {"pending_triage": "Pending triage", "triaging": "Triage running", "likely_fire": "Likely fire",
                    "possible_fire": "Possible fire", "unlikely": "Unlikely", "needs_more_info": "Needs more info"},
         "ai": "AI recommendation", "verified": "VERIFIED", "rejected": "REJECTED BY VERIFIER", "sim": "SIMULATION",
-        "hotspots": "{n} hotspots", "frp": "max FRP {v} MW", "near": "Near {name}, {km} km", "seen": "Last detected {when} WITA",
+        "hotspots": "{n} hotspots", "frp": "max FRP {v} MW", "burn": "Sentinel-2 burn scar: {ha} ha", "near": "Near {name}, {km} km", "seen": "Last detected {when} WITA",
         "tagline": "Verified wildfire triage", "emergency": "Not an official emergency channel. Emergency: call 112.",
         "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
     },
@@ -73,10 +73,13 @@ def facts(inc: dict, evidence: list[dict], verdict: str | None, lang: str = "id"
     lines = [T["hotspots"].format(n=inc["hotspot_count"])]
     if inc.get("max_frp") is not None:
         lines[0] += " · " + T["frp"].format(v=_num(inc["max_frp"], lang))
+    sat = next((e for e in reversed(evidence) if e["type"] == "satellite"), None)
+    burned = (sat or {}).get("payload", {}).get("burned_area_ha") if sat else None  # null under haze: then it is not claimed
+    burn = T["burn"].format(ha=_num(burned, lang, 2)) if burned is not None else None
     place = T["near"].format(name=near["name"], km=_num(near["distance_m"] / 1000, lang)) if near and near.get("name") else None
     return {
         "id": inc["id"], "status": status, "status_key": inc["status"], "ai": T["ai"] if triaged and verdict is None else None,
-        "verdict": verdict, "simulation": bool(inc.get("simulation")), "stats": lines[0], "place": place,
+        "verdict": verdict, "simulation": bool(inc.get("simulation")), "stats": lines[0], "burn": burn, "place": place,
         "seen": T["seen"].format(when=_when(inc["last_seen"], lang)), "lat": inc["lat"], "lon": inc["lon"],
     }
 
@@ -87,13 +90,13 @@ def summary(f: dict, url: str, lang: str = "id") -> tuple[str, str]:
     head = f"{f['id']} · {f['status']}" + (f" ({f['ai']})" if f["ai"] else "")
     if f["verdict"] == "approve":
         head += f" · {T['verified'].capitalize()}"
-    parts = [f["stats"], f["place"], f["seen"]]
+    parts = [f["stats"], f["burn"], f["place"], f["seen"]]
     desc = ". ".join(p for p in parts if p) + ". " + T["emergency"]
     return head, desc
 
 
 def cache_key(inc: dict, verdict: str | None, lang: str) -> str:
-    raw = "|".join(str(x) for x in (inc["status"], inc["hotspot_count"], inc["last_seen"], inc.get("max_frp"), verdict, lang, 2))
+    raw = "|".join(str(x) for x in (inc["status"], inc["hotspot_count"], inc["last_seen"], inc.get("max_frp"), verdict, lang, 3))
     return hashlib.sha1(raw.encode()).hexdigest()[:10]
 
 
@@ -183,10 +186,10 @@ def render(f: dict, hotspots: list[dict], *, cache_dir: Path, lang: str = "id", 
     c.rounded_rectangle([x0 + 30, y, x0 + 30 + lw + 32, y + 42], radius=21, fill=(*sc, 255))
     c.text((x0 + 46, y + 7), label, font=_font(24, True), fill=(255, 255, 255))
     y += 64
-    for line in (f["stats"], f["place"], f["seen"]):
+    for line in (f["stats"], f["burn"], f["place"], f["seen"]):
         if line:
-            c.text((x0 + 30, y), line, font=_font(25), fill=(232, 238, 242))
-            y += 38
+            c.text((x0 + 30, y), line, font=_font(23), fill=(232, 238, 242))
+            y += 34
     c.text((x0 + 30, y1 - 44), T["emergency"], font=_font(18), fill=(170, 187, 199))
     # Badges
     bx = W - 36
@@ -199,6 +202,8 @@ def render(f: dict, hotspots: list[dict], *, cache_dir: Path, lang: str = "id", 
         c.text((bx - tw - 16, 44), text, font=_font(20, True), fill=(255, 255, 255))
         bx -= tw + 44
     attrib = ("© OpenStreetMap contributors" if tiles_ok else "Map tiles unavailable") + " · NASA FIRMS"
+    if f.get("burn"):
+        attrib += " · Contains modified Copernicus Sentinel data 2026"
     aw = c.textlength(attrib, font=_font(15))
     c.rounded_rectangle([W - aw - 30, H - 34, W - 8, H - 8], radius=8, fill=(255, 255, 255, 210))
     c.text((W - aw - 19, H - 30), attrib, font=_font(15), fill=(60, 72, 82))
