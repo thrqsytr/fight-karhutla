@@ -246,8 +246,9 @@ def _fallback(inc: dict, reason: str) -> dict:
     }
 
 
-def triage(settings: Settings, incident_id: str) -> dict:
-    """Run one triage. Writes happen only in short sessions, never during a model or network call."""
+def triage(settings: Settings, incident_id: str, *, provider: str = "meta", allowed: set[str] | None = None) -> dict:
+    """Run one triage. Writes happen only in short sessions, never during a model or network call.
+    Production always uses the defaults; provider and allowed exist for recording replays and evaluation."""
     started = time.time()
     meter = meta_client.Meter()
     with db.session(settings.db_path) as conn:
@@ -257,12 +258,12 @@ def triage(settings: Settings, incident_id: str) -> dict:
     ctx = tools.ToolContext(settings=settings, incident_id=incident_id, meter=meter)
     outcome, error, gate_result, critique = "ok", None, None, None
     try:
-        raw = _run_model(settings, inc, ev, ctx)
+        raw = run_model(settings, inc, ev, ctx, provider=provider, allowed=allowed)
         _, ev = _incident_input(settings, incident_id)  # tools may have stored new evidence
         gate_result = gate.run(raw, ev, incident_id)
         if not gate_result.accepted:
             log.warning("gate rejected schema for %s, retrying once: %s", incident_id, gate_result.schema_errors)
-            raw = _run_model(settings, inc, ev, ctx)
+            raw = run_model(settings, inc, ev, ctx, provider=provider, allowed=allowed)
             _, ev = _incident_input(settings, incident_id)
             gate_result = gate.run(raw, ev, incident_id)
         if gate_result.accepted:
@@ -284,7 +285,7 @@ def triage(settings: Settings, incident_id: str) -> dict:
 
     seconds = round(time.time() - started, 1)
     cost = meter.summary()
-    detail = {"tools": ctx.log, "usage": cost, "critique": critique, "models": {"triage": meta_client.SPARK, "critique": critique["providers"] if critique else []}}
+    detail = {"tools": ctx.log, "usage": cost, "critique": critique, "models": {"triage": meta_client.SPARK_OPEN if provider == "baseten" else meta_client.SPARK, "critique": critique["providers"] if critique else []}}
     with db.session(settings.db_path) as conn:
         if output is not None:
             gate_doc = {**(gate_result.to_dict() if gate_result else {}), "critique": critique, "seconds": seconds,

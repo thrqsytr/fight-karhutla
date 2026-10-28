@@ -53,6 +53,17 @@ Every deviation from the execution spec is recorded here with its reason.
 | 40 | WhatsApp intake is not built: no WhatsApp Business credentials are available. The web form at /lapor stays the citizen channel. | Building against an API without credentials can not be tested. |
 | 41 | Manual sharing: a share button on each incident opens a public link `/i/<id>` whose OG tags carry a summary and a static 1200 x 630 image rendered on the server (OSM raster tiles cached 30 days, hotspots colored by FRP, status, nearest settlement, emergency line, attribution). Only incidents the public map shows can be shared, with rounded coordinates and no citizen content. The image is cached until the incident changes. | WhatsApp and Facebook previews need a server-rendered page and image; the dialog shows exactly what others will see. |
 
+| 42 | Evaluation labels count burned ground within 500 m of the cluster's hotspots, not across the whole area of interest. | The area of interest is at least 2 by 2 km. Over a dry season some of it changes for other reasons, and the first labelling run marked all 15 tried clusters burned, including single detections at static heat sources. |
+| 43 | NBR treats pixels with NIR plus SWIR2 reflectance under 0.05 as unusable, and reflectance is clipped at 0. Pairs measured before this are measured again when next requested. | Reflectance is DN times 1e-4 minus 0.1, so water and deep shadow go to zero or below and the ratio explodes: dNBR values of 3.7 and 756 were found during labelling. Production hectares measured before 2026-10-28 were affected. |
+| 44 | The gate counts Sentinel-2 as independent support for `likely_fire` only when the pair is clear and measured at least 1 ha (25 pixels). | While recording the replay, the agent claimed `likely_fire` with confidence 1.0 for a hotspot whose pair showed 0.28 ha, because any satellite evidence counted. Below 1 ha a dNBR count is within edge and misregistration noise. |
+| 45 | Evaluation runs on Muse Spark Open (Baseten) with the production prompt, tools, schema, gate, and critique; the agent gets hotspot, weather, and OSM tools only. | Volume without spending Meta credit, and no leakage: Sentinel-2 is the label source. Muse Spark 1.3 on the same 30 is a separate run on purpose (about $1.65). |
+| 46 | Labelling runs on Modal next to the Sentinel-2 COGs in us-west. | From this PC a 10 m block read took about a minute; 768 candidates on Modal took a few minutes. Every window and label is cached, so a change of rule needs no new reads. |
+| 47 | Replay mode loads three recorded cases from `replay/incidents/` (one burned, one false positive, one needs more info) as SIMULASI, once, and removes only what it loaded. The recording runs the real pipeline at the time of the case (the Sentinel-2 pair as of 40 days after the first detection) and is retried if the triage fails the schema. | A demo must work with no active fire and no network. Recorded runs do not count as spend. |
+
+## Day 7 evaluation results (2026-10-28)
+
+See the README section "Evaluation". Candidates: 1752 clusters from 4 regions and 3 dates; 768 tried until 15 of each label, the rest had no clear pair (153 without a clear before image, 125 without a clear after image) or fell between the thresholds.
+
 ## Day 5 drone simulation results (2026-10-28, synthetic)
 
 | Step | Result |

@@ -83,6 +83,19 @@ def test_hotspot_only_cannot_be_likely_fire():
     assert r.output["status"] == "possible_fire"
 
 
+def satellite(ha, status="ok"):
+    return {"id": "EV-005", "type": "satellite", "source": "Sentinel-2 L2A", "retrieved_at": "2026-10-26T00:00:00+00:00", "summary": "dNBR pair",
+            "payload": {"status": status, "burned_area_ha": ha, "pixel_count": None if ha is None else int(ha / 0.04), "pixel_size_m": 20}}
+
+
+def test_satellite_supports_likely_fire_only_when_it_measured_a_burn():
+    claims = [{"text": "Tiga titik panas VIIRS terdeteksi.", "evidence_ids": ["EV-001"]}, {"text": "Pasangan Sentinel-2 dNBR.", "evidence_ids": ["EV-005"]}]
+    area = {"value": None, "method": None, "evidence_id": None}
+    for ev, expected in ((satellite(22.16), "likely_fire"), (satellite(0.28), "possible_fire"), (satellite(None, "hazy"), "possible_fire")):
+        r = gate.run(make(claims=claims, burn_area_ha=area), EVIDENCE + [ev], INC)
+        assert r.output["status"] == expected, ev["payload"]
+
+
 def test_wrong_wind_number_is_replaced_with_tool_value():
     d = make()
     d["claims"][2]["text"] = "Angin 9 m/s dari timur."

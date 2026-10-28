@@ -43,11 +43,6 @@ def test_unknown_incident_404(settings):
         assert c.get("/api/incidents/INC-00000000-0000").status_code == 404
 
 
-def test_replay_not_built_says_so(settings):
-    with client(settings) as c:
-        assert c.post("/api/replay/start", headers=AUTH).status_code == 501
-
-
 def test_config_js_hides_google_key_when_maplibre(settings):
     with client(settings) as c:
         body = c.get("/config.js").text

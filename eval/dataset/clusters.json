@@ -1,0 +1,2754 @@
+[
+ {
+  "region": "kalbar",
+  "day": "2025-09-26",
+  "lat": 0.30911,
+  "lon": 111.20538,
+  "first_seen": "2025-09-26T05:31:00+00:00",
+  "last_seen": "2025-09-26T05:31:00+00:00",
+  "hotspots": [
+   {
+    "lat": 0.30911,
+    "lon": 111.20538,
+    "at": "2025-09-26T05:31:00+00:00",
+    "confidence": "n",
+    "frp": 4.25,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-01",
+  "kind": "small",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    111.1964,
+    0.30007,
+    111.21436,
+    0.31815
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-26T05:31:00+00:00",
+   "pixel_count": 536,
+   "burned_area_ha": 21.44,
+   "status": "ok",
+   "epsg": 32649,
+   "pre": {
+    "id": "S2B_49NEA_20250922_0_L2A",
+    "datetime": "2025-09-22T03:07:46.799000Z",
+    "tile_cloud_pct": 28.7,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.12,
+    "mgrs_tile": "MGRS-49NEA"
+   },
+   "post": {
+    "id": "S2A_49NEA_20251029_1_L2A",
+    "datetime": "2025-10-29T03:08:04.476000Z",
+    "tile_cloud_pct": 55.7,
+    "aoi_clear_frac": 0.77,
+    "aot_median": 0.162,
+    "mgrs_tile": "MGRS-49NEA"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 7828,
+   "clear_area_ha": 313.12,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.356,
+   "burned_pixel_count": 536,
+   "low_severity_pixel_count": 575,
+   "low_severity_area_ha": 23.0,
+   "reason": null,
+   "image_corners": [
+    [
+     111.196273,
+     0.318283
+    ],
+    [
+     111.214427,
+     0.318282
+    ],
+    [
+     111.214426,
+     0.300007
+    ],
+    [
+     111.196273,
+     0.300007
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.6,
+    "clear_frac": 0.832,
+    "burned_ha": 5.16
+   }
+  }
+ },
+ {
+  "region": "sumsel_jambi",
+  "day": "2025-09-26",
+  "lat": -1.16972,
+  "lon": 103.33906,
+  "first_seen": "2025-09-26T18:12:00+00:00",
+  "last_seen": "2025-09-26T18:12:00+00:00",
+  "hotspots": [
+   {
+    "lat": -1.16972,
+    "lon": 103.33906,
+    "at": "2025-09-26T18:12:00+00:00",
+    "confidence": "n",
+    "frp": 0.31,
+    "type": "2"
+   }
+  ],
+  "id": "EVAL-02",
+  "kind": "static_source",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    103.33008,
+    -1.17876,
+    103.34804,
+    -1.16068
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-26T18:12:00+00:00",
+   "pixel_count": 15,
+   "burned_area_ha": 0.6,
+   "status": "ok",
+   "epsg": 32748,
+   "pre": {
+    "id": "S2C_48MUD_20250827_0_L2A",
+    "datetime": "2025-08-27T03:38:49.712000Z",
+    "tile_cloud_pct": 43.0,
+    "aoi_clear_frac": 0.767,
+    "aot_median": 0.304,
+    "mgrs_tile": "MGRS-48MUD"
+   },
+   "post": {
+    "id": "S2B_48MUD_20251011_1_L2A",
+    "datetime": "2025-10-11T03:38:29.083000Z",
+    "tile_cloud_pct": 53.9,
+    "aoi_clear_frac": 0.778,
+    "aot_median": 0.204,
+    "mgrs_tile": "MGRS-48MUD"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 6025,
+   "clear_area_ha": 241.0,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.0,
+   "burned_pixel_count": 15,
+   "low_severity_pixel_count": 38,
+   "low_severity_area_ha": 1.52,
+   "reason": null,
+   "image_corners": [
+    [
+     103.32998,
+     -1.160634
+    ],
+    [
+     103.348129,
+     -1.160645
+    ],
+    [
+     103.348119,
+     -1.178913
+    ],
+    [
+     103.329969,
+     -1.178902
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.48,
+    "clear_frac": 0.918,
+    "burned_ha": 0.0
+   }
+  }
+ },
+ {
+  "region": "sumsel_jambi",
+  "day": "2025-08-28",
+  "lat": -3.13232,
+  "lon": 102.74722,
+  "first_seen": "2025-08-28T06:13:00+00:00",
+  "last_seen": "2025-08-28T06:13:00+00:00",
+  "hotspots": [
+   {
+    "lat": -3.13189,
+    "lon": 102.74677,
+    "at": "2025-08-28T06:13:00+00:00",
+    "confidence": "n",
+    "frp": 8.4,
+    "type": "0"
+   },
+   {
+    "lat": -3.13274,
+    "lon": 102.74767,
+    "at": "2025-08-28T06:13:00+00:00",
+    "confidence": "n",
+    "frp": 8.61,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-03",
+  "kind": "medium",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    102.73822,
+    -3.14136,
+    102.75622,
+    -3.12327
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T06:13:00+00:00",
+   "pixel_count": 1199,
+   "burned_area_ha": 47.96,
+   "status": "ok",
+   "epsg": 32748,
+   "pre": {
+    "id": "S2B_48MTB_20250802_0_L2A",
+    "datetime": "2025-08-02T03:39:03.378000Z",
+    "tile_cloud_pct": 61.1,
+    "aoi_clear_frac": 0.778,
+    "aot_median": 0.161,
+    "mgrs_tile": "MGRS-48MTB"
+   },
+   "post": {
+    "id": "S2C_48MTB_20251006_0_L2A",
+    "datetime": "2025-10-06T03:39:17.846000Z",
+    "tile_cloud_pct": 61.3,
+    "aoi_clear_frac": 0.8,
+    "aot_median": 0.341,
+    "mgrs_tile": "MGRS-48MTB"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 6433,
+   "clear_area_ha": 257.32,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.516,
+   "burned_pixel_count": 1199,
+   "low_severity_pixel_count": 431,
+   "low_severity_area_ha": 17.24,
+   "reason": null,
+   "image_corners": [
+    [
+     102.738162,
+     -3.123188
+    ],
+    [
+     102.756328,
+     -3.123227
+    ],
+    [
+     102.756289,
+     -3.141488
+    ],
+    [
+     102.738122,
+     -3.141449
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 92.52,
+    "clear_frac": 0.776,
+    "burned_ha": 11.0
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-08-28",
+  "lat": 0.08916,
+  "lon": 110.05036,
+  "first_seen": "2025-08-28T06:14:00+00:00",
+  "last_seen": "2025-08-28T06:14:00+00:00",
+  "hotspots": [
+   {
+    "lat": 0.08536,
+    "lon": 110.04842,
+    "at": "2025-08-28T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 29.75,
+    "type": "0"
+   },
+   {
+    "lat": 0.08592,
+    "lon": 110.05211,
+    "at": "2025-08-28T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 5.58,
+    "type": "0"
+   },
+   {
+    "lat": 0.09619,
+    "lon": 110.05056,
+    "at": "2025-08-28T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 4.66,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-04",
+  "kind": "large",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    110.04128,
+    0.07858,
+    110.05925,
+    0.10297
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T06:14:00+00:00",
+   "pixel_count": 587,
+   "burned_area_ha": 23.48,
+   "status": "ok",
+   "epsg": 32649,
+   "pre": {
+    "id": "S2B_49NCA_20250823_0_L2A",
+    "datetime": "2025-08-23T03:07:56.876000Z",
+    "tile_cloud_pct": 40.3,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.18,
+    "mgrs_tile": "MGRS-49NCA"
+   },
+   "post": {
+    "id": "S2C_49NCA_20251007_0_L2A",
+    "datetime": "2025-10-07T03:08:09.250000Z",
+    "tile_cloud_pct": 33.7,
+    "aoi_clear_frac": 0.741,
+    "aot_median": 0.246,
+    "mgrs_tile": "MGRS-49NCA"
+   },
+   "aoi_pixel_count": 13736,
+   "valid_pixel_count": 10086,
+   "clear_area_ha": 403.44,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.306,
+   "burned_pixel_count": 587,
+   "low_severity_pixel_count": 987,
+   "low_severity_area_ha": 39.48,
+   "reason": null,
+   "image_corners": [
+    [
+     110.041158,
+     0.103125
+    ],
+    [
+     110.059308,
+     0.103125
+    ],
+    [
+     110.059309,
+     0.07852
+    ],
+    [
+     110.041158,
+     0.07852
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 197.68,
+    "clear_frac": 0.72,
+    "burned_ha": 14.28
+   }
+  }
+ },
+ {
+  "region": "sumsel_jambi",
+  "day": "2025-09-26",
+  "lat": -2.32012,
+  "lon": 106.17237,
+  "first_seen": "2025-09-26T07:11:00+00:00",
+  "last_seen": "2025-09-26T07:11:00+00:00",
+  "hotspots": [
+   {
+    "lat": -2.32012,
+    "lon": 106.17237,
+    "at": "2025-09-26T07:11:00+00:00",
+    "confidence": "n",
+    "frp": 4.48,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-05",
+  "kind": "small",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    106.16338,
+    -2.32916,
+    106.18136,
+    -2.31108
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-26T07:11:00+00:00",
+   "pixel_count": 218,
+   "burned_area_ha": 8.72,
+   "status": "ok",
+   "epsg": 32748,
+   "pre": {
+    "id": "S2C_48MXC_20250923_0_L2A",
+    "datetime": "2025-09-23T03:28:54.703000Z",
+    "tile_cloud_pct": 47.2,
+    "aoi_clear_frac": 0.866,
+    "aot_median": 0.168,
+    "mgrs_tile": "MGRS-48MXC"
+   },
+   "post": {
+    "id": "S2C_48MXC_20251102_0_L2A",
+    "datetime": "2025-11-02T03:28:53.122000Z",
+    "tile_cloud_pct": 59.1,
+    "aoi_clear_frac": 0.961,
+    "aot_median": 0.204,
+    "mgrs_tile": "MGRS-48MXC"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 8372,
+   "clear_area_ha": 334.88,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.15,
+   "burned_pixel_count": 218,
+   "low_severity_pixel_count": 337,
+   "low_severity_area_ha": 13.48,
+   "reason": null,
+   "image_corners": [
+    [
+     106.163205,
+     -2.310916
+    ],
+    [
+     106.18137,
+     -2.310901
+    ],
+    [
+     106.181385,
+     -2.329172
+    ],
+    [
+     106.16322,
+     -2.329188
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.8,
+    "clear_frac": 0.966,
+    "burned_ha": 3.12
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-08-28",
+  "lat": 0.05228,
+  "lon": 110.22339,
+  "first_seen": "2025-08-28T06:14:00+00:00",
+  "last_seen": "2025-08-28T06:14:00+00:00",
+  "hotspots": [
+   {
+    "lat": 0.05228,
+    "lon": 110.22339,
+    "at": "2025-08-28T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 44.62,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-06",
+  "kind": "large",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    110.21441,
+    0.04324,
+    110.23237,
+    0.06132
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T06:14:00+00:00",
+   "pixel_count": 609,
+   "burned_area_ha": 24.36,
+   "status": "ok",
+   "epsg": 32649,
+   "pre": {
+    "id": "S2B_49NDA_20250813_0_L2A",
+    "datetime": "2025-08-13T03:07:53.777000Z",
+    "tile_cloud_pct": 82.0,
+    "aoi_clear_frac": 0.689,
+    "aot_median": 0.138,
+    "mgrs_tile": "MGRS-49NDA"
+   },
+   "post": {
+    "id": "S2B_49NDA_20251002_0_L2A",
+    "datetime": "2025-10-02T03:07:51.800000Z",
+    "tile_cloud_pct": 53.1,
+    "aoi_clear_frac": 0.621,
+    "aot_median": 0.132,
+    "mgrs_tile": "MGRS-49NDA"
+   },
+   "aoi_pixel_count": 10100,
+   "valid_pixel_count": 4264,
+   "clear_area_ha": 170.56,
+   "dnbr_median": -0.164,
+   "dnbr_p95": 0.544,
+   "burned_pixel_count": 609,
+   "low_severity_pixel_count": 346,
+   "low_severity_area_ha": 13.84,
+   "reason": null,
+   "image_corners": [
+    [
+     110.214403,
+     0.061335
+    ],
+    [
+     110.232375,
+     0.061335
+    ],
+    [
+     110.232375,
+     0.043061
+    ],
+    [
+     110.214403,
+     0.043061
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.88,
+    "clear_frac": 0.637,
+    "burned_ha": 5.64
+   }
+  }
+ },
+ {
+  "region": "sumsel_jambi",
+  "day": "2025-09-26",
+  "lat": -2.67076,
+  "lon": 106.1027,
+  "first_seen": "2025-09-26T07:11:00+00:00",
+  "last_seen": "2025-09-26T07:11:00+00:00",
+  "hotspots": [
+   {
+    "lat": -2.67076,
+    "lon": 106.1027,
+    "at": "2025-09-26T07:11:00+00:00",
+    "confidence": "n",
+    "frp": 3.15,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-07",
+  "kind": "small",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    106.09371,
+    -2.6798,
+    106.11169,
+    -2.66172
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-26T07:11:00+00:00",
+   "pixel_count": 551,
+   "burned_area_ha": 22.04,
+   "status": "ok",
+   "epsg": 32748,
+   "pre": {
+    "id": "S2C_48MXC_20250923_0_L2A",
+    "datetime": "2025-09-23T03:28:54.703000Z",
+    "tile_cloud_pct": 47.2,
+    "aoi_clear_frac": 0.621,
+    "aot_median": 0.174,
+    "mgrs_tile": "MGRS-48MXC"
+   },
+   "post": {
+    "id": "S2C_48MXC_20251030_0_L2A",
+    "datetime": "2025-10-30T03:18:58.314000Z",
+    "tile_cloud_pct": 24.2,
+    "aoi_clear_frac": 0.968,
+    "aot_median": 0.114,
+    "mgrs_tile": "MGRS-48MXC"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 6261,
+   "clear_area_ha": 250.44,
+   "dnbr_median": 0.032,
+   "dnbr_p95": 0.345,
+   "burned_pixel_count": 551,
+   "low_severity_pixel_count": 1327,
+   "low_severity_area_ha": 53.08,
+   "reason": null,
+   "image_corners": [
+    [
+     106.093534,
+     -2.661575
+    ],
+    [
+     106.111704,
+     -2.661559
+    ],
+    [
+     106.11172,
+     -2.67983
+    ],
+    [
+     106.09355,
+     -2.679847
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.76,
+    "clear_frac": 0.67,
+    "burned_ha": 5.88
+   }
+  }
+ },
+ {
+  "region": "kalteng",
+  "day": "2025-09-12",
+  "lat": -1.32782,
+  "lon": 113.96761,
+  "first_seen": "2025-09-13T06:14:00+00:00",
+  "last_seen": "2025-09-13T06:14:00+00:00",
+  "hotspots": [
+   {
+    "lat": -1.32574,
+    "lon": 113.96729,
+    "at": "2025-09-13T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 1.99,
+    "type": "0"
+   },
+   {
+    "lat": -1.32991,
+    "lon": 113.96792,
+    "at": "2025-09-13T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 1.84,
+    "type": "2"
+   }
+  ],
+  "id": "EVAL-08",
+  "kind": "static_source",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    113.95862,
+    -1.33687,
+    113.97659,
+    -1.31878
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-13T06:14:00+00:00",
+   "pixel_count": 209,
+   "burned_area_ha": 8.36,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2B_49MHU_20250817_0_L2A",
+    "datetime": "2025-08-17T02:48:19.640000Z",
+    "tile_cloud_pct": 54.7,
+    "aoi_clear_frac": 0.656,
+    "aot_median": 0.124,
+    "mgrs_tile": "MGRS-49MHU"
+   },
+   "post": {
+    "id": "S2C_49MHU_20251001_0_L2A",
+    "datetime": "2025-10-01T02:48:32.878000Z",
+    "tile_cloud_pct": 28.8,
+    "aoi_clear_frac": 0.88,
+    "aot_median": 0.148,
+    "mgrs_tile": "MGRS-49MHU"
+   },
+   "aoi_pixel_count": 10302,
+   "valid_pixel_count": 6496,
+   "clear_area_ha": 259.84,
+   "dnbr_median": -0.278,
+   "dnbr_p95": 0.134,
+   "burned_pixel_count": 209,
+   "low_severity_pixel_count": 154,
+   "low_severity_area_ha": 6.16,
+   "reason": null,
+   "image_corners": [
+    [
+     113.958432,
+     -1.318772
+    ],
+    [
+     113.976745,
+     -1.31875
+    ],
+    [
+     113.976767,
+     -1.337001
+    ],
+    [
+     113.958454,
+     -1.337023
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 123.56,
+    "clear_frac": 0.499,
+    "burned_ha": 4.08
+   }
+  }
+ },
+ {
+  "region": "sumsel_jambi",
+  "day": "2025-09-26",
+  "lat": -3.2204,
+  "lon": 103.73965,
+  "first_seen": "2025-09-27T06:52:00+00:00",
+  "last_seen": "2025-09-27T06:52:00+00:00",
+  "hotspots": [
+   {
+    "lat": -3.2204,
+    "lon": 103.73965,
+    "at": "2025-09-27T06:52:00+00:00",
+    "confidence": "n",
+    "frp": 5.3,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-09",
+  "kind": "medium",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    103.73065,
+    -3.22944,
+    103.74865,
+    -3.21136
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-27T06:52:00+00:00",
+   "pixel_count": 762,
+   "burned_area_ha": 30.48,
+   "status": "ok",
+   "epsg": 32748,
+   "pre": {
+    "id": "S2A_48MUB_20250826_0_L2A",
+    "datetime": "2025-08-26T03:29:19.174000Z",
+    "tile_cloud_pct": 1.4,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.078,
+    "mgrs_tile": "MGRS-48MUB"
+   },
+   "post": {
+    "id": "S2C_48MUB_20251102_0_L2A",
+    "datetime": "2025-11-02T03:29:17.502000Z",
+    "tile_cloud_pct": 22.0,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.366,
+    "mgrs_tile": "MGRS-48MUB"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 10184,
+   "clear_area_ha": 407.36,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.362,
+   "burned_pixel_count": 762,
+   "low_severity_pixel_count": 983,
+   "low_severity_area_ha": 39.32,
+   "reason": null,
+   "image_corners": [
+    [
+     103.730633,
+     -3.211333
+    ],
+    [
+     103.74881,
+     -3.211355
+    ],
+    [
+     103.748788,
+     -3.229626
+    ],
+    [
+     103.73061,
+     -3.229603
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.72,
+    "clear_frac": 1.0,
+    "burned_ha": 9.84
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-08-28",
+  "lat": -1.09612,
+  "lon": 110.40746,
+  "first_seen": "2025-08-28T06:14:00+00:00",
+  "last_seen": "2025-08-29T05:55:00+00:00",
+  "hotspots": [
+   {
+    "lat": -1.09958,
+    "lon": 110.39907,
+    "at": "2025-08-28T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 3.7,
+    "type": "0"
+   },
+   {
+    "lat": -1.09229,
+    "lon": 110.4134,
+    "at": "2025-08-29T05:55:00+00:00",
+    "confidence": "l",
+    "frp": 122.1,
+    "type": "0"
+   },
+   {
+    "lat": -1.09648,
+    "lon": 110.40991,
+    "at": "2025-08-29T05:55:00+00:00",
+    "confidence": "l",
+    "frp": 322.8,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-10",
+  "kind": "large",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    110.39233,
+    -1.10636,
+    110.42014,
+    -1.08551
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T06:14:00+00:00",
+   "pixel_count": 2125,
+   "burned_area_ha": 85.0,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2A_49MDU_20250810_0_L2A",
+    "datetime": "2025-08-10T03:08:34.721000Z",
+    "tile_cloud_pct": 5.8,
+    "aoi_clear_frac": 0.966,
+    "aot_median": 0.09,
+    "mgrs_tile": "MGRS-49MDU"
+   },
+   "post": {
+    "id": "S2C_49MDU_20251007_0_L2A",
+    "datetime": "2025-10-07T03:08:35.015000Z",
+    "tile_cloud_pct": 8.6,
+    "aoi_clear_frac": 0.898,
+    "aot_median": 0.072,
+    "mgrs_tile": "MGRS-49MDU"
+   },
+   "aoi_pixel_count": 18096,
+   "valid_pixel_count": 15508,
+   "clear_area_ha": 620.32,
+   "dnbr_median": 0.112,
+   "dnbr_p95": 0.33,
+   "burned_pixel_count": 2125,
+   "low_severity_pixel_count": 6026,
+   "low_severity_area_ha": 241.04,
+   "reason": null,
+   "image_corners": [
+    [
+     110.392219,
+     -1.085434
+    ],
+    [
+     110.420261,
+     -1.085439
+    ],
+    [
+     110.420257,
+     -1.106428
+    ],
+    [
+     110.392215,
+     -1.106422
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 213.6,
+    "clear_frac": 0.893,
+    "burned_ha": 30.32
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-09-26",
+  "lat": -0.32061,
+  "lon": 111.04081,
+  "first_seen": "2025-09-27T05:12:00+00:00",
+  "last_seen": "2025-09-27T05:12:00+00:00",
+  "hotspots": [
+   {
+    "lat": -0.32061,
+    "lon": 111.04081,
+    "at": "2025-09-27T05:12:00+00:00",
+    "confidence": "n",
+    "frp": 10.93,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-11",
+  "kind": "medium",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    111.03183,
+    -0.32965,
+    111.04979,
+    -0.31157
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-27T05:12:00+00:00",
+   "pixel_count": 569,
+   "burned_area_ha": 22.76,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2B_49MDV_20250922_0_L2A",
+    "datetime": "2025-09-22T03:08:05.020000Z",
+    "tile_cloud_pct": 46.7,
+    "aoi_clear_frac": 0.702,
+    "aot_median": 0.132,
+    "mgrs_tile": "MGRS-49MDV"
+   },
+   "post": {
+    "id": "S2A_49MDV_20251029_0_L2A",
+    "datetime": "2025-10-29T03:08:22.701000Z",
+    "tile_cloud_pct": 58.5,
+    "aoi_clear_frac": 0.934,
+    "aot_median": 0.19,
+    "mgrs_tile": "MGRS-49MDV"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 6479,
+   "clear_area_ha": 259.16,
+   "dnbr_median": -0.102,
+   "dnbr_p95": 0.517,
+   "burned_pixel_count": 569,
+   "low_severity_pixel_count": 400,
+   "low_severity_area_ha": 16.0,
+   "reason": null,
+   "image_corners": [
+    [
+     111.031814,
+     -0.311408
+    ],
+    [
+     111.049967,
+     -0.311408
+    ],
+    [
+     111.049967,
+     -0.329684
+    ],
+    [
+     111.031814,
+     -0.329684
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.88,
+    "clear_frac": 0.747,
+    "burned_ha": 8.08
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-09-26",
+  "lat": 0.35984,
+  "lon": 111.19888,
+  "first_seen": "2025-09-27T06:53:00+00:00",
+  "last_seen": "2025-09-27T06:53:00+00:00",
+  "hotspots": [
+   {
+    "lat": 0.35756,
+    "lon": 111.19639,
+    "at": "2025-09-27T06:53:00+00:00",
+    "confidence": "n",
+    "frp": 15.93,
+    "type": "0"
+   },
+   {
+    "lat": 0.35846,
+    "lon": 111.20226,
+    "at": "2025-09-27T06:53:00+00:00",
+    "confidence": "l",
+    "frp": 28.82,
+    "type": "0"
+   },
+   {
+    "lat": 0.36121,
+    "lon": 111.1955,
+    "at": "2025-09-27T06:53:00+00:00",
+    "confidence": "n",
+    "frp": 17.59,
+    "type": "0"
+   },
+   {
+    "lat": 0.36215,
+    "lon": 111.20137,
+    "at": "2025-09-27T06:53:00+00:00",
+    "confidence": "l",
+    "frp": 17.59,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-12",
+  "kind": "large",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    111.18876,
+    0.35078,
+    111.209,
+    0.36893
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-27T06:53:00+00:00",
+   "pixel_count": 531,
+   "burned_area_ha": 21.24,
+   "status": "ok",
+   "epsg": 32649,
+   "pre": {
+    "id": "S2B_49NEA_20250922_0_L2A",
+    "datetime": "2025-09-22T03:07:46.799000Z",
+    "tile_cloud_pct": 28.7,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.12,
+    "mgrs_tile": "MGRS-49NEA"
+   },
+   "post": {
+    "id": "S2A_49NEA_20251029_1_L2A",
+    "datetime": "2025-10-29T03:08:04.476000Z",
+    "tile_cloud_pct": 55.7,
+    "aoi_clear_frac": 0.637,
+    "aot_median": 0.18,
+    "mgrs_tile": "MGRS-49NEA"
+   },
+   "aoi_pixel_count": 11413,
+   "valid_pixel_count": 7230,
+   "clear_area_ha": 289.2,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.339,
+   "burned_pixel_count": 531,
+   "low_severity_pixel_count": 861,
+   "low_severity_area_ha": 34.44,
+   "reason": null,
+   "image_corners": [
+    [
+     111.188725,
+     0.368947
+    ],
+    [
+     111.209036,
+     0.368947
+    ],
+    [
+     111.209035,
+     0.350671
+    ],
+    [
+     111.188725,
+     0.350672
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 207.08,
+    "clear_frac": 0.496,
+    "burned_ha": 7.2
+   }
+  }
+ },
+ {
+  "region": "sumsel_jambi",
+  "day": "2025-09-26",
+  "lat": -4.15064,
+  "lon": 103.8056,
+  "first_seen": "2025-09-27T06:52:00+00:00",
+  "last_seen": "2025-09-27T06:52:00+00:00",
+  "hotspots": [
+   {
+    "lat": -4.15064,
+    "lon": 103.8056,
+    "at": "2025-09-27T06:52:00+00:00",
+    "confidence": "n",
+    "frp": 4.56,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-13",
+  "kind": "small",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    103.79659,
+    -4.15968,
+    103.81461,
+    -4.1416
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-27T06:52:00+00:00",
+   "pixel_count": 268,
+   "burned_area_ha": 10.72,
+   "status": "ok",
+   "epsg": 32748,
+   "pre": {
+    "id": "S2C_48MUA_20250923_0_L2A",
+    "datetime": "2025-09-23T03:29:33.684000Z",
+    "tile_cloud_pct": 37.8,
+    "aoi_clear_frac": 0.771,
+    "aot_median": 0.155,
+    "mgrs_tile": "MGRS-48MUA"
+   },
+   "post": {
+    "id": "S2B_48MUA_20251008_0_L2A",
+    "datetime": "2025-10-08T03:29:18Z",
+    "tile_cloud_pct": 28.7,
+    "aoi_clear_frac": 0.833,
+    "aot_median": 0.105,
+    "mgrs_tile": "MGRS-48MUA"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 6072,
+   "clear_area_ha": 242.88,
+   "dnbr_median": 0.028,
+   "dnbr_p95": 0.252,
+   "burned_pixel_count": 268,
+   "low_severity_pixel_count": 963,
+   "low_severity_area_ha": 38.52,
+   "reason": null,
+   "image_corners": [
+    [
+     103.796517,
+     -4.141414
+    ],
+    [
+     103.814713,
+     -4.141441
+    ],
+    [
+     103.814686,
+     -4.159712
+    ],
+    [
+     103.796489,
+     -4.159685
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.28,
+    "clear_frac": 0.626,
+    "burned_ha": 3.4
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-08-28",
+  "lat": -2.9029,
+  "lon": 110.30597,
+  "first_seen": "2025-08-28T06:13:00+00:00",
+  "last_seen": "2025-08-28T06:13:00+00:00",
+  "hotspots": [
+   {
+    "lat": -2.9029,
+    "lon": 110.30597,
+    "at": "2025-08-28T06:13:00+00:00",
+    "confidence": "n",
+    "frp": 8.5,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-14",
+  "kind": "medium",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    110.29698,
+    -2.91194,
+    110.31496,
+    -2.89386
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T06:13:00+00:00",
+   "pixel_count": 1813,
+   "burned_area_ha": 72.52,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2B_49MDS_20250823_0_L2A",
+    "datetime": "2025-08-23T03:08:51.541000Z",
+    "tile_cloud_pct": 37.7,
+    "aoi_clear_frac": 0.99,
+    "aot_median": 0.156,
+    "mgrs_tile": "MGRS-49MDS"
+   },
+   "post": {
+    "id": "S2C_49MDS_20251007_0_L2A",
+    "datetime": "2025-10-07T03:09:03.892000Z",
+    "tile_cloud_pct": 39.3,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.144,
+    "mgrs_tile": "MGRS-49MDS"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 9521,
+   "clear_area_ha": 380.84,
+   "dnbr_median": 0.11,
+   "dnbr_p95": 0.653,
+   "burned_pixel_count": 1813,
+   "low_severity_pixel_count": 3402,
+   "low_severity_area_ha": 136.08,
+   "reason": null,
+   "image_corners": [
+    [
+     110.296903,
+     -2.893811
+    ],
+    [
+     110.315078,
+     -2.893822
+    ],
+    [
+     110.315067,
+     -2.912096
+    ],
+    [
+     110.296891,
+     -2.912085
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.44,
+    "clear_frac": 0.988,
+    "burned_ha": 19.28
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-09-26",
+  "lat": -0.76999,
+  "lon": 110.78767,
+  "first_seen": "2025-09-26T05:31:00+00:00",
+  "last_seen": "2025-09-26T05:31:00+00:00",
+  "hotspots": [
+   {
+    "lat": -0.76574,
+    "lon": 110.78939,
+    "at": "2025-09-26T05:31:00+00:00",
+    "confidence": "h",
+    "frp": 42.94,
+    "type": "0"
+   },
+   {
+    "lat": -0.77094,
+    "lon": 110.79014,
+    "at": "2025-09-26T05:31:00+00:00",
+    "confidence": "h",
+    "frp": 42.94,
+    "type": "0"
+   },
+   {
+    "lat": -0.77141,
+    "lon": 110.78711,
+    "at": "2025-09-26T05:31:00+00:00",
+    "confidence": "n",
+    "frp": 32.84,
+    "type": "0"
+   },
+   {
+    "lat": -0.77189,
+    "lon": 110.78402,
+    "at": "2025-09-26T05:31:00+00:00",
+    "confidence": "n",
+    "frp": 32.84,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-15",
+  "kind": "large",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    110.77728,
+    -0.77867,
+    110.79688,
+    -0.75896
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-26T05:31:00+00:00",
+   "pixel_count": 554,
+   "burned_area_ha": 22.16,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2B_49MDV_20250922_0_L2A",
+    "datetime": "2025-09-22T03:08:05.020000Z",
+    "tile_cloud_pct": 46.7,
+    "aoi_clear_frac": 0.91,
+    "aot_median": 0.13,
+    "mgrs_tile": "MGRS-49MDV"
+   },
+   "post": {
+    "id": "S2B_49MDV_20251101_0_L2A",
+    "datetime": "2025-11-01T03:08:03.952000Z",
+    "tile_cloud_pct": 34.9,
+    "aoi_clear_frac": 0.701,
+    "aot_median": 0.136,
+    "mgrs_tile": "MGRS-49MDV"
+   },
+   "aoi_pixel_count": 12100,
+   "valid_pixel_count": 7672,
+   "clear_area_ha": 306.88,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.437,
+   "burned_pixel_count": 554,
+   "low_severity_pixel_count": 321,
+   "low_severity_area_ha": 12.84,
+   "reason": null,
+   "image_corners": [
+    [
+     110.77711,
+     -0.758882
+    ],
+    [
+     110.796882,
+     -0.758883
+    ],
+    [
+     110.796881,
+     -0.778787
+    ],
+    [
+     110.777109,
+     -0.778786
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 197.44,
+    "clear_frac": 0.624,
+    "burned_ha": 12.6
+   }
+  }
+ },
+ {
+  "region": "kalteng",
+  "day": "2025-09-12",
+  "lat": -2.94332,
+  "lon": 115.23146,
+  "first_seen": "2025-09-12T17:34:00+00:00",
+  "last_seen": "2025-09-13T17:15:00+00:00",
+  "hotspots": [
+   {
+    "lat": -2.94216,
+    "lon": 115.23175,
+    "at": "2025-09-12T17:34:00+00:00",
+    "confidence": "n",
+    "frp": 1.04,
+    "type": "2"
+   },
+   {
+    "lat": -2.94525,
+    "lon": 115.23158,
+    "at": "2025-09-12T17:34:00+00:00",
+    "confidence": "n",
+    "frp": 1.2,
+    "type": "2"
+   },
+   {
+    "lat": -2.94255,
+    "lon": 115.23106,
+    "at": "2025-09-13T17:15:00+00:00",
+    "confidence": "n",
+    "frp": 0.68,
+    "type": "2"
+   }
+  ],
+  "id": "EVAL-16",
+  "kind": "static_source",
+  "label": "burned",
+  "dnbr": {
+   "aoi_bbox": [
+    115.22241,
+    -2.95275,
+    115.2404,
+    -2.93466
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-12T17:34:00+00:00",
+   "pixel_count": 269,
+   "burned_area_ha": 10.76,
+   "status": "ok",
+   "epsg": 32750,
+   "pre": {
+    "id": "S2C_50MKB_20250822_1_L2A",
+    "datetime": "2025-08-22T02:49:03.918000Z",
+    "tile_cloud_pct": 88.2,
+    "aoi_clear_frac": 0.965,
+    "aot_median": 0.24,
+    "mgrs_tile": "MGRS-50MKB"
+   },
+   "post": {
+    "id": "S2A_50MKB_20251013_0_L2A",
+    "datetime": "2025-10-13T02:48:58.469000Z",
+    "tile_cloud_pct": 37.5,
+    "aoi_clear_frac": 0.905,
+    "aot_median": 0.293,
+    "mgrs_tile": "MGRS-50MKB"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 8748,
+   "clear_area_ha": 349.92,
+   "dnbr_median": 0.006,
+   "dnbr_p95": 0.185,
+   "burned_pixel_count": 269,
+   "low_severity_pixel_count": 773,
+   "low_severity_area_ha": 30.92,
+   "reason": null,
+   "image_corners": [
+    [
+     115.222368,
+     -2.934588
+    ],
+    [
+     115.240536,
+     -2.934617
+    ],
+    [
+     115.240508,
+     -2.952884
+    ],
+    [
+     115.222339,
+     -2.952855
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 115.8,
+    "clear_frac": 0.988,
+    "burned_ha": 3.6
+   }
+  }
+ },
+ {
+  "region": "kalteng",
+  "day": "2025-09-26",
+  "lat": -0.05404,
+  "lon": 111.79757,
+  "first_seen": "2025-09-26T05:31:00+00:00",
+  "last_seen": "2025-09-26T05:31:00+00:00",
+  "hotspots": [
+   {
+    "lat": -0.05404,
+    "lon": 111.79757,
+    "at": "2025-09-26T05:31:00+00:00",
+    "confidence": "n",
+    "frp": 1.69,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-17",
+  "kind": "small",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    111.78859,
+    -0.06308,
+    111.80655,
+    -0.045
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-26T05:31:00+00:00",
+   "pixel_count": 243,
+   "burned_area_ha": 9.72,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2C_49MEV_20250924_0_L2A",
+    "datetime": "2025-09-24T02:58:21.925000Z",
+    "tile_cloud_pct": 26.5,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.385,
+    "mgrs_tile": "MGRS-49MEV"
+   },
+   "post": {
+    "id": "S2C_49MEV_20251103_0_L2A",
+    "datetime": "2025-11-03T02:58:19.929000Z",
+    "tile_cloud_pct": 88.4,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.228,
+    "mgrs_tile": "MGRS-49MEV"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 10199,
+   "clear_area_ha": 407.96,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.082,
+   "burned_pixel_count": 243,
+   "low_severity_pixel_count": 208,
+   "low_severity_area_ha": 8.32,
+   "reason": null,
+   "image_corners": [
+    [
+     111.788472,
+     -0.04487
+    ],
+    [
+     111.806624,
+     -0.04487
+    ],
+    [
+     111.806624,
+     -0.063144
+    ],
+    [
+     111.788473,
+     -0.063144
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.56,
+    "clear_frac": 1.0,
+    "burned_ha": 0.44
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-08-28",
+  "lat": -0.07536,
+  "lon": 109.48,
+  "first_seen": "2025-08-28T06:14:00+00:00",
+  "last_seen": "2025-08-28T06:14:00+00:00",
+  "hotspots": [
+   {
+    "lat": -0.07536,
+    "lon": 109.48,
+    "at": "2025-08-28T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 2.81,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-18",
+  "kind": "small",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    109.47102,
+    -0.0844,
+    109.48898,
+    -0.06632
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T06:14:00+00:00",
+   "pixel_count": 288,
+   "burned_area_ha": 11.52,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2B_49MCV_20250823_0_L2A",
+    "datetime": "2025-08-23T03:08:11.313000Z",
+    "tile_cloud_pct": 86.4,
+    "aoi_clear_frac": 0.769,
+    "aot_median": 0.258,
+    "mgrs_tile": "MGRS-49MCV"
+   },
+   "post": {
+    "id": "S2C_49MCV_20251007_0_L2A",
+    "datetime": "2025-10-07T03:08:23.685000Z",
+    "tile_cloud_pct": 13.9,
+    "aoi_clear_frac": 0.906,
+    "aot_median": 0.162,
+    "mgrs_tile": "MGRS-49MCV"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 7000,
+   "clear_area_ha": 280.0,
+   "dnbr_median": -0.268,
+   "dnbr_p95": 0.221,
+   "burned_pixel_count": 288,
+   "low_severity_pixel_count": 283,
+   "low_severity_area_ha": 11.32,
+   "reason": null,
+   "image_corners": [
+    [
+     109.470997,
+     -0.066203
+    ],
+    [
+     109.489144,
+     -0.066203
+    ],
+    [
+     109.489143,
+     -0.084472
+    ],
+    [
+     109.470996,
+     -0.084472
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.52,
+    "clear_frac": 0.878,
+    "burned_ha": 0.08
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-08-28",
+  "lat": -1.59013,
+  "lon": 110.67048,
+  "first_seen": "2025-08-29T05:55:00+00:00",
+  "last_seen": "2025-08-29T05:55:00+00:00",
+  "hotspots": [
+   {
+    "lat": -1.59013,
+    "lon": 110.67048,
+    "at": "2025-08-29T05:55:00+00:00",
+    "confidence": "l",
+    "frp": 5.88,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-19",
+  "kind": "medium",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    110.66149,
+    -1.59917,
+    110.67947,
+    -1.58109
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-29T05:55:00+00:00",
+   "pixel_count": 348,
+   "burned_area_ha": 13.92,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2B_49MDU_20250813_1_L2A",
+    "datetime": "2025-08-13T03:08:22.776000Z",
+    "tile_cloud_pct": 39.9,
+    "aoi_clear_frac": 0.652,
+    "aot_median": 0.112,
+    "mgrs_tile": "MGRS-49MDU"
+   },
+   "post": {
+    "id": "S2C_49MDU_20251007_0_L2A",
+    "datetime": "2025-10-07T03:08:35.015000Z",
+    "tile_cloud_pct": 8.6,
+    "aoi_clear_frac": 0.994,
+    "aot_median": 0.071,
+    "mgrs_tile": "MGRS-49MDU"
+   },
+   "aoi_pixel_count": 10100,
+   "valid_pixel_count": 6494,
+   "clear_area_ha": 259.76,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.289,
+   "burned_pixel_count": 348,
+   "low_severity_pixel_count": 261,
+   "low_severity_area_ha": 10.44,
+   "reason": null,
+   "image_corners": [
+    [
+     110.661433,
+     -1.581077
+    ],
+    [
+     110.679593,
+     -1.58108
+    ],
+    [
+     110.67959,
+     -1.599174
+    ],
+    [
+     110.66143,
+     -1.599171
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.52,
+    "clear_frac": 0.755,
+    "burned_ha": 0.32
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-08-28",
+  "lat": 0.03985,
+  "lon": 111.09202,
+  "first_seen": "2025-08-28T06:14:00+00:00",
+  "last_seen": "2025-08-28T06:14:00+00:00",
+  "hotspots": [
+   {
+    "lat": 0.03985,
+    "lon": 111.09202,
+    "at": "2025-08-28T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 4.94,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-20",
+  "kind": "small",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    111.08304,
+    0.03081,
+    111.101,
+    0.04889
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T06:14:00+00:00",
+   "pixel_count": 240,
+   "burned_area_ha": 9.6,
+   "status": "ok",
+   "epsg": 32649,
+   "pre": {
+    "id": "S2B_49NEA_20250823_0_L2A",
+    "datetime": "2025-08-23T03:07:50.022000Z",
+    "tile_cloud_pct": 73.3,
+    "aoi_clear_frac": 0.822,
+    "aot_median": 0.245,
+    "mgrs_tile": "MGRS-49NEA"
+   },
+   "post": {
+    "id": "S2C_49NEA_20251007_0_L2A",
+    "datetime": "2025-10-07T03:08:02.370000Z",
+    "tile_cloud_pct": 63.4,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.174,
+    "mgrs_tile": "MGRS-49NEA"
+   },
+   "aoi_pixel_count": 10100,
+   "valid_pixel_count": 8232,
+   "clear_area_ha": 329.28,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.218,
+   "burned_pixel_count": 240,
+   "low_severity_pixel_count": 744,
+   "low_severity_area_ha": 29.76,
+   "reason": null,
+   "image_corners": [
+    [
+     111.083038,
+     0.049036
+    ],
+    [
+     111.101011,
+     0.049036
+    ],
+    [
+     111.101011,
+     0.030761
+    ],
+    [
+     111.083038,
+     0.030761
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.68,
+    "clear_frac": 1.0,
+    "burned_ha": 0.2
+   }
+  }
+ },
+ {
+  "region": "riau",
+  "day": "2025-08-28",
+  "lat": 0.74393,
+  "lon": 101.46333,
+  "first_seen": "2025-08-28T18:55:00+00:00",
+  "last_seen": "2025-08-28T18:55:00+00:00",
+  "hotspots": [
+   {
+    "lat": 0.74393,
+    "lon": 101.46333,
+    "at": "2025-08-28T18:55:00+00:00",
+    "confidence": "n",
+    "frp": 0.94,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-21",
+  "kind": "small",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    101.45435,
+    0.73489,
+    101.47231,
+    0.75297
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T18:55:00+00:00",
+   "pixel_count": 107,
+   "burned_area_ha": 4.28,
+   "status": "ok",
+   "epsg": 32647,
+   "pre": {
+    "id": "S2B_47NQA_20250825_0_L2A",
+    "datetime": "2025-08-25T03:48:07.272000Z",
+    "tile_cloud_pct": 50.7,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.078,
+    "mgrs_tile": "MGRS-47NQA"
+   },
+   "post": {
+    "id": "S2B_47NQA_20251004_0_L2A",
+    "datetime": "2025-10-04T03:48:05.251000Z",
+    "tile_cloud_pct": 32.6,
+    "aoi_clear_frac": 0.745,
+    "aot_median": 0.084,
+    "mgrs_tile": "MGRS-47NQA"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 7553,
+   "clear_area_ha": 302.12,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.06,
+   "burned_pixel_count": 107,
+   "low_severity_pixel_count": 160,
+   "low_severity_area_ha": 6.4,
+   "reason": null,
+   "image_corners": [
+    [
+     101.454275,
+     0.753126
+    ],
+    [
+     101.472413,
+     0.753115
+    ],
+    [
+     101.472403,
+     0.734857
+    ],
+    [
+     101.454265,
+     0.734867
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.52,
+    "clear_frac": 0.712,
+    "burned_ha": 0.08
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-08-28",
+  "lat": -0.45126,
+  "lon": 110.52569,
+  "first_seen": "2025-08-28T06:14:00+00:00",
+  "last_seen": "2025-08-28T06:14:00+00:00",
+  "hotspots": [
+   {
+    "lat": -0.45126,
+    "lon": 110.52569,
+    "at": "2025-08-28T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 3.86,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-22",
+  "kind": "small",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    110.51671,
+    -0.4603,
+    110.53467,
+    -0.44222
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T06:14:00+00:00",
+   "pixel_count": 120,
+   "burned_area_ha": 4.8,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2B_49MDV_20250803_0_L2A",
+    "datetime": "2025-08-03T03:08:06.689000Z",
+    "tile_cloud_pct": 78.6,
+    "aoi_clear_frac": 0.963,
+    "aot_median": 0.285,
+    "mgrs_tile": "MGRS-49MDV"
+   },
+   "post": {
+    "id": "S2B_49MDV_20250922_0_L2A",
+    "datetime": "2025-09-22T03:08:05.020000Z",
+    "tile_cloud_pct": 46.7,
+    "aoi_clear_frac": 0.966,
+    "aot_median": 0.137,
+    "mgrs_tile": "MGRS-49MDV"
+   },
+   "aoi_pixel_count": 10100,
+   "valid_pixel_count": 9314,
+   "clear_area_ha": 372.56,
+   "dnbr_median": 0.099,
+   "dnbr_p95": 0.223,
+   "burned_pixel_count": 120,
+   "low_severity_pixel_count": 4491,
+   "low_severity_area_ha": 179.64,
+   "reason": null,
+   "image_corners": [
+    [
+     110.516684,
+     -0.442217
+    ],
+    [
+     110.534837,
+     -0.442218
+    ],
+    [
+     110.534836,
+     -0.460312
+    ],
+    [
+     110.516683,
+     -0.460311
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.8,
+    "clear_frac": 0.988,
+    "burned_ha": 0.24
+   }
+  }
+ },
+ {
+  "region": "kalteng",
+  "day": "2025-09-26",
+  "lat": -0.51656,
+  "lon": 112.32175,
+  "first_seen": "2025-09-27T05:12:00+00:00",
+  "last_seen": "2025-09-27T05:12:00+00:00",
+  "hotspots": [
+   {
+    "lat": -0.51656,
+    "lon": 112.32175,
+    "at": "2025-09-27T05:12:00+00:00",
+    "confidence": "n",
+    "frp": 2.72,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-23",
+  "kind": "small",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    112.31277,
+    -0.5256,
+    112.33073,
+    -0.50752
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-09-27T05:12:00+00:00",
+   "pixel_count": 6,
+   "burned_area_ha": 0.24,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2C_49MFV_20250924_0_L2A",
+    "datetime": "2025-09-24T02:58:19.025000Z",
+    "tile_cloud_pct": 30.7,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.194,
+    "mgrs_tile": "MGRS-49MFV"
+   },
+   "post": {
+    "id": "S2C_49MFV_20251103_0_L2A",
+    "datetime": "2025-11-03T02:58:17.041000Z",
+    "tile_cloud_pct": 48.0,
+    "aoi_clear_frac": 0.764,
+    "aot_median": 0.173,
+    "mgrs_tile": "MGRS-49MFV"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 7538,
+   "clear_area_ha": 301.52,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.032,
+   "burned_pixel_count": 6,
+   "low_severity_pixel_count": 36,
+   "low_severity_area_ha": 1.44,
+   "reason": null,
+   "image_corners": [
+    [
+     112.31272,
+     -0.50742
+    ],
+    [
+     112.330869,
+     -0.507416
+    ],
+    [
+     112.330872,
+     -0.525687
+    ],
+    [
+     112.312723,
+     -0.525691
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.52,
+    "clear_frac": 0.888,
+    "burned_ha": 0.12
+   }
+  }
+ },
+ {
+  "region": "kalteng",
+  "day": "2025-08-28",
+  "lat": -1.81957,
+  "lon": 115.35416,
+  "first_seen": "2025-08-29T05:54:00+00:00",
+  "last_seen": "2025-08-29T05:54:00+00:00",
+  "hotspots": [
+   {
+    "lat": -1.81957,
+    "lon": 115.35416,
+    "at": "2025-08-29T05:54:00+00:00",
+    "confidence": "n",
+    "frp": 3.85,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-24",
+  "kind": "small",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    115.34517,
+    -1.82861,
+    115.36315,
+    -1.81053
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-29T05:54:00+00:00",
+   "pixel_count": 32,
+   "burned_area_ha": 1.28,
+   "status": "ok",
+   "epsg": 32750,
+   "pre": {
+    "id": "S2C_50MLC_20250812_0_L2A",
+    "datetime": "2025-08-12T02:48:45.457000Z",
+    "tile_cloud_pct": 82.7,
+    "aoi_clear_frac": 0.682,
+    "aot_median": 0.22,
+    "mgrs_tile": "MGRS-50MLC"
+   },
+   "post": {
+    "id": "S2A_50MLC_20250923_0_L2A",
+    "datetime": "2025-09-23T02:48:41.788000Z",
+    "tile_cloud_pct": 30.5,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.095,
+    "mgrs_tile": "MGRS-50MLC"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 6898,
+   "clear_area_ha": 275.92,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.0,
+   "burned_pixel_count": 32,
+   "low_severity_pixel_count": 16,
+   "low_severity_area_ha": 0.64,
+   "reason": null,
+   "image_corners": [
+    [
+     115.34513,
+     -1.810506
+    ],
+    [
+     115.363285,
+     -1.810523
+    ],
+    [
+     115.363268,
+     -1.828791
+    ],
+    [
+     115.345113,
+     -1.828774
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.48,
+    "clear_frac": 0.619,
+    "burned_ha": 0.12
+   }
+  }
+ },
+ {
+  "region": "sumsel_jambi",
+  "day": "2025-08-28",
+  "lat": -3.59799,
+  "lon": 103.62806,
+  "first_seen": "2025-08-28T06:13:00+00:00",
+  "last_seen": "2025-08-28T06:13:00+00:00",
+  "hotspots": [
+   {
+    "lat": -3.59799,
+    "lon": 103.62806,
+    "at": "2025-08-28T06:13:00+00:00",
+    "confidence": "n",
+    "frp": 3.02,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-25",
+  "kind": "small",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    103.61906,
+    -3.60703,
+    103.63706,
+    -3.58895
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T06:13:00+00:00",
+   "pixel_count": 215,
+   "burned_area_ha": 8.6,
+   "status": "ok",
+   "epsg": 32748,
+   "pre": {
+    "id": "S2A_48MUB_20250826_0_L2A",
+    "datetime": "2025-08-26T03:29:19.174000Z",
+    "tile_cloud_pct": 1.4,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.072,
+    "mgrs_tile": "MGRS-48MUB"
+   },
+   "post": {
+    "id": "S2C_48MUB_20250923_0_L2A",
+    "datetime": "2025-09-23T03:29:19.080000Z",
+    "tile_cloud_pct": 49.6,
+    "aoi_clear_frac": 0.82,
+    "aot_median": 0.18,
+    "mgrs_tile": "MGRS-48MUB"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 8364,
+   "clear_area_ha": 334.56,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.132,
+   "burned_pixel_count": 215,
+   "low_severity_pixel_count": 386,
+   "low_severity_area_ha": 15.44,
+   "reason": null,
+   "image_corners": [
+    [
+     103.619056,
+     -3.58888
+    ],
+    [
+     103.637239,
+     -3.588907
+    ],
+    [
+     103.637212,
+     -3.607177
+    ],
+    [
+     103.619028,
+     -3.60715
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.44,
+    "clear_frac": 0.888,
+    "burned_ha": 0.36
+   }
+  }
+ },
+ {
+  "region": "kalteng",
+  "day": "2025-08-28",
+  "lat": -1.45644,
+  "lon": 113.89716,
+  "first_seen": "2025-08-29T05:55:00+00:00",
+  "last_seen": "2025-08-29T05:55:00+00:00",
+  "hotspots": [
+   {
+    "lat": -1.45644,
+    "lon": 113.89716,
+    "at": "2025-08-29T05:55:00+00:00",
+    "confidence": "n",
+    "frp": 2.6,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-26",
+  "kind": "small",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    113.88817,
+    -1.46548,
+    113.90615,
+    -1.4474
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-29T05:55:00+00:00",
+   "pixel_count": 111,
+   "burned_area_ha": 4.44,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2B_49MHU_20250810_0_L2A",
+    "datetime": "2025-08-10T02:58:14.189000Z",
+    "tile_cloud_pct": 18.3,
+    "aoi_clear_frac": 0.936,
+    "aot_median": 0.096,
+    "mgrs_tile": "MGRS-49MHU"
+   },
+   "post": {
+    "id": "S2C_49MHU_20251001_0_L2A",
+    "datetime": "2025-10-01T02:48:32.878000Z",
+    "tile_cloud_pct": 28.8,
+    "aoi_clear_frac": 0.978,
+    "aot_median": 0.186,
+    "mgrs_tile": "MGRS-49MHU"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 9299,
+   "clear_area_ha": 371.96,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.121,
+   "burned_pixel_count": 111,
+   "low_severity_pixel_count": 491,
+   "low_severity_area_ha": 19.64,
+   "reason": null,
+   "image_corners": [
+    [
+     113.888026,
+     -1.447343
+    ],
+    [
+     113.906161,
+     -1.44732
+    ],
+    [
+     113.906185,
+     -1.465572
+    ],
+    [
+     113.888049,
+     -1.465595
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.4,
+    "clear_frac": 0.988,
+    "burned_ha": 0.24
+   }
+  }
+ },
+ {
+  "region": "sumsel_jambi",
+  "day": "2025-08-28",
+  "lat": -2.93803,
+  "lon": 104.73598,
+  "first_seen": "2025-08-29T18:37:00+00:00",
+  "last_seen": "2025-08-29T18:37:00+00:00",
+  "hotspots": [
+   {
+    "lat": -2.93803,
+    "lon": 104.73598,
+    "at": "2025-08-29T18:37:00+00:00",
+    "confidence": "n",
+    "frp": 1.05,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-27",
+  "kind": "small",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    104.72699,
+    -2.94707,
+    104.74497,
+    -2.92899
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-29T18:37:00+00:00",
+   "pixel_count": 81,
+   "burned_area_ha": 3.24,
+   "status": "ok",
+   "epsg": 32748,
+   "pre": {
+    "id": "S2A_48MVB_20250826_0_L2A",
+    "datetime": "2025-08-26T03:29:15.998000Z",
+    "tile_cloud_pct": 2.3,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.126,
+    "mgrs_tile": "MGRS-48MVB"
+   },
+   "post": {
+    "id": "S2C_48MVB_20250923_0_L2A",
+    "datetime": "2025-09-23T03:29:15.887000Z",
+    "tile_cloud_pct": 47.9,
+    "aoi_clear_frac": 0.748,
+    "aot_median": 0.156,
+    "mgrs_tile": "MGRS-48MVB"
+   },
+   "aoi_pixel_count": 10100,
+   "valid_pixel_count": 7528,
+   "clear_area_ha": 301.12,
+   "dnbr_median": -0.021,
+   "dnbr_p95": 0.136,
+   "burned_pixel_count": 81,
+   "low_severity_pixel_count": 570,
+   "low_severity_area_ha": 22.8,
+   "reason": null,
+   "image_corners": [
+    [
+     104.726989,
+     -2.928918
+    ],
+    [
+     104.744986,
+     -2.928923
+    ],
+    [
+     104.744981,
+     -2.947197
+    ],
+    [
+     104.726984,
+     -2.947193
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.36,
+    "clear_frac": 0.855,
+    "burned_ha": 0.12
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-08-28",
+  "lat": -0.64022,
+  "lon": 110.02969,
+  "first_seen": "2025-08-29T05:55:00+00:00",
+  "last_seen": "2025-08-29T05:55:00+00:00",
+  "hotspots": [
+   {
+    "lat": -0.64022,
+    "lon": 110.02969,
+    "at": "2025-08-29T05:55:00+00:00",
+    "confidence": "n",
+    "frp": 3.52,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-28",
+  "kind": "small",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    110.02071,
+    -0.64926,
+    110.03867,
+    -0.63118
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-29T05:55:00+00:00",
+   "pixel_count": 172,
+   "burned_area_ha": 6.88,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2C_49MCV_20250818_0_L2A",
+    "datetime": "2025-08-18T03:08:28.724000Z",
+    "tile_cloud_pct": 65.2,
+    "aoi_clear_frac": 0.766,
+    "aot_median": 0.283,
+    "mgrs_tile": "MGRS-49MCV"
+   },
+   "post": {
+    "id": "S2C_49MCV_20251007_0_L2A",
+    "datetime": "2025-10-07T03:08:23.685000Z",
+    "tile_cloud_pct": 13.9,
+    "aoi_clear_frac": 0.968,
+    "aot_median": 0.173,
+    "mgrs_tile": "MGRS-49MCV"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 7467,
+   "clear_area_ha": 298.68,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.086,
+   "burned_pixel_count": 172,
+   "low_severity_pixel_count": 175,
+   "low_severity_area_ha": 7.0,
+   "reason": null,
+   "image_corners": [
+    [
+     110.020613,
+     -0.631048
+    ],
+    [
+     110.038765,
+     -0.631051
+    ],
+    [
+     110.038762,
+     -0.649324
+    ],
+    [
+     110.02061,
+     -0.64932
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.6,
+    "clear_frac": 0.837,
+    "burned_ha": 0.32
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-08-28",
+  "lat": 0.67496,
+  "lon": 109.2906,
+  "first_seen": "2025-08-28T06:14:00+00:00",
+  "last_seen": "2025-08-28T06:14:00+00:00",
+  "hotspots": [
+   {
+    "lat": 0.67496,
+    "lon": 109.2906,
+    "at": "2025-08-28T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 5.34,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-29",
+  "kind": "medium",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    109.28162,
+    0.66592,
+    109.29958,
+    0.684
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T06:14:00+00:00",
+   "pixel_count": 634,
+   "burned_area_ha": 25.36,
+   "status": "ok",
+   "epsg": 32649,
+   "pre": {
+    "id": "S2B_49NCA_20250826_0_L2A",
+    "datetime": "2025-08-26T03:17:50.610000Z",
+    "tile_cloud_pct": 2.4,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.195,
+    "mgrs_tile": "MGRS-49NCA"
+   },
+   "post": {
+    "id": "S2B_49NCA_20251005_0_L2A",
+    "datetime": "2025-10-05T03:17:48.473000Z",
+    "tile_cloud_pct": 83.2,
+    "aoi_clear_frac": 0.817,
+    "aot_median": 0.195,
+    "mgrs_tile": "MGRS-49NCA"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 8316,
+   "clear_area_ha": 332.64,
+   "dnbr_median": 0.054,
+   "dnbr_p95": 0.32,
+   "burned_pixel_count": 634,
+   "low_severity_pixel_count": 2315,
+   "low_severity_area_ha": 92.6,
+   "reason": null,
+   "image_corners": [
+    [
+     109.281512,
+     0.684029
+    ],
+    [
+     109.299658,
+     0.684035
+    ],
+    [
+     109.299665,
+     0.665768
+    ],
+    [
+     109.281519,
+     0.665761
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.56,
+    "clear_frac": 0.909,
+    "burned_ha": 0.0
+   }
+  }
+ },
+ {
+  "region": "kalbar",
+  "day": "2025-08-28",
+  "lat": -1.10406,
+  "lon": 111.43173,
+  "first_seen": "2025-08-28T06:14:00+00:00",
+  "last_seen": "2025-08-28T06:14:00+00:00",
+  "hotspots": [
+   {
+    "lat": -1.10406,
+    "lon": 111.43173,
+    "at": "2025-08-28T06:14:00+00:00",
+    "confidence": "n",
+    "frp": 8.02,
+    "type": "0"
+   }
+  ],
+  "id": "EVAL-30",
+  "kind": "medium",
+  "label": "not_burned",
+  "dnbr": {
+   "aoi_bbox": [
+    111.42275,
+    -1.1131,
+    111.44071,
+    -1.09502
+   ],
+   "pixel_size_m": 20,
+   "method": "dnbr",
+   "dnbr_threshold": 0.27,
+   "low_severity_threshold": 0.1,
+   "min_nbr_sum": 0.05,
+   "first_seen": "2025-08-28T06:14:00+00:00",
+   "pixel_count": 7,
+   "burned_area_ha": 0.28,
+   "status": "ok",
+   "epsg": 32749,
+   "pre": {
+    "id": "S2C_49MEU_20250818_0_L2A",
+    "datetime": "2025-08-18T03:08:36.647000Z",
+    "tile_cloud_pct": 54.9,
+    "aoi_clear_frac": 0.926,
+    "aot_median": 0.093,
+    "mgrs_tile": "MGRS-49MEU"
+   },
+   "post": {
+    "id": "S2C_49MEU_20251007_0_L2A",
+    "datetime": "2025-10-07T03:08:31.605000Z",
+    "tile_cloud_pct": 10.3,
+    "aoi_clear_frac": 1.0,
+    "aot_median": 0.064,
+    "mgrs_tile": "MGRS-49MEU"
+   },
+   "aoi_pixel_count": 10201,
+   "valid_pixel_count": 9001,
+   "clear_area_ha": 360.04,
+   "dnbr_median": 0.0,
+   "dnbr_p95": 0.0,
+   "burned_pixel_count": 7,
+   "low_severity_pixel_count": 15,
+   "low_severity_area_ha": 0.6,
+   "reason": null,
+   "image_corners": [
+    [
+     111.42263,
+     -1.094875
+    ],
+    [
+     111.440786,
+     -1.094872
+    ],
+    [
+     111.440788,
+     -1.113147
+    ],
+    [
+     111.422632,
+     -1.11315
+    ]
+   ],
+   "near": {
+    "radius_m": 500,
+    "area_ha": 78.56,
+    "clear_frac": 1.0,
+    "burned_ha": 0.24
+   }
+  }
+ }
+]

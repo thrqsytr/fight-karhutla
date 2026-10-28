@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin_settings, agent, db, drone_missions, drone_replay, share, evidence, ingest, intake, reports, satellite, source_status, triage_control
+from . import admin_settings, agent, db, drone_missions, drone_replay, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -682,7 +682,7 @@ def auth_check() -> dict:
 def admin_overview(settings: Settings = Depends(get_settings)) -> dict:
     with db.session(settings.db_path) as conn:
         runs = [dict(r) for r in conn.execute(
-            "SELECT incident_id, started_at, outcome, seconds, cost_usd FROM agent_runs ORDER BY id DESC LIMIT 15")]
+            "SELECT incident_id, started_at, outcome, seconds, cost_usd FROM agent_runs WHERE incident_id NOT IN (SELECT id FROM incidents WHERE simulation=1) ORDER BY id DESC LIMIT 15")]
         counts = {
             "incidents": conn.execute("SELECT COUNT(*) FROM incidents").fetchone()[0],
             "hotspots": conn.execute("SELECT COUNT(*) FROM hotspots").fetchone()[0],
@@ -690,7 +690,8 @@ def admin_overview(settings: Settings = Depends(get_settings)) -> dict:
             "satellite_pairs": conn.execute("SELECT COUNT(*) FROM evidence WHERE type='satellite'").fetchone()[0],
             "triaged": conn.execute("SELECT COUNT(*) FROM incidents WHERE triage_json IS NOT NULL").fetchone()[0],
         }
-        total = conn.execute("SELECT COUNT(*), COALESCE(SUM(cost_usd), 0) FROM agent_runs").fetchone()
+        # Replayed runs carry the cost of their recording; they are not spend on this server.
+        total = conn.execute("SELECT COUNT(*), COALESCE(SUM(cost_usd), 0) FROM agent_runs WHERE incident_id NOT IN (SELECT id FROM incidents WHERE simulation=1)").fetchone()
         return {
             "settings": admin_settings.describe(settings, conn),
             "schedule": admin_settings.schedule(settings, conn),
@@ -698,6 +699,7 @@ def admin_overview(settings: Settings = Depends(get_settings)) -> dict:
             "counts": counts, "recent_runs": runs,
             "spend_total": {"runs": total[0], "cost_usd": round(total[1], 4)},
             "sources": source_status.snapshot(settings),
+            "replay": {"loaded": replay._loaded(conn), "cases": replay.summaries(settings.replay_dir)},
             "build": {"git_sha": settings.git_sha, "fixture_mode": settings.fixture_mode, "scheduler_enabled": settings.scheduler_enabled,
                       "model_configured": bool(settings.model_api_key), "baseten_configured": bool(settings.baseten_api_key)},
         }
@@ -745,10 +747,23 @@ def run_ingest(settings: Settings = Depends(get_settings)) -> dict:
     return ingest.run_once(settings)
 
 
+@app.get("/api/replay", dependencies=[Depends(require_verifier)])
+def replay_status(settings: Settings = Depends(get_settings)) -> dict:
+    return replay.status(settings)
+
+
 @app.post("/api/replay/start", dependencies=[Depends(require_verifier)])
-def replay_start() -> JSONResponse:
-    # Replay of three historical incidents lands on Day 7 (spec section 10). Saying so beats a silent no-op.
-    return JSONResponse(status_code=501, content={"detail": "replay mode is not built yet"})
+def replay_start(settings: Settings = Depends(get_settings)) -> dict:
+    """Load the three recorded historical incidents as SIMULASI. Works offline; a second call changes nothing."""
+    try:
+        return replay.start(settings)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@app.delete("/api/replay", dependencies=[Depends(require_verifier)])
+def replay_stop(settings: Settings = Depends(get_settings)) -> dict:
+    return replay.stop(settings)
 
 
 class RevalidatedStaticFiles(StaticFiles):

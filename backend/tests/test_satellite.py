@@ -1,5 +1,6 @@
 """Sentinel-2 pair selection and dNBR, with synthetic scenes: no network."""
 
+import json
 from datetime import datetime, timezone
 
 import numpy as np
@@ -46,6 +47,23 @@ def scenes(post_aot=300, post_scl=4, burned_left=True):
     return reader, search_fn
 
 
+def test_dark_pixels_are_not_counted_as_burned(tmp_path):
+    """Water or deep shadow in the after image: reflectance near zero would make NBR explode, so it is excluded."""
+    base, search_fn = scenes(burned_left=False)
+
+    def reader(href, bounds, shape, resampling, bands=1):
+        a = base(href, bounds, shape, resampling, bands)
+        if "post/" in href and href.endswith(("nir", "swir22")):
+            a[0, :, : shape[1] // 2] = 1010  # reflectance 0.001: dark
+        return a
+
+    r = sentinel.satellite_pair(POINTS, FIRST_SEEN, now=NOW, cache_dir=tmp_path, reader=reader, search_fn=search_fn)
+    rows, cols = r["_render"]["shape"]
+    assert r["status"] == "ok" and r["pixel_count"] == 0
+    assert r["valid_pixel_count"] == rows * (cols - cols // 2)
+    assert -2 <= r["dnbr_p95"] <= 2
+
+
 def test_dnbr_counts_burned_pixels_at_20_m(tmp_path):
     reader, search_fn = scenes()
     r = sentinel.satellite_pair(POINTS, FIRST_SEEN, now=NOW, cache_dir=tmp_path, reader=reader, search_fn=search_fn)
@@ -90,6 +108,13 @@ def test_collect_stores_evidence_images_and_gate_recomputes_area(settings):
         r = satellite.collect(settings, inc_id, now=NOW, reader=reader, search_fn=search_fn)
         assert r["reused"] is False
         assert satellite.collect(settings, inc_id, now=NOW, reader=reader, search_fn=search_fn)["reused"] is True
+        # A pair stored before the dark-pixel guard is measured again rather than reused.
+        with db.session(settings.db_path) as conn:
+            row = conn.execute("SELECT id, payload_json FROM evidence WHERE id=?", (f"{inc_id}/{r['evidence_id']}",)).fetchone()
+            legacy = {k: v for k, v in json.loads(row["payload_json"]).items() if k != "min_nbr_sum"}
+            conn.execute("UPDATE evidence SET payload_json=? WHERE id=?", (json.dumps(legacy), row["id"]))
+        again = satellite.collect(settings, inc_id, now=NOW, reader=reader, search_fn=search_fn)
+        assert again["reused"] is False and again["evidence_id"] != r["evidence_id"]
         with db.session(settings.db_path) as conn:
             evs = db.list_evidence(conn, inc_id)
         ev = next(e for e in evs if e["id"] == r["evidence_id"])

@@ -40,6 +40,14 @@ const ADMIN_ID = {
   "30 min": "30 menit", "1 h": "1 jam", "3 h": "3 jam", "6 h": "6 jam", "12 h": "12 jam", "1 day": "1 hari", "2 days": "2 hari",
   "Data sources": "Sumber data", "State": "Status", "Last checked": "Terakhir dicek",
   "ok": "aktif", "error": "gangguan", "sim": "simulasi", "unknown": "belum dicek",
+  "Demo replay": "Replay demo", "Load replay": "Muat replay", "Remove replay": "Hapus replay", "Remove": "Hapus", "Cancel": "Batal",
+  "Three recorded incidents from the 2025 dry season (clearly burned, false positive, needs more info), loaded as SIMULASI. They come from files in the app, so loading needs no network and no model call.":
+    "Tiga insiden rekaman dari musim kemarau 2025 (jelas terbakar, positif palsu, butuh info tambahan), dimuat sebagai SIMULASI. Datanya dari berkas di aplikasi, jadi memuatnya tidak perlu jaringan dan tidak memanggil model.",
+  "Not loaded": "Belum dimuat", "{n} incidents loaded": "{n} insiden dimuat", "No recorded cases in this build.": "Build ini tidak berisi kasus rekaman.",
+  "Replay loaded.": "Replay dimuat.", "Replay was already loaded.": "Replay sudah dimuat.", "Replay removed.": "Replay dihapus.", "Failed: {e}": "Gagal: {e}",
+  "Remove the replayed incidents, their evidence, and any verdicts given on them? Real incidents are not touched, and the replay can be loaded again.":
+    "Hapus insiden replay, buktinya, dan keputusan yang sudah diberikan padanya? Insiden nyata tidak tersentuh, dan replay bisa dimuat lagi.",
+  "Open on map": "Buka di peta", "Recorded with {m}.": "Direkam dengan {m}.",
 };
 const t = makeT({ ...ADMIN_ID, ...VERIFIER_ID }, "en");
 const INTERVAL_LABEL = { 30: "30 min", 60: "1 h", 180: "3 h", 360: "6 h", 720: "12 h", 1440: "1 day", 2880: "2 days" };
@@ -184,11 +192,46 @@ function render() {
         d.recent_runs.map((r) => el("tr", {}, el("td", { class: "mono" }, r.incident_id), el("td", {}, fmtTime(r.started_at)),
           el("td", {}, r.outcome), el("td", { class: "num" }, r.seconds == null ? "" : Math.round(r.seconds)), el("td", { class: "num" }, r.cost_usd == null ? "" : `$${r.cost_usd.toFixed(3)}`)))))
         : el("p", { class: "empty" }, t("No triage runs yet."))),
+    replayCard(d.replay),
     n ? el("div", { class: "card admin-savebar" }, el("span", {}, t("{n} unsaved change(s)", { n })),
       el("div", { class: "actions" }, el("button", { class: "btn", type: "button", onclick: () => { state.pending = {}; render(); } }, t("Discard")),
         el("button", { class: "btn btn-primary", type: "button", onclick: save }, svg("check", "icon icon-sm"), t("Save")))) : null,
   );
   hydrateIcons($("#admin-body"));
+}
+
+function replayCard(r) {
+  const run = async (btn, method, path, done) => {
+    btn.disabled = true;
+    try {
+      const res = await api(path, { method });
+      toast(t(done(res)), "check");
+      load();
+    } catch (e) {
+      toast(t("Failed: {e}", { e: e.message }), "alert");
+      btn.disabled = false;
+    }
+  };
+  const loadBtn = el("button", { class: "btn btn-primary", type: "button" }, svg("play", "icon icon-sm"), t("Load replay"));
+  loadBtn.onclick = () => run(loadBtn, "POST", "/api/replay/start", (res) => (res.started ? "Replay loaded." : "Replay was already loaded."));
+  const removeBtn = el("button", { class: "btn", type: "button" }, svg("trash", "icon icon-sm"), t("Remove replay"));
+  removeBtn.onclick = () => {
+    const ok = el("button", { class: "btn btn-primary", type: "button" }, t("Remove"));
+    const dlg = modal({ title: t("Remove replay"), body: [el("p", { style: "margin:0" }, t("Remove the replayed incidents, their evidence, and any verdicts given on them? Real incidents are not touched, and the replay can be loaded again."))],
+      actions: [el("button", { class: "btn", type: "button", onclick: () => dlg.close() }, t("Cancel")), ok] });
+    ok.onclick = () => { dlg.close(); run(removeBtn, "DELETE", "/api/replay", () => "Replay removed."); };
+  };
+  return card("play", t("Demo replay"),
+    el("p", { class: "muted", style: "margin:0" }, t("Three recorded incidents from the 2025 dry season (clearly burned, false positive, needs more info), loaded as SIMULASI. They come from files in the app, so loading needs no network and no model call.")),
+    el("dl", { class: "kv" }, kvRow(t("State"), r.loaded.length ? t("{n} incidents loaded", { n: r.loaded.length }) : t("Not loaded"))),
+    el("ul", { class: "replay-cases" }, r.cases.map((c, i) => {
+      const id = r.loaded[i];
+      return el("li", {}, el("div", { class: "replay-case-head" }, el("strong", {}, c.title[lang()] || c.title.en),
+        id ? el("a", { href: `/?incident=${encodeURIComponent(id)}`, class: "mono" }, id) : null, id ? el("span", { class: "pill pill-sim" }, "SIMULASI") : null),
+        el("p", { class: "muted" }, (c.note && (c.note[lang()] || c.note.en)) || ""));
+    })),
+    r.cases.length ? el("div", { class: "actions" }, r.loaded.length ? removeBtn : loadBtn) : el("p", { class: "empty" }, t("No recorded cases in this build.")),
+    r.cases.length ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("Recorded with {m}.", { m: r.cases[0].recorded_with })) : null);
 }
 
 async function load() {

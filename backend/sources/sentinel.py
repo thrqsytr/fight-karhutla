@@ -34,6 +34,7 @@ CLEAR_CLASSES = (2, 4, 5, 7)
 DNBR_BURNED = 0.27  # USGS (Key and Benson) moderate-low severity and above
 DNBR_LOW = 0.10  # low severity starts here; reported separately, never counted as burned
 MIN_CLEAR = 0.6  # share of the area of interest that must be clear in an image
+MIN_NBR_SUM = 0.05  # NIR + SWIR2 reflectance below this is water or deep shadow: NBR is noise there
 HEAVY_HAZE_AOT = 0.8  # aerosol optical thickness above this: smoke distorts NIR, so no hectares are claimed
 MAX_TILE_CLOUD = 90
 MAX_CANDIDATES = 6
@@ -43,6 +44,8 @@ AOI_BUFFER_M = 750
 AOI_MIN_HALF_M = 1000
 AOI_MAX_HALF_M = 5000
 READ_ATTEMPTS = 3
+HTTP_TIMEOUT_S = 20
+RGB_SCALE = 2  # true color pixels per analysis pixel per side: 2 is the native 10 m, 1 reads the 20 m overview
 
 # reader(href, bounds, shape, resampling, bands) -> array (bands, rows, cols)
 Reader = Callable[[str, tuple, tuple, str, int], np.ndarray]
@@ -80,7 +83,7 @@ def read_window(href: str, bounds: tuple, shape: tuple, resampling: str, bands: 
     from rasterio.enums import Resampling
     from rasterio.windows import from_bounds
 
-    env = {"GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR", "CPL_VSIL_CURL_ALLOWED_EXTENSIONS": ".tif", "GDAL_HTTP_TIMEOUT": "20", "GDAL_HTTP_MAX_RETRY": "2"}
+    env = {"GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR", "CPL_VSIL_CURL_ALLOWED_EXTENSIONS": ".tif", "GDAL_HTTP_TIMEOUT": str(HTTP_TIMEOUT_S), "GDAL_HTTP_MAX_RETRY": "2"}
     last = None
     # A range request can come back short (seen on 2026-10-28: a truncated TCI tile); a fresh read usually works.
     for attempt in range(READ_ATTEMPTS):
@@ -144,17 +147,22 @@ def _choose(items: list[dict], bounds: tuple, shape: tuple, reader: Reader) -> t
     return hazy
 
 
-def _nbr(item: dict, bounds: tuple, shape: tuple, reader: Reader) -> np.ndarray:
+def _nbr(item: dict, bounds: tuple, shape: tuple, reader: Reader) -> tuple[np.ndarray, np.ndarray]:
+    """NBR and where it means something. Reflectance is DN * scale + offset (offset -0.1 since baseline 04.00),
+    so dark pixels go to zero or below and the ratio explodes (dNBR values in the hundreds were seen on
+    2026-10-28). Those pixels are returned as not usable rather than counted."""
     ns, no = _scale(item, "nir")
     ss, so = _scale(item, "swir22")
-    nir = reader(item["assets"]["nir"]["href"], bounds, shape, "average", 1)[0].astype("f4") * ns + no
-    swir = reader(item["assets"]["swir22"]["href"], bounds, shape, "nearest", 1)[0].astype("f4") * ss + so
-    return (nir - swir) / np.maximum(nir + swir, 1e-4)
+    nir = np.clip(reader(item["assets"]["nir"]["href"], bounds, shape, "average", 1)[0].astype("f4") * ns + no, 0, None)
+    swir = np.clip(reader(item["assets"]["swir22"]["href"], bounds, shape, "nearest", 1)[0].astype("f4") * ss + so, 0, None)
+    total = nir + swir
+    ok = total >= MIN_NBR_SUM
+    return np.where(ok, (nir - swir) / np.maximum(total, MIN_NBR_SUM), 0.0), ok
 
 
 def _rgb(item: dict, bounds: tuple, shape: tuple, reader: Reader) -> np.ndarray:
-    # True color at 10 m: twice the analysis grid in each direction.
-    return np.transpose(reader(item["assets"]["visual"]["href"], bounds, (shape[0] * 2, shape[1] * 2), "bilinear", 3), (1, 2, 0)).astype("u1")
+    # True color at 10 m by default: twice the analysis grid in each direction.
+    return np.transpose(reader(item["assets"]["visual"]["href"], bounds, (shape[0] * RGB_SCALE, shape[1] * RGB_SCALE), "bilinear", 3), (1, 2, 0)).astype("u1")
 
 
 def satellite_pair(points: list[tuple[float, float]], first_seen: datetime, *, now: datetime, cache_dir: Path,
@@ -165,7 +173,7 @@ def satellite_pair(points: list[tuple[float, float]], first_seen: datetime, *, n
     which is what the evidence gate turns into hectares. Arrays for rendering are under "_render" and are not stored.
     """
     bbox = aoi_bbox(points)
-    base = {"aoi_bbox": bbox, "pixel_size_m": PIXEL_M, "method": "dnbr", "dnbr_threshold": DNBR_BURNED, "low_severity_threshold": DNBR_LOW,
+    base = {"aoi_bbox": bbox, "pixel_size_m": PIXEL_M, "method": "dnbr", "dnbr_threshold": DNBR_BURNED, "low_severity_threshold": DNBR_LOW, "min_nbr_sum": MIN_NBR_SUM,
             "first_seen": first_seen.isoformat(), "pixel_count": None, "burned_area_ha": None}
     post_items = [i for i in search_fn(bbox, first_seen, now, cache_dir=cache_dir) if i["properties"]["datetime"] > first_seen.isoformat()[:19]]
     if not post_items:
@@ -182,8 +190,10 @@ def satellite_pair(points: list[tuple[float, float]], first_seen: datetime, *, n
         return {**base, "status": "no_pre_image", "post": _summary(post[0], post[1], post[2]),
                 "reason": f"no clear Sentinel-2 scene in the {PRE_WINDOW_DAYS} days before the first detection"}
 
-    valid = pre[3] & post[3]
-    dnbr = _nbr(pre[0], bounds, shape, reader) - _nbr(post[0], bounds, shape, reader)
+    pre_nbr, pre_ok = _nbr(pre[0], bounds, shape, reader)
+    post_nbr, post_ok = _nbr(post[0], bounds, shape, reader)
+    valid = pre[3] & post[3] & pre_ok & post_ok
+    dnbr = pre_nbr - post_nbr
     burned = valid & (dnbr >= DNBR_BURNED)
     low = valid & (dnbr >= DNBR_LOW) & ~burned
     px_ha = PIXEL_M * PIXEL_M / 10_000
@@ -214,7 +224,7 @@ def satellite_pair(points: list[tuple[float, float]], first_seen: datetime, *, n
     # Corners of the analysis grid in lon/lat (top left, top right, bottom right, bottom left), for the map overlay.
     lons, lats = transform(f"EPSG:{epsg}", "EPSG:4326", [bounds[0], bounds[2], bounds[2], bounds[0]], [bounds[3], bounds[3], bounds[1], bounds[1]])
     out["image_corners"] = [[round(a, 6), round(b, 6)] for a, b in zip(lons, lats)]
-    out["_render"] = {"pre": pre[0], "post": post[0], "bounds": bounds, "shape": shape, "burned": burned, "reader": reader}
+    out["_render"] = {"pre": pre[0], "post": post[0], "bounds": bounds, "shape": shape, "burned": burned, "valid": valid, "epsg": epsg, "reader": reader}
     return out
 
 
@@ -231,7 +241,7 @@ def render_pngs(render: dict) -> dict[str, bytes]:
 
     pre = _rgb(render["pre"], render["bounds"], render["shape"], render["reader"])
     post = _rgb(render["post"], render["bounds"], render["shape"], render["reader"])
-    mask = np.kron(render["burned"], np.ones((2, 2), dtype=bool))[: post.shape[0], : post.shape[1]]
+    mask = np.kron(render["burned"], np.ones((RGB_SCALE, RGB_SCALE), dtype=bool))[: post.shape[0], : post.shape[1]]
     over = post.copy()
     over[mask] = (0.45 * over[mask] + 0.55 * np.array([230, 40, 30])).astype("u1")
     mask_rgba = np.zeros((*render["burned"].shape, 4), dtype="u1")

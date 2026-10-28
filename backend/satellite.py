@@ -52,7 +52,9 @@ def collect(settings: Settings, incident_id: str, *, now: datetime | None = None
     now = now or datetime.now(timezone.utc)
     prev = latest(settings, incident_id)
     fresh_for = timedelta(hours=admin_settings.value(settings, "satellite_fresh_hours"))
-    if prev and not force and datetime.fromisoformat(prev["retrieved_at"]) > now - fresh_for:
+    # A pair measured before the dark-pixel guard (2026-10-28) is measured again: its hectares can be wrong.
+    current = prev is not None and prev["payload"].get("min_nbr_sum") == sentinel.MIN_NBR_SUM
+    if prev and current and not force and datetime.fromisoformat(prev["retrieved_at"]) > now - fresh_for:
         return {"evidence_id": prev["id"], "reused": True}
     if settings.fixture_mode:
         return {"status": "unknown", "reason": "Sentinel-2 has no fixture; fixture mode makes no network call"}

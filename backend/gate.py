@@ -14,6 +14,9 @@ from .schema import STATUS_LADDER, TriageOutput
 NUMBER_TOLERANCE = 0.01
 LOCATION_RADIUS_M = 5000
 INDEPENDENT_TYPES = {"image", "voice", "satellite"}
+# Satellite evidence supports likely_fire only when it measured a burn: 25 pixels at 20 m. Below that, a dNBR count
+# is within edge and misregistration noise. Found on 2026-10-28: a pair with 0.28 ha let the agent claim likely_fire.
+MIN_SATELLITE_BURN_HA = 1.0
 LOCATED_TYPES = {"hotspot", "image", "voice"}
 
 # Content rules: no medical advice, no cause attribution, no naming parties.
@@ -196,9 +199,16 @@ def run(raw: dict, evidence: list[dict], incident_id: str) -> GateResult:
         _downgrade(out, res, "claims without valid evidence were removed")
 
     # A hotspot alone is not enough for likely_fire.
-    cited_types = {by_id[eid]["type"] for c in kept_claims for eid in c["evidence_ids"]}
-    if out["status"] == "likely_fire" and not cited_types & INDEPENDENT_TYPES:
-        _set_status(out, res, "possible_fire", "likely_fire needs independent evidence (image, voice, or satellite)")
+    def supports(e: dict) -> bool:
+        if e["type"] != "satellite":
+            return e["type"] in INDEPENDENT_TYPES
+        p = e["payload"]
+        return p.get("status") == "ok" and (p.get("burned_area_ha") or 0) >= MIN_SATELLITE_BURN_HA
+
+    cited = [by_id[eid] for c in kept_claims for eid in c["evidence_ids"]]
+    if out["status"] == "likely_fire" and not any(supports(e) for e in cited):
+        reason = "likely_fire needs independent evidence (image, voice, or a satellite burn of at least " f"{MIN_SATELLITE_BURN_HA:g} ha)"
+        _set_status(out, res, "possible_fire", reason)
 
     # Burn area is computed by code from a real mask, never taken from the model.
     area = out["burn_area_ha"]

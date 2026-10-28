@@ -567,6 +567,10 @@ body.panel-hidden .panel { visibility: hidden; padding: 0; border: 0; }
 .btn-wa:hover { background: #1ebe5a; border-color: #1ebe5a; }
 
 /* Admin panel */
+.replay-cases { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.replay-cases li { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 12px; }
+.replay-cases p { margin: 4px 0 0; font-size: 13px; }
+.replay-case-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .admin { max-width: 900px; }
 .admin-body { display: grid; gap: 12px; }
 .admin-card { padding: 18px 20px; display: grid; gap: 12px; }
