@@ -42,6 +42,17 @@ export function openSignIn(t, { onDone } = {}) {
   input.addEventListener("keydown", (e) => e.key === "Enter" && go());
 }
 
+export function confirmSignOut(t) {
+  const dlg = modal({
+    title: t("Leave verifier mode?"),
+    body: [el("p", { style: "margin:0" }, t("The token is removed from this browser. Triage, verdicts, citizen media, and the admin panel are hidden until you sign in again."))],
+    actions: [
+      el("button", { class: "btn", type: "button", onclick: () => dlg.close() }, t("Cancel")),
+      el("button", { class: "btn btn-primary", type: "button", onclick: () => { localStorage.removeItem(TOKEN_KEY); location.reload(); } }, svg("logout", "icon icon-sm"), t("Sign out")),
+    ],
+  });
+}
+
 function openAccount(t) {
   const dlg = modal({
     title: t("Verifier mode is on"),
@@ -65,7 +76,8 @@ export function verifierControl(t) {
   return el("div", { class: "verifier-on" },
     el("button", { class: "btn verifier-btn is-on", type: "button", onclick: () => openAccount(t), title: t("Verifier mode is on") },
       el("span", { class: "pulse" }), el("span", { class: "btn-label" }, t("AI triage ready"))),
-    el("a", { class: "btn btn-icon", href: "/admin/", title: t("Admin panel"), "aria-label": t("Admin panel") }, svg("gear", "icon icon-sm")));
+    el("a", { class: "btn btn-icon", href: "/admin/", title: t("Admin panel"), "aria-label": t("Admin panel") }, svg("gear", "icon icon-sm")),
+    el("button", { class: "btn btn-icon", type: "button", title: t("Sign out of verifier mode"), "aria-label": t("Sign out of verifier mode"), onclick: () => confirmSignOut(t) }, svg("logout", "icon icon-sm")));
 }
 
 export const VERIFIER_ID = {
@@ -76,5 +88,8 @@ export const VERIFIER_ID = {
   "Verifier mode is on": "Mode verifikator aktif",
   "This browser holds a verifier token. AI triage, verdicts, and citizen media are available. Triage still asks for the execution code before it spends credit.":
     "Browser ini menyimpan token verifikator. Triase AI, keputusan, dan media warga tersedia. Triase tetap meminta kode eksekusi sebelum memakai kredit.",
+  "Leave verifier mode?": "Keluar dari mode verifikator?", "Sign out of verifier mode": "Keluar dari mode verifikator",
+  "The token is removed from this browser. Triage, verdicts, citizen media, and the admin panel are hidden until you sign in again.":
+    "Token dihapus dari browser ini. Triase, keputusan, media warga, dan panel admin disembunyikan sampai Anda masuk lagi.",
   "Sign out": "Keluar", "Open admin panel": "Buka panel admin", "Verifier": "Verifikator", "AI triage ready": "Triase AI siap", "Admin panel": "Panel admin",
 };

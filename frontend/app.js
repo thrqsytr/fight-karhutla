@@ -417,7 +417,8 @@ function incidentCard(i) {
         el("span", { title: t("Last detection") }, svg("clock"), fmtTime(i.last_seen)),
       ),
     ),
-    el("span", { class: "status", dataset: { status: i.status } }, statusLabel(i.status)),
+    i.latest_verdict ? el("span", { class: `verdict-pill ${i.latest_verdict}` }, svg(i.latest_verdict === "approve" ? "check" : "x", "icon icon-sm"), t(i.latest_verdict === "approve" ? "Verified" : "Rejected"))
+      : el("span", { class: "status", dataset: { status: i.status } }, statusLabel(i.status)),
   );
 }
 
@@ -891,7 +892,9 @@ function openTriageDialog(ids) {
       toast(t("Triage started for {n} incident(s). About a minute each.", { n: started.length }).replace("(s)", plural(started.length)));
       started.forEach((id) => { const i = state.incidents.find((x) => x.id === id); if (i) i.status = "triaging"; });
       if (state.picking) setPicking(false);
-      if (single || started.length === 1) pollTriage(started[0]);
+      // The open incident re-renders at once, so its button shows the run instead of inviting a second one.
+      if (state.selected && started.includes(state.selected)) { await openIncident(state.selected); pollTriage(state.selected); }
+      else if (single || started.length === 1) pollTriage(started[0]);
       watchBatch(started);
       loadControl();
     } catch (e) {
@@ -1012,6 +1015,79 @@ function pollTriage(id) {
   pollTimer = setTimeout(tick, 4000);
 }
 
+/* Verification progress: the four stages, where this incident stands, and what would move it forward.
+   Only a human verifier's approval makes an incident verified; the AI recommends, it never verifies. */
+const CITIZEN_TRIGGERS = new Set(["citizen_report", "merged"]);
+
+function reportLink(inc) {
+  return `${location.origin}/lapor/?lat=${inc.lat.toFixed(5)}&lon=${inc.lon.toFixed(5)}&ref=${encodeURIComponent(inc.id)}`;
+}
+
+function progressCard(inc) {
+  const types = new Set(inc.evidence.map((e) => e.type));
+  const tri = inc.triage;
+  const verdict = inc.verdicts.at(-1);
+  const triagedAt = inc.gate?.triaged_at;
+  const has = {
+    hotspot: types.has("hotspot"), weather: types.has("weather"), osm: types.has("osm"), satellite: types.has("satellite"),
+    citizen: inc.reporter_count > 0 || CITIZEN_TRIGGERS.has(inc.trigger) || ["report", "voice", "image"].some((x) => types.has(x)),
+  };
+  const newerEvidence = triagedAt && inc.evidence.some((e) => e.retrieved_at > triagedAt && e.type !== "hotspot");
+  const step = (done, label, detail, current) => el("li", { class: `pstep ${done ? "done" : ""} ${current ? "current" : ""}` },
+    el("span", { class: "pstep-dot" }, done ? svg("check", "icon icon-sm") : null), el("div", {}, el("div", { class: "pstep-label" }, label), detail ? el("div", { class: "pstep-detail" }, detail) : null));
+  const chip = (ok, label) => el("span", { class: `ev-have ${ok ? "ok" : ""}` }, svg(ok ? "check" : "x", "icon icon-sm"), t(label));
+  const evDone = has.hotspot || has.citizen;
+  const triDone = !!tri;
+  const stage = verdict ? 4 : triDone ? 3 : evDone ? 2 : 1;
+
+  let headline;
+  if (verdict?.decision === "approve") headline = el("div", { class: "phead ok" }, svg("check", "icon"), el("div", {}, el("strong", {}, t("Verified")), el("span", {}, t("A human verifier approved this incident on {when}.", { when: fmtTime(verdict.created_at) }))));
+  else if (verdict?.decision === "reject") headline = el("div", { class: "phead bad" }, svg("x", "icon"), el("div", {}, el("strong", {}, t("Rejected")), el("span", {}, t("A human verifier rejected this incident on {when}.", { when: fmtTime(verdict.created_at) }))));
+  else if (!tri) headline = el("div", { class: "phead" }, svg("info", "icon"), el("div", {}, el("strong", {}, t("Not triaged yet")),
+    el("span", {}, t("What you see is raw detection: hotspots and the evidence collected so far. No AI or human has judged it. The status will change after AI triage, and only a verifier can mark it verified."))));
+  else headline = el("div", { class: "phead warn" }, svg("activity", "icon"), el("div", {}, el("strong", {}, t("AI recommendation: {s}", { s: statusLabel(inc.status) })),
+    el("span", {}, tri.hidden ? t("Built on citizen evidence; details are shown after a verifier approves.")
+      : t("Confidence {c}%, judged on {when}. Waiting for a human verifier to approve or reject.", { c: Math.round((tri.confidence ?? 0) * 100), when: triagedAt ? fmtTime(triagedAt) : "" }))));
+
+  // What is missing, each with what fills it.
+  const missing = [];
+  const act = (label, icon, onclick, primary) => el("button", { class: `btn ${primary ? "btn-primary" : ""}`, type: "button", onclick }, svg(icon, "icon icon-sm"), t(label));
+  if (!verdict) {
+    if (!has.citizen && !has.satellite) missing.push({
+      title: "Independent evidence", why: "A satellite hotspot is a heat signal, not a confirmed fire. To reach \"likely fire\" the AI needs a second, independent source: a photo, voice note, or report from the ground, or a burn scar in Sentinel-2 images.",
+      actions: [
+        act("Copy report link for the field", "camera", async () => {
+          try { await navigator.clipboard.writeText(reportLink(inc)); toast(t("Link copied. Anyone near the site can send photos with it.")); }
+          catch { toast(reportLink(inc)); }
+        }),
+        token() ? act("Find Sentinel-2 images", "satellite", (e) => fetchSatellite(inc.id, e.currentTarget)) : null,
+      ] });
+    if (!has.weather) missing.push({ title: "Weather", why: "Wind and rain decide how fast a fire spreads and which way smoke goes.",
+      actions: [token() ? act("Collect missing evidence", "activity", (e) => collectNow(inc.id, e.currentTarget)) : null] });
+    if (!has.osm) missing.push({ title: "Nearby settlements and water", why: "Distance to villages, roads, and water points from OpenStreetMap. The public OSM servers are often down; collection retries automatically.", actions: [] });
+    if (tri?.status === "needs_more_info" || tri?.uncertainties?.length) missing.push({ title: "What the AI asked for", why: null,
+      list: tri.uncertainties || [], actions: [] });
+  }
+  const nextStep = verdict ? null
+    : !tri ? (token() ? el("div", { class: "pnext" }, el("span", {}, t("Next: run AI triage on the evidence above.")), triageButton(inc)) : el("p", { class: "pnext muted" }, t("Next: a verifier runs AI triage.")))
+    : newerEvidence ? (token() ? el("div", { class: "pnext" }, el("span", {}, t("New evidence arrived after the last triage. Run it again to use it.")), triageButton(inc)) : null)
+    : el("p", { class: "pnext muted" }, t(token() ? "Next: review the brief and claims, then approve or reject below." : "Next: a verifier reviews the AI brief and approves or rejects it."));
+
+  return el("div", { class: "card progress-card" },
+    headline,
+    el("ol", { class: "psteps" },
+      step(true, t("Detected"), t(TRIGGER_LABEL[inc.trigger] || inc.trigger), stage === 1),
+      step(evDone, t("Evidence"), el("div", { class: "ev-haves" }, chip(has.hotspot, "Hotspots"), chip(has.weather, "Weather"), chip(has.osm, "OSM"), chip(has.satellite, "Sentinel-2"), chip(has.citizen, "Citizen")), stage === 2),
+      step(triDone, t("AI triage"), tri ? statusLabel(inc.status) : t("not yet"), stage === 3),
+      step(!!verdict, t("Human verifier"), verdict ? t(verdict.decision === "approve" ? "approved" : "rejected") : t("waiting"), stage === 4)),
+    missing.length ? el("div", { class: "pmissing" }, el("div", { class: "legend-label" }, t("Still missing")),
+      missing.map((m) => el("div", { class: "pmiss" }, el("strong", {}, t(m.title)), m.why ? el("p", {}, t(m.why)) : null,
+        m.list?.length ? el("ul", {}, m.list.map((u) => el("li", {}, u))) : null,
+        m.actions.filter(Boolean).length ? el("div", { class: "actions" }, m.actions) : null))) : null,
+    nextStep,
+  );
+}
+
 /* The brief shows the reader's language first and the other one below it. */
 function briefParts(triage) {
   const [first, second] = lang() === "id" ? ["id", "en"] : ["en", "id"];
@@ -1057,6 +1133,7 @@ async function openIncident(id) {
 
   const triage = inc.triage;
   const gate = inc.gate;
+  const progress = progressCard(inc);
   const sections = [
     section({ icon: "pin", title: t("Overview"), open: true, content: el("dl", { class: "kv" },
       el("dt", {}, t("Location")), el("dd", { class: "num" }, `${inc.lat.toFixed(3)}, ${inc.lon.toFixed(3)}`),
@@ -1071,7 +1148,8 @@ async function openIncident(id) {
                       triage.dispatch_brief.disputed ? el("span", { class: "dispute" }, svg("alert", "icon icon-sm"), t("Brief disputed: "), triage.dispatch_brief.disputed.join(" ")) : null,
                       triage.uncertainties?.length ? el("div", { class: "gate-list" }, el("div", { class: "legend-label" }, t("Uncertainties")), triage.uncertainties.map((u) => el("div", { class: "ev" }, u))) : null]
           : el("p", { class: "empty" }, t(inc.status === "triaging" ? "Triage is running..." : "Not triaged yet.")),
-        triageButton(inc),
+        // Before the first run the button lives in the progress card, with the reason to press it.
+        triage || inc.status === "triaging" ? triageButton(inc) : null,
       ] }),
     section({ icon: "check", title: t("Claims"), count: triage?.claims?.length ?? 0, open: !!triage?.claims?.length,
       tip: t("Each claim cites stored evidence. Click an ID to see it. A disputed claim was flagged by the critique model as not supported by its evidence. Claims are written in English by the model."),
@@ -1098,7 +1176,7 @@ async function openIncident(id) {
                                    : el("p", { class: "empty" }, t("No verdict yet.")) }),
     section({ icon: "check", title: t("Verifier decision"), open: true, tip: t("Approve or reject is recorded as a label. Labels calibrate the evidence gate thresholds."), content: verifierContent(inc) }),
   ];
-  fill($("#detail-view"), head, sections);
+  fill($("#detail-view"), head, progress, sections);
   // The drone replay loads after the main view so it never delays it.
   droneSection(inc).then((s) => {
     if (!s || state.selected !== inc.id) return;

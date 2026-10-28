@@ -178,7 +178,7 @@ def list_incidents(request: Request, verifier: bool = Depends(is_verifier), sett
     public_filter = "" if verifier else f"WHERE i.trigger IN {PUBLIC_TRIGGERS!r} OR lv.decision = 'approve'"
     with db.session(settings.db_path) as conn:
         rows = conn.execute(
-            f"""SELECT i.*, {SEVERITY_COLUMNS} FROM incidents i
+            f"""SELECT i.*, {SEVERITY_COLUMNS}, lv.decision AS latest_verdict FROM incidents i
                 LEFT JOIN ({SEVERITY_SUBQUERY}) s ON s.incident_id = i.id
                 LEFT JOIN ({LATEST_VERDICT_SUBQUERY}) lv ON lv.incident_id = i.id
                 {public_filter}

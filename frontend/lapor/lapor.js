@@ -339,7 +339,16 @@ function main() {
   $("#report-form").addEventListener("submit", (e) => { e.preventDefault(); send(); });
   renderRecorder();
   validate();
-  initMiniMap();
+  // A verifier can share a link with the incident location filled in (from the incident view).
+  const q = new URLSearchParams(location.search);
+  const lat = Number(q.get("lat"));
+  const lon = Number(q.get("lon"));
+  const preset = q.has("lat") && q.has("lon") && Number.isFinite(lat) && Number.isFinite(lon);
+  initMiniMap().then(() => {
+    if (!preset) return;
+    setLocation(lat, lon, null, "map_pick");
+    map.flyTo({ center: [lon, lat], zoom: 13 });
+  });
 }
 
 main();
