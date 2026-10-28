@@ -39,7 +39,11 @@ def _from_enrichment(conn, key: str) -> dict:
         v = str(json.loads(r["enrichment_json"] or "{}").get(key, ""))
         if not v or v.startswith(NOT_A_CALL):
             continue
-        return {"state": "ok" if v == "ok" else "error", "checked_at": r["enriched_at"], "detail": None if v == "ok" else v[:200]}
+        if v.startswith("ok"):
+            # Answered from the offline Geofabrik copy because Overpass was down: usable, but not live.
+            return {"state": "fallback" if "offline" in v else "ok", "checked_at": r["enriched_at"],
+                    "detail": "Overpass is down; answered from the offline Geofabrik extract" if "offline" in v else None}
+        return {"state": "error", "checked_at": r["enriched_at"], "detail": v[:200]}
     return {"state": "unknown", "checked_at": None, "detail": None}
 
 

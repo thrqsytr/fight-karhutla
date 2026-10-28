@@ -120,7 +120,7 @@ const SOURCES = [
   { key: "osm", name: "OSM", tip: "Nearby settlements, roads, and water from OpenStreetMap (Overpass)." },
   { key: "sentinel2", name: "Sentinel-2", tip: "Sentinel-2 before and after images for burn scars, fetched on request." },
 ];
-const SRC_STATE = { ok: "On", error: "Down", sim: "Simulation", unknown: "Not checked" };
+const SRC_STATE = { ok: "On", error: "Down", sim: "Simulation", unknown: "Not checked", fallback: "Offline copy" };
 const SOURCES_REFRESH_MS = 5 * 60e3;
 
 let srcBox;
@@ -426,6 +426,7 @@ function renderList() {
   state.selected = null;
   showBurnMask(null);
   showFootprints(null);
+  showFlightPlan(null);
   if (map?.getLayer("incident-selected")) map.setFilter("incident-selected", ["==", ["get", "id"], ""]);
   crumbs([{ label: t("Incidents") }]);
   $("#list-view").hidden = false;
@@ -654,6 +655,97 @@ function satelliteContent(inc) {
     el("p", { class: "muted", style: "margin:0;font-size:11px" }, p.attribution || "Contains modified Copernicus Sentinel data"),
     el("div", { class: "actions" }, p.images?.mask ? showOnMap : null, fetchBtn?.firstChild || null),
   ];
+}
+
+/* Drone survey proposals: a plan from the agent or a verifier, flown only after a human approves. */
+const PROPOSAL_LABEL = { proposed: "Proposed", approved: "Approved", rejected: "Rejected" };
+
+function showFlightPlan(p) {
+  state.mapReady?.then(() => {
+    if (!map) return;
+    ["drone-plan-area", "drone-plan-path"].forEach((id) => map.getLayer(id) && map.removeLayer(id));
+    if (map.getSource("drone-plan")) map.removeSource("drone-plan");
+    if (!p) return;
+    const [w, s, e, n] = p.plan.bbox;
+    const area = { type: "Feature", properties: { kind: "area" }, geometry: { type: "Polygon", coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] } };
+    const path = { type: "Feature", properties: { kind: "path" }, geometry: { type: "LineString", coordinates: p.plan.waypoints.map((x) => [x.lon, x.lat]) } };
+    map.addSource("drone-plan", { type: "geojson", data: { type: "FeatureCollection", features: [area, path] } });
+    map.addLayer({ id: "drone-plan-area", type: "fill", source: "drone-plan", filter: ["==", ["get", "kind"], "area"], paint: { "fill-color": "#7a5af8", "fill-opacity": 0.08 } });
+    map.addLayer({ id: "drone-plan-path", type: "line", source: "drone-plan", filter: ["==", ["get", "kind"], "path"], paint: { "line-color": "#7a5af8", "line-width": 1.5, "line-dasharray": [2, 1] } });
+    map.fitBounds([[w, s], [e, n]], { padding: 80, duration: 800 });
+  });
+}
+
+async function proposeDrone(inc, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    const r = await api(`/api/incidents/${inc.id}/drone-proposals`, { method: "POST", body: JSON.stringify({ reason: t("Planned by a verifier from the incident view.") }) });
+    toast(t(r.created ? "Drone survey proposed. Approve it to send it to a pilot." : "An open proposal already exists; showing it."), "check");
+    openIncident(inc.id);
+  } catch (e) {
+    toast(t("Not proposed: {e}", { e: e.message }), "alert");
+    if (btn) btn.disabled = false;
+  }
+}
+
+function decideProposal(inc, p, decision) {
+  const note = el("input", { class: "input", maxlength: 300, placeholder: t("Note (optional)"), "aria-label": t("Note (optional)") });
+  const err = el("p", { class: "form-error", hidden: true });
+  const ok = el("button", { class: `btn ${decision === "approve" ? "btn-primary" : "btn-ghost-danger"}`, type: "button" }, t(decision === "approve" ? "Approve mission" : "Reject mission"));
+  const dlg = modal({
+    title: t(decision === "approve" ? "Approve this drone survey?" : "Reject this drone survey?"),
+    body: [el("p", { style: "margin:0" }, t(decision === "approve"
+      ? "Approval clears the plan for a pilot. This prototype has no drone connected, so nothing flies by itself; the approval is recorded with the plan."
+      : "The plan is closed. A new one can be proposed later.")), note, err],
+    actions: [el("button", { class: "btn", type: "button", onclick: () => dlg.close() }, t("Cancel")), ok],
+  });
+  ok.onclick = async () => {
+    ok.disabled = true;
+    try {
+      await api(`/api/drone-proposals/${p.id}/decision`, { method: "POST", body: JSON.stringify({ decision, note: note.value.trim() || null }) });
+      dlg.close();
+      toast(t(decision === "approve" ? "Mission approved and recorded." : "Mission rejected and recorded."), "check");
+      openIncident(inc.id);
+    } catch (e) {
+      err.hidden = false;
+      fill(err, svg("alert", "icon icon-sm"), el("span", {}, e.message));
+      ok.disabled = false;
+    }
+  };
+}
+
+function proposalCard(inc, p) {
+  const plan = p.plan;
+  const est = plan.estimate;
+  return el("div", { class: `proposal ${p.status}` },
+    el("div", { class: "sat-head" },
+      el("span", { class: `proposal-pill ${p.status}` }, t(PROPOSAL_LABEL[p.status])),
+      el("span", { class: "muted", style: "font-size:12px" }, t(p.source === "agent" ? "proposed by the AI agent" : "proposed by a verifier"), " · ", fmtTime(p.created_at))),
+    p.reason ? el("p", { class: "proposal-reason" }, `"${p.reason}"`) : null,
+    el("dl", { class: "kv" },
+      el("dt", {}, t("Area")), el("dd", {}, `${fmtNum(plan.area_km2)} km² · ${t("{lines} lines x {n} frames, {alt} m above ground, GSD {gsd} m", { lines: plan.lines, n: plan.frames_per_line, alt: plan.altitude_agl_m, gsd: fmtNum(plan.gsd_m) })}`),
+      el("dt", {}, t("Flight")), el("dd", {}, t("about {min} min, {km} km path, {b} battery(ies)", { min: fmtNum(est.flight_minutes), km: fmtNum(est.path_km), b: est.batteries }))),
+    p.status === "approved" ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("Approved {when}. Waiting for a pilot: no drone is connected to this prototype. The simulated survey of INC-20261025-0407 shows what a flight returns.", { when: fmtTime(p.decided_at) })) : null,
+    p.note ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, `${t("Note")}: ${p.note}`) : null,
+    el("div", { class: "actions" },
+      el("button", { class: "btn", type: "button", onclick: () => showFlightPlan(p) }, svg("layers", "icon icon-sm"), t("Show plan on map")),
+      p.status === "proposed" ? [
+        el("button", { class: "btn btn-primary", type: "button", onclick: () => decideProposal(inc, p, "approve") }, svg("check", "icon icon-sm"), t("Approve mission")),
+        el("button", { class: "btn btn-ghost-danger", type: "button", onclick: () => decideProposal(inc, p, "reject") }, svg("x", "icon icon-sm"), t("Reject"))] : null),
+  );
+}
+
+async function proposalSection(inc) {
+  if (!token()) return null;
+  const r = await api(`/api/incidents/${encodeURIComponent(inc.id)}/drone-proposals`).catch(() => null);
+  if (!r) return null;
+  const open = r.items.some((p) => p.status === "proposed");
+  const btn = el("button", { class: "btn", type: "button" }, svg("target", "icon icon-sm"), t("Propose a drone survey"));
+  btn.onclick = () => proposeDrone(inc, btn);
+  return section({ icon: "target", title: t("Drone survey plan"), count: r.count, open: open,
+    tip: t("A mapping flight planned over the hotspots: lawnmower lines at 120 m above ground. The AI agent may propose one when independent evidence is missing; only a verifier can approve it. Planning is free."),
+    content: [r.items.length ? r.items.map((p) => proposalCard(inc, p)) : el("p", { class: "empty" }, t("No drone survey planned.")),
+      open ? null : el("div", { class: "actions" }, btn)] });
 }
 
 /* Simulated drone survey (SIMULASI): shown beside the incident, never part of its evidence. */
@@ -1103,6 +1195,7 @@ function progressCard(inc) {
           catch { toast(reportLink(inc)); }
         }),
         token() ? act("Find Sentinel-2 images", "satellite", (e) => fetchSatellite(inc.id, e.currentTarget)) : null,
+        token() ? act("Propose a drone survey", "target", (e) => proposeDrone(inc, e.currentTarget)) : null,
       ] });
     if (!has.weather) missing.push({ title: "Weather", why: "Wind and rain decide how fast a fire spreads and which way smoke goes.",
       actions: [token() ? act("Collect missing evidence", "activity", (e) => collectNow(inc.id, e.currentTarget)) : null] });
@@ -1220,11 +1313,13 @@ async function openIncident(id) {
     section({ icon: "check", title: t("Verifier decision"), open: true, tip: t("Approve or reject is recorded as a label. Labels calibrate the evidence gate thresholds."), content: verifierContent(inc) }),
   ];
   fill($("#detail-view"), head, progress, sections);
-  // The drone replay loads after the main view so it never delays it.
-  droneSection(inc).then((s) => {
-    if (!s || state.selected !== inc.id) return;
-    const sat = [...document.querySelectorAll("#detail-view .section")].find((x) => x.querySelector(".sat-img"));
-    sat ? sat.after(s) : $("#detail-view").append(s);
+  // Drone plans and the simulated replay load after the main view so they never delay it.
+  Promise.all([proposalSection(inc), droneSection(inc)]).then(([plan, sim]) => {
+    if (state.selected !== inc.id) return;
+    const sat = [...document.querySelectorAll("#detail-view .section")].find((x) => x.innerText.startsWith(t("Sentinel-2 burn scar")));
+    const after = (node, s) => (node ? node.after(s) : $("#detail-view").append(s));
+    if (plan) after(sat, plan);
+    if (sim) after(plan || sat, sim);
   });
 }
 

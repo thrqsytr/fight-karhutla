@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Res
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin_settings, agent, db, drone_replay, evidence, ingest, intake, reports, satellite, source_status, triage_control
+from . import admin_settings, agent, db, drone_missions, drone_replay, evidence, ingest, intake, reports, satellite, source_status, triage_control
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -81,6 +81,11 @@ async def lifespan(app: FastAPI):
             log.info("fixture mode with empty database: loading fixture hotspots")
             ingest.run_once(settings)
             evidence.run_enrichment(settings)
+    if settings.osm_fallback_url and not settings.osm_fallback_path.exists():
+        # About 100 MB once; in a thread so the app answers while it downloads.
+        import threading
+
+        threading.Thread(target=osm.ensure_fallback, args=(settings.osm_fallback_path, settings.osm_fallback_url), daemon=True).start()
     sched = _start_scheduler(settings)
     yield
     if sched:
@@ -310,14 +315,14 @@ def get_satellite_image(incident_id: str, name: str, settings: Settings = Depend
 
 
 @app.get("/api/drone/missions")
-def drone_missions(incident_id: str | None = None, settings: Settings = Depends(get_settings)) -> dict:
+def list_drone_missions(incident_id: str | None = None, settings: Settings = Depends(get_settings)) -> dict:
     """Simulated drone surveys (SIMULASI). Shown beside an incident, never stored as its evidence."""
     items = [drone_replay.summary(m) for m in drone_replay.missions(settings.replay_dir) if incident_id in (None, m["incident_id"])]
     return {"count": len(items), "items": items}
 
 
 @app.get("/api/drone/missions/{mission_id}")
-def drone_mission(mission_id: str, settings: Settings = Depends(get_settings)) -> dict:
+def get_drone_mission(mission_id: str, settings: Settings = Depends(get_settings)) -> dict:
     m = drone_replay.find(settings.replay_dir, mission_id)
     if m is None:
         raise HTTPException(status_code=404, detail="mission not found")
@@ -542,6 +547,44 @@ def triage_mode(body: ModeIn, request: Request, settings: Settings = Depends(get
         _control(lambda: triage_control.set_mode(conn, body.mode))
     with db.session(settings.db_path) as conn:
         return triage_control.status(settings, conn)
+
+
+class ProposalIn(BaseModel):
+    reason: str = Field(default="", max_length=300)
+
+
+class ProposalDecisionIn(BaseModel):
+    decision: Literal["approve", "reject"]
+    note: str | None = Field(default=None, max_length=300)
+
+
+def _proposal(fn):
+    try:
+        return fn()
+    except drone_missions.ProposalError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail)
+
+
+@app.get("/api/incidents/{incident_id}/drone-proposals", dependencies=[Depends(require_verifier)])
+def list_proposals(incident_id: str, settings: Settings = Depends(get_settings)) -> dict:
+    with db.session(settings.db_path) as conn:
+        items = drone_missions.list_for(conn, incident_id)
+    return {"count": len(items), "items": items}
+
+
+@app.post("/api/incidents/{incident_id}/drone-proposals", status_code=201, dependencies=[Depends(require_verifier)])
+def create_proposal(incident_id: str, body: ProposalIn, settings: Settings = Depends(get_settings)) -> dict:
+    """Plan a survey without running the agent. Free: it is geometry, no model call."""
+    with db.session(settings.db_path) as conn:
+        p, created = _proposal(lambda: drone_missions.propose(conn, incident_id, source="verifier", reason=body.reason))
+    return {**p, "created": created}
+
+
+@app.post("/api/drone-proposals/{proposal_id}/decision", dependencies=[Depends(require_verifier)])
+def decide_proposal(proposal_id: int, body: ProposalDecisionIn, settings: Settings = Depends(get_settings)) -> dict:
+    who = hashlib.sha256(("dashboard:" + settings.verifier_token).encode()).hexdigest()[:16]
+    with db.session(settings.db_path) as conn:
+        return _proposal(lambda: drone_missions.decide(conn, proposal_id, body.decision, who, body.note))
 
 
 @app.get("/api/auth/check", dependencies=[Depends(require_verifier)])

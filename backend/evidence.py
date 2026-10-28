@@ -177,16 +177,18 @@ def enrich_incident(settings: Settings, incident_id: str, *, osm_tiles_left: lis
     elif "osm" not in have:
         tile = None if settings.fixture_mode else osm.tile_of(inc["lat"], inc["lon"])
         # Only a real Overpass call spends the budget: fixtures and cached tiles are free.
-        cached = tile is None or _tile_cached(settings, tile)
+        cached = tile is None or _tile_cached(settings, tile) or (osm.overpass_down() and settings.osm_fallback_path.exists())
         if osm_tiles_left is not None and not cached and osm_tiles_left[0] <= 0:
             status["osm"] = "failed: deferred, Overpass budget for this run is used"
         else:
             if osm_tiles_left is not None and not cached:
                 osm_tiles_left[0] -= 1
             try:
-                a = osm.get_nearby_assets(inc["lat"], inc["lon"], cache_dir=settings.cache_dir, fixtures_dir=settings.fixtures_dir, fixture=settings.fixture_mode)
-                new.append(("osm", "OpenStreetMap (Overpass)", osm_summary_text(a), a))
-                status["osm"] = "ok"
+                a = osm.get_nearby_assets(inc["lat"], inc["lon"], cache_dir=settings.cache_dir, fixtures_dir=settings.fixtures_dir,
+                                          fixture=settings.fixture_mode, fallback=settings.osm_fallback_path)
+                source = f"OpenStreetMap (offline extract {a['offline_source']})" if a.get("offline_source") else "OpenStreetMap (Overpass)"
+                new.append(("osm", source, osm_summary_text(a), a))
+                status["osm"] = "ok (offline extract)" if a.get("offline_source") else "ok"
             except SourceError as exc:
                 log.warning("osm failed for %s: %s", incident_id, exc)
                 status["osm"] = f"failed: {str(exc)[:300]}"

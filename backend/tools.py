@@ -9,7 +9,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 
-from . import db, evidence, meta_client, reports, satellite
+from . import db, drone_missions, evidence, meta_client, reports, satellite
 from .config import Settings
 
 log = logging.getLogger(__name__)
@@ -47,6 +47,17 @@ TOOL_DEFS = [
         "name": "get_satellite_pair",
         "description": "Sentinel-2 images before and after the first detection over the incident area, with dNBR (burn severity). Returns image dates, clear share, haze (aerosol optical thickness), and burned hectares counted by code at dNBR >= 0.27. burned_area_ha is null when haze makes the measure unreliable. Unknown when no clear image exists yet.",
         "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
+    },
+    {
+        "type": "function",
+        "name": "plan_drone_survey",
+        "description": "Propose a drone mapping survey of this incident when independent evidence is missing (no citizen photo, no clear Sentinel-2 pair, cloud cover). Returns a plan for a human verifier to approve: area, frames, altitude, flight time. It is not a flight and returns no observation; never cite it as evidence of fire.",
+        "parameters": {
+            "type": "object",
+            "properties": {"reason": {"type": "string", "description": "Why a survey would help, in one sentence"}},
+            "required": ["reason"],
+            "additionalProperties": False,
+        },
     },
     {
         "type": "function",
@@ -159,6 +170,12 @@ def get_satellite_pair(ctx: ToolContext, **_) -> dict:
             "before": scene(p["pre"]), "after": scene(p["post"])}
 
 
+def plan_drone_survey(ctx: ToolContext, reason: str = "", **_) -> dict:
+    with db.session(ctx.settings.db_path) as conn:
+        p, created = drone_missions.propose(conn, ctx.incident_id, source="agent", reason=reason)
+    return {**drone_missions.summary(p), "created": created}
+
+
 def segment(ctx: ToolContext, evidence_id: str = "", concept: str = "", **_) -> dict:
     if ctx.segment_calls >= MAX_SEGMENT_CALLS:
         return {"status": "refused", "reason": f"segment budget of {MAX_SEGMENT_CALLS} calls per triage is used"}
@@ -189,7 +206,8 @@ def segment(ctx: ToolContext, evidence_id: str = "", concept: str = "", **_) -> 
 
 
 HANDLERS = {"get_hotspots": get_hotspots, "get_weather": get_weather, "get_nearby_assets": get_nearby_assets,
-            "get_citizen_reports": get_citizen_reports, "get_satellite_pair": get_satellite_pair, "segment": segment}
+            "get_citizen_reports": get_citizen_reports, "get_satellite_pair": get_satellite_pair, "plan_drone_survey": plan_drone_survey,
+            "segment": segment}
 
 
 def call(ctx: ToolContext, name: str, arguments: str) -> dict:

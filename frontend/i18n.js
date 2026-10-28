@@ -81,6 +81,24 @@ export const DASHBOARD_ID = {
   "Approving or rejecting needs verifier mode.": "Menyetujui atau menolak memerlukan mode verifikator.",
   "Zoom in": "Perbesar", "Zoom out": "Perkecil", "Data sources": "Sumber data",
   "Sentinel-2 burn scar": "Bekas terbakar Sentinel-2",
+  "Drone survey plan": "Rencana survei drone", "Proposed": "Diusulkan",
+  "Planned by a verifier from the incident view.": "Direncanakan verifikator dari tampilan insiden.",
+  "Drone survey proposed. Approve it to send it to a pilot.": "Survei drone diusulkan. Setujui agar diteruskan ke pilot.",
+  "An open proposal already exists; showing it.": "Sudah ada usulan yang terbuka; ditampilkan.", "Not proposed: {e}": "Tidak diusulkan: {e}",
+  "Note (optional)": "Catatan (opsional)", "Approve mission": "Setujui misi", "Reject mission": "Tolak misi",
+  "Approve this drone survey?": "Setujui survei drone ini?", "Reject this drone survey?": "Tolak survei drone ini?",
+  "Approval clears the plan for a pilot. This prototype has no drone connected, so nothing flies by itself; the approval is recorded with the plan.":
+    "Persetujuan meneruskan rencana ke pilot. Prototipe ini belum terhubung ke drone, jadi tidak ada yang terbang sendiri; persetujuan dicatat bersama rencananya.",
+  "The plan is closed. A new one can be proposed later.": "Rencana ditutup. Usulan baru bisa dibuat nanti.",
+  "Mission approved and recorded.": "Misi disetujui dan dicatat.", "Mission rejected and recorded.": "Misi ditolak dan dicatat.",
+  "proposed by the AI agent": "diusulkan agen AI", "proposed by a verifier": "diusulkan verifikator",
+  "Area": "Area", "Flight": "Penerbangan", "about {min} min, {km} km path, {b} battery(ies)": "sekitar {min} menit, lintasan {km} km, {b} baterai",
+  "Approved {when}. Waiting for a pilot: no drone is connected to this prototype. The simulated survey of INC-20261025-0407 shows what a flight returns.":
+    "Disetujui {when}. Menunggu pilot: prototipe ini belum terhubung ke drone. Survei simulasi INC-20261025-0407 menunjukkan hasil sebuah penerbangan.",
+  "Note": "Catatan", "Show plan on map": "Tampilkan rencana di peta", "Propose a drone survey": "Usulkan survei drone",
+  "A mapping flight planned over the hotspots: lawnmower lines at 120 m above ground. The AI agent may propose one when independent evidence is missing; only a verifier can approve it. Planning is free.":
+    "Penerbangan pemetaan yang direncanakan di atas titik panas: jalur bolak-balik 120 m di atas tanah. Agen AI boleh mengusulkannya bila bukti independen belum ada; hanya verifikator yang bisa menyetujui. Merencanakan tidak berbiaya.",
+  "No drone survey planned.": "Belum ada rencana survei drone.",
   "Drone survey (simulation)": "Survei drone (simulasi)", "Drone frame": "Frame drone", "Drone view": "Tampilan drone",
   "A simulated mapping flight: Muse Glimmer at the ground station picks which frames to send, SAM 3.1 segments them, and code turns masks into hectares from the telemetry.":
     "Penerbangan pemetaan simulasi: Muse Glimmer di stasiun darat memilih frame yang dikirim, SAM 3.1 menyegmentasinya, dan kode mengubah masker menjadi hektar dari telemetri.",
@@ -109,6 +127,7 @@ export const DASHBOARD_ID = {
   "NASA GIBS satellite layers for the map, checked from this browser.": "Lapisan citra satelit NASA GIBS untuk peta, dicek dari browser ini.",
   "Wind, humidity, and rain evidence for each incident.": "Bukti angin, kelembapan, dan hujan untuk setiap insiden.",
   "Nearby settlements, roads, and water from OpenStreetMap (Overpass).": "Permukiman, jalan, dan perairan terdekat dari OpenStreetMap (Overpass).",
+  "Offline copy": "Salinan offline",
   "On": "Aktif", "Down": "Gangguan", "Simulation": "Simulasi", "Not checked": "Belum dicek",
   "Newest pass: {when}.": "Lintasan terbaru: {when}.", "Last checked: {when}.": "Terakhir dicek: {when}.",
   "Report": "Lapor",

@@ -266,7 +266,7 @@ a.btn-primary, a.btn-report { color: #fff; }
 .src-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
 .src-item[data-state="ok"] .src-state { color: #067647; background: var(--ok-soft); }
 .src-item[data-state="error"] .src-state { color: var(--st-likely); background: #fdecea; }
-.src-item[data-state="sim"] .src-state { color: var(--warn); background: var(--warn-soft); }
+.src-item[data-state="sim"] .src-state, .src-item[data-state="fallback"] .src-state { color: var(--warn); background: var(--warn-soft); }
 .legend { width: 250px; flex: 0 1 auto !important; min-height: 0; overflow-y: auto; }
 .legend .section-head { padding: 10px 12px; }
 .legend .section-content { padding: 0 12px 12px; gap: 10px; }
@@ -547,6 +547,15 @@ body.panel-hidden .panel { visibility: hidden; padding: 0; border: 0; }
 .verdict-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
 .verdict-pill.approve { color: #067647; background: var(--ok-soft); border: 1px solid #bfead3; }
 .verdict-pill.reject { color: var(--st-likely); background: #fdecea; border: 1px solid #f7c6c1; }
+
+/* Drone survey proposals */
+.proposal { border: 1px solid var(--line-soft); border-radius: var(--r-sm); padding: 10px 12px; display: grid; gap: 8px; }
+.proposal.proposed { border-color: #d9d0fd; background: #faf8ff; }
+.proposal-pill { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--line-soft); color: var(--ink-2); }
+.proposal-pill.proposed { background: #f0ebff; color: #5b3fd6; }
+.proposal-pill.approved { background: var(--ok-soft); color: #067647; }
+.proposal-pill.rejected { background: #fdecea; color: var(--st-likely); }
+.proposal-reason { margin: 0; font-size: 13px; color: var(--ink-2); }
 
 /* Admin panel */
 .admin { max-width: 900px; }

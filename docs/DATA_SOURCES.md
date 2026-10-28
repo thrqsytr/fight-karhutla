@@ -18,7 +18,7 @@ FIRMS NRT sources available on 2026-10-26: `VIIRS_SNPP_NRT`, `VIIRS_NOAA20_NRT`,
 - Open-Meteo terms: fewer than 10,000 API calls per day, 5,000 per hour, and 600 per minute for non-commercial use.
 - Overpass (overpass-api.de): replied 502 "at capacity" and says the public endpoint is meant for browser-based, human-operated tools; automated or high-volume use should run its own instance. The OSM wiki asks for under 10,000 queries and under 1 GB per day. maps.mail.ru returned 504; overpass.private.coffee and overpass.kumi.systems timed out at 30 s.
 - Our use: one query per 0.2 degree tile, cached 7 days, at most 12 uncached tiles per scheduler run (every 30 minutes).
-- If Overpass stays unreliable, the fallback is a one-time Geofabrik Indonesia extract processed locally. Not built.
+- Fallback (built 2026-10-28): a Geofabrik Indonesia extract reduced to the five feature types, in SQLite (`tools/build_osm_fallback.py`). Used when every Overpass endpoint fails; evidence names it with its date. The server downloads it once from `OSM_FALLBACK_URL`.
 
 ## Behavior shared by all clients
 

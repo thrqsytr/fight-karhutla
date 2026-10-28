@@ -8,6 +8,11 @@ when all fail, the caller records OSM as unknown instead of stopping triage.
 import json
 import logging
 import math
+import sqlite3
+import struct
+import time
+import zlib
+from contextlib import closing
 from pathlib import Path
 
 from ..geo import haversine_m, point_to_polyline_m
@@ -115,12 +120,99 @@ def fetch_tile(tile: tuple[int, int], *, cache_dir: Path) -> tuple[dict, str]:
     raise SourceError("all Overpass endpoints failed: " + " | ".join(errors))
 
 
-def get_nearby_assets(lat: float, lon: float, *, cache_dir: Path, fixtures_dir: Path, fixture: bool) -> dict:
+# Offline fallback: a Geofabrik extract reduced by tools/build_osm_fallback.py. After every Overpass endpoint
+# fails, lookups go straight to it for a while, so each incident does not wait on servers that are down.
+OVERPASS_DOWN_S = 30 * 60
+_overpass_down_until = 0.0
+
+
+def overpass_down() -> bool:
+    return time.time() < _overpass_down_until
+
+
+def fallback_info(path: Path | None) -> dict | None:
+    if not path or not path.exists():
+        return None
+    try:
+        with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as conn:
+            return dict(conn.execute("SELECT key, value FROM meta").fetchall())
+    except sqlite3.Error:
+        return None
+
+
+def ensure_fallback(path: Path, url: str) -> bool:
+    """Download the offline extract once. It is written next to the target and renamed only after it opens
+    as a valid fallback database, so a broken download never replaces a good file."""
+    import httpx
+
+    if path.exists() or not url:
+        return path.exists()
+    part = path.with_suffix(".part")
+    try:
+        with httpx.stream("GET", url, follow_redirects=True, timeout=60, headers={"User-Agent": "fight-karhutla"}) as r:
+            r.raise_for_status()
+            with part.open("wb") as f:
+                for chunk in r.iter_bytes(1 << 20):
+                    f.write(chunk)
+        if fallback_info(part) is None:
+            raise SourceError("downloaded file is not an OSM fallback database")
+        part.replace(path)
+        log.info("offline OSM extract ready: %s (%.0f MB)", path, path.stat().st_size / 1e6)
+        return True
+    except (httpx.HTTPError, SourceError, OSError) as exc:
+        log.warning("offline OSM extract download failed: %s", exc)
+        part.unlink(missing_ok=True)
+        return False
+
+
+def _unpack(blob: bytes) -> list[tuple[float, float]]:
+    raw = zlib.decompress(blob)
+    return [(a / 1e6, b / 1e6) for a, b in struct.iter_unpack("<ii", raw)]
+
+
+def fallback_payload(path: Path, lat: float, lon: float) -> dict:
+    """Overpass shaped elements around a point, read from the offline extract."""
+    t0, t1 = tile_of(lat, lon)
+    reach = math.ceil(STATION_PAD_DEG / TILE_DEG)
+    elements = []
+    with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as conn:
+        rows = conn.execute(
+            """SELECT DISTINCT f.id, f.cat, f.kind, f.name, f.geom FROM tiles t JOIN features f ON f.id = t.fid
+               WHERE t.tlat BETWEEN ? AND ? AND t.tlon BETWEEN ? AND ?""",
+            (t0 - reach, t0 + reach, t1 - reach, t1 + reach),
+        ).fetchall()
+        meta = dict(conn.execute("SELECT key, value FROM meta").fetchall())
+    tag_key = {"settlement": "place", "road": "highway", "river": "waterway", "lake": "water", "fire_station": "amenity"}
+    for fid, cat, kind, name, blob in rows:
+        coords = _unpack(blob)  # the radius per category is applied later, in nearest_assets
+        kind_tag = {"lake": {"natural": "water", "water": kind}}.get(cat, {tag_key[cat]: kind})
+        tags = {**kind_tag, **({"name": name} if name else {})}
+        typ, num = fid.split("/")
+        if len(coords) == 1:
+            elements.append({"type": typ, "id": int(num), "lat": coords[0][0], "lon": coords[0][1], "tags": tags})
+        else:
+            elements.append({"type": typ, "id": int(num), "geometry": [{"lat": a, "lon": b} for a, b in coords], "tags": tags})
+    return {"elements": elements, "osm3s": {"timestamp_osm_base": meta.get("source")}, "_fallback": meta}
+
+
+def get_nearby_assets(lat: float, lon: float, *, cache_dir: Path, fixtures_dir: Path, fixture: bool, fallback: Path | None = None) -> dict:
+    global _overpass_down_until
     if fixture:
         payload, endpoint, tile = json.loads((fixtures_dir / FIXTURE_FILE).read_text(encoding="utf-8")), "fixture", None
     else:
         tile = tile_of(lat, lon)
-        payload, endpoint = fetch_tile(tile, cache_dir=cache_dir)
+        have_fallback = fallback is not None and fallback.exists()
+        if have_fallback and overpass_down():
+            payload, endpoint = fallback_payload(fallback, lat, lon), "offline extract"
+        else:
+            try:
+                payload, endpoint = fetch_tile(tile, cache_dir=cache_dir)
+            except SourceError:
+                if not have_fallback:
+                    raise
+                _overpass_down_until = time.time() + OVERPASS_DOWN_S
+                log.warning("overpass down; using the offline extract for %d min", OVERPASS_DOWN_S // 60)
+                payload, endpoint = fallback_payload(fallback, lat, lon), "offline extract"
     return {
         "lat": lat,
         "lon": lon,
@@ -130,4 +222,5 @@ def get_nearby_assets(lat: float, lon: float, *, cache_dir: Path, fixtures_dir: 
         "osm_timestamp": payload.get("osm3s", {}).get("timestamp_osm_base"),
         "tile": list(tile) if tile else None,
         "endpoint": endpoint,
+        "offline_source": (payload.get("_fallback") or {}).get("source"),
     }

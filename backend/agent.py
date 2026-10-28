@@ -43,7 +43,9 @@ Gather evidence with the tools, then answer. Rules, all mandatory:
    Do not invent place names; location.admin is the nearest settlement from get_nearby_assets, or "unknown".
 10. Leave the evidence list empty; the system fills it from storage. burn_area_ha is null unless get_satellite_pair returned
     burned_area_ha; then use that value, method "dnbr", and its evidence_id. A dNBR burn scar shows burned ground, not active fire.
-11. risk.score is a number from 0 to 100 (0 no concern, 100 most urgent), with short drivers."""
+11. risk.score is a number from 0 to 100 (0 no concern, 100 most urgent), with short drivers.
+12. When independent evidence is missing, you may call plan_drone_survey once. It only proposes a flight for a human
+    to approve; mention it in recommended_actions, never as evidence or a claim."""
 
 NUM_NULL = {"type": ["number", "null"]}
 STR_NULL = {"type": ["string", "null"]}

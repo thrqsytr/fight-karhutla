@@ -72,6 +72,20 @@ CREATE TABLE IF NOT EXISTS agent_runs (
 );
 CREATE INDEX IF NOT EXISTS agent_runs_incident ON agent_runs(incident_id);
 
+CREATE TABLE IF NOT EXISTS drone_proposals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    incident_id TEXT NOT NULL REFERENCES incidents(id),
+    source TEXT NOT NULL CHECK (source IN ('agent', 'verifier')),
+    reason TEXT,
+    status TEXT NOT NULL CHECK (status IN ('proposed', 'approved', 'rejected')),
+    plan_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    decided_at TEXT,
+    decided_by TEXT,
+    note TEXT
+);
+CREATE INDEX IF NOT EXISTS drone_proposals_incident ON drone_proposals(incident_id);
+
 CREATE TABLE IF NOT EXISTS verdicts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     incident_id TEXT NOT NULL REFERENCES incidents(id),

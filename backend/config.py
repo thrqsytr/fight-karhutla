@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     fixtures_dir: Path = REPO_ROOT / "fixtures"
     frontend_dir: Path = REPO_ROOT / "frontend"
     replay_dir: Path = REPO_ROOT / "replay"
+    osm_fallback_url: str = ""  # where the server downloads the offline OSM extract once, if it is missing
     fixture_mode: bool = True
     scheduler_enabled: bool = False
     firms_poll_minutes: int = 30
@@ -51,6 +52,10 @@ class Settings(BaseSettings):
     @property
     def db_path(self) -> Path:
         return self.data_dir / "karhutla.sqlite3"
+
+    @property
+    def osm_fallback_path(self) -> Path:
+        return self.data_dir / "osm_fallback.sqlite"
 
     @property
     def cache_dir(self) -> Path:
