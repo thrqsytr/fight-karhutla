@@ -31,9 +31,9 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Map basemap switch under the zoom controls: a light map, or world satellite imagery with the same boundaries and labels (display only, never evidence)
 - Replay mode: three recorded incidents from the 2025 dry season (clearly burned, false positive, needs more info) load as SIMULASI from the admin panel, with no network and no model call
 - Evaluation on 30 historical clusters labelled with Sentinel-2 dNBR, three baselines, results below
-- 137 tests that run without a network
+- 139 tests that run without a network
 
-WhatsApp runs on Meta's test number, so only the registered tester numbers can report through it. Triage runs only on purpose: verifiers select incidents in the list or by drawing an area on the map (at most 5 per selection) and confirm with an execution code; a daily cap and a daily or hourly schedule over citizen reports bound the spend.
+WhatsApp works one way for now: reports come in (tested in production on 2026-10-29: text, photo, voice note, and a pin became one incident with transcript, photo reading, weather, and OSM), but Meta blocks every outgoing message (error 131031, account locked) because the business account is a person, not a verified business. Replies and notifications are still attempted and recorded with that reason. It runs on Meta's test number, so only registered tester numbers can report. Triage runs only on purpose: verifiers select incidents in the list or by drawing an area on the map (at most 5 per selection) and confirm with an execution code; a daily cap and a daily or hourly schedule over citizen reports bound the spend.
 
 ## Meta models
 
