@@ -504,6 +504,10 @@ body.panel-hidden .panel { visibility: hidden; padding: 0; border: 0; }
 .map-btn { display: grid !important; place-items: center; color: var(--ink); }
 .map-btn .icon { width: 16px; height: 16px; }
 
+.verifier-on { display: flex; gap: 6px; align-items: center; }
+.verifier-btn.is-on { color: #067647; border-color: #bfead3; background: var(--ok-soft); }
+.verifier-btn.is-on .pulse { color: var(--ok); }
+@media (max-width: 1140px) { .verifier-btn .btn-label { display: none; } .verifier-btn { width: 34px; padding: 0; } }
 /* Header controls share one height so they line up. */
 .topbar-right { gap: 10px; }
 .lang-switch { height: 34px; align-items: center; }
@@ -514,3 +518,22 @@ body.panel-hidden .panel { visibility: hidden; padding: 0; border: 0; }
   body.panel-hidden .layout { grid-template-columns: 1fr; }
   body.panel-hidden .panel { visibility: visible; padding: 10px; }
 }
+
+/* Admin panel */
+.admin { max-width: 900px; }
+.admin-body { display: grid; gap: 12px; }
+.admin-card { padding: 18px 20px; display: grid; gap: 12px; }
+.admin-title { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 16px; }
+.admin-sub { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); }
+.admin-stats { grid-template-columns: repeat(5, 1fr); }
+.admin-setting { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: var(--r-sm); }
+.admin-setting.changed { border-color: #b5d0f8; background: #f7faff; }
+.admin-setting-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.admin-label { font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; }
+.admin-default { font-size: 12px; }
+.admin-seg { flex-wrap: wrap; width: fit-content; }
+.admin-num-wrap { display: flex; align-items: center; gap: 8px; }
+.admin-num-wrap .input.admin-num { width: 110px; flex: none; }
+.admin-diff { margin: 0; padding-left: 18px; font-size: 13px; }
+.admin-savebar { position: sticky; bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 16px; border-color: #b5d0f8; background: #f7faff; box-shadow: var(--shadow-2); }
+@media (max-width: 620px) { .admin-stats { grid-template-columns: repeat(2, 1fr); } }

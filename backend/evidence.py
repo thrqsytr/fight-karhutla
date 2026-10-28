@@ -10,7 +10,7 @@ import logging
 import time
 from datetime import datetime
 
-from . import db
+from . import admin_settings, db
 from .config import Settings
 from .geo import haversine_m
 from .sources import osm, weather
@@ -18,8 +18,7 @@ from .sources.http import SourceError, _cache_path
 
 log = logging.getLogger(__name__)
 
-WEATHER_BUDGET_PER_RUN = 40
-OSM_BUDGET_PER_RUN = 12  # tiles, not incidents: one tile serves every incident inside it
+# Per-run budgets (weather lookups, Overpass tiles) are admin settings; see admin_settings.py.
 # Satellite clusters below both thresholds are not enriched automatically; a verifier can still ask.
 MIN_HOTSPOTS = 3
 MIN_MAX_FRP = 20.0
@@ -222,9 +221,12 @@ def _tile_cached(settings: Settings, tile: tuple[int, int]) -> bool:
     return p.exists() and time.time() - p.stat().st_mtime < osm.TTL_S
 
 
-def run_enrichment(settings: Settings, *, max_incidents: int = WEATHER_BUDGET_PER_RUN) -> dict:
-    """Enrich the highest-priority incidents that are new or had a failed source."""
-    tiles_left = [OSM_BUDGET_PER_RUN]
+def run_enrichment(settings: Settings, *, max_incidents: int | None = None) -> dict:
+    """Enrich the highest-priority incidents that are new or had a failed source. Budgets come from the admin settings."""
+    with db.session(settings.db_path) as conn:
+        if max_incidents is None:
+            max_incidents = admin_settings.get(settings, conn, "weather_per_run")
+        tiles_left = [admin_settings.get(settings, conn, "osm_tiles_per_run")]
     done, failed = [], []
     with db.session(settings.db_path) as conn:
         candidates = [dict(r) for r in _priority_candidates(conn, max_incidents * 3)]

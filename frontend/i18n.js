@@ -47,6 +47,7 @@ export const DASHBOARD_ID = {
   "Verified wildfire triage for Indonesia": "Triase karhutla terverifikasi untuk Indonesia",
   "The AI only gathers evidence and drafts a recommendation. A human verifier approves or rejects every incident; nothing is sent to anyone automatically.":
     "AI hanya mengumpulkan bukti dan menyusun rekomendasi. Verifikator manusia yang menyetujui atau menolak setiap insiden; tidak ada yang dikirim otomatis ke siapa pun.",
+  "Approving or rejecting needs verifier mode.": "Menyetujui atau menolak memerlukan mode verifikator.",
   "Zoom in": "Perbesar", "Zoom out": "Perkecil", "Data sources": "Sumber data",
   "Sentinel-2 burn scar": "Bekas terbakar Sentinel-2",
   "Drone survey (simulation)": "Survei drone (simulasi)", "Drone frame": "Frame drone", "Drone view": "Tampilan drone",

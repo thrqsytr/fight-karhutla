@@ -9,7 +9,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from . import db, source_status
+from . import admin_settings, db, source_status
 from .config import Settings
 from .sources import sentinel
 from .sources.http import SourceError
@@ -17,7 +17,7 @@ from .sources.http import SourceError
 log = logging.getLogger(__name__)
 
 SOURCE = "Sentinel-2 L2A (Earth Search)"
-FRESH_FOR = timedelta(hours=24)  # a pass comes about every 5 days; checking more often only repeats the answer
+# A pass comes about every 5 days; checking more often only repeats the answer. Admin setting satellite_fresh_hours.
 IMAGE_KINDS = ("pre", "post", "overlay", "mask")
 IMAGE_NAME = re.compile(r"^\d{8}T\d{6}_(pre|post|overlay|mask)\.png$")
 
@@ -51,7 +51,8 @@ def collect(settings: Settings, incident_id: str, *, now: datetime | None = None
     """Store a satellite pair as evidence when one exists. Returns {"evidence_id", ...} or {"status": "unknown", "reason"}."""
     now = now or datetime.now(timezone.utc)
     prev = latest(settings, incident_id)
-    if prev and not force and datetime.fromisoformat(prev["retrieved_at"]) > now - FRESH_FOR:
+    fresh_for = timedelta(hours=admin_settings.value(settings, "satellite_fresh_hours"))
+    if prev and not force and datetime.fromisoformat(prev["retrieved_at"]) > now - fresh_for:
         return {"evidence_id": prev["id"], "reused": True}
     if settings.fixture_mode:
         return {"status": "unknown", "reason": "Sentinel-2 has no fixture; fixture mode makes no network call"}

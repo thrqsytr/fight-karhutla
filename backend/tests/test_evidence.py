@@ -101,7 +101,10 @@ def test_live_mode_spends_overpass_budget_only_on_uncached_tiles(settings, monke
         "lat": lat, "lon": lon, "search_radius_m": 10000, "fire_station_search_radius_m": 30000,
         "nearest": {c: None for c in osm.CATEGORIES}, "osm_timestamp": None, "tile": None, "endpoint": "test"})
     monkeypatch.setattr(evidence, "_tile_cached", lambda s, t: False)
-    monkeypatch.setattr(evidence, "OSM_BUDGET_PER_RUN", 2)
+    from backend import admin_settings
+
+    with db.session(live.db_path) as conn:  # the admin setting, not a constant, sets the Overpass budget
+        admin_settings.update(live, conn, {"osm_tiles_per_run": 2})
     r = evidence.run_enrichment(live, max_incidents=5)
     assert len(calls) == 2
     assert len(r["partial"]) == 3  # deferred, not silently skipped

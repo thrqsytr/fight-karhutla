@@ -13,7 +13,7 @@ import time
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 
-from . import db
+from . import admin_settings, db
 from .config import Settings
 
 MODES = {"off": None, "daily": timedelta(hours=24), "hourly": timedelta(hours=1)}
@@ -92,11 +92,12 @@ def status(settings: Settings, conn, now: datetime | None = None) -> dict:
     if interval is not None:
         next_run = (datetime.fromisoformat(last) + interval).isoformat() if last else "at the next scheduler pass"
     used = usage_today(conn, now)
+    cap = admin_settings.get(settings, conn, "triage_daily_cap")
     return {
         "mode": mode, "modes": list(MODES), "last_auto_run": last, "next_auto_run": next_run,
-        "auto_scope": "citizen-reported incidents only", "auto_budget_per_run": settings.triage_budget_per_run,
-        "batch_limit": settings.triage_batch_limit, "daily_cap": settings.triage_daily_cap,
-        "today": used, "remaining_today": max(0, settings.triage_daily_cap - used["runs"]),
+        "auto_scope": "citizen-reported incidents only", "auto_budget_per_run": admin_settings.get(settings, conn, "triage_budget_per_run"),
+        "batch_limit": admin_settings.get(settings, conn, "triage_batch_limit"), "daily_cap": cap,
+        "today": used, "remaining_today": max(0, cap - used["runs"]),
         "est_cost_per_triage_usd": EST_COST_USD, "last_batch": _get(conn, "last_batch"),
         "code_configured": bool(settings.execution_code), "model_configured": bool(settings.model_api_key),
     }
@@ -106,15 +107,17 @@ def validate_batch(settings: Settings, conn, incident_ids: list[str], now: datet
     ids = list(dict.fromkeys(i.strip() for i in incident_ids if i and i.strip()))
     if not ids:
         raise ControlError(422, "select at least one incident")
-    if len(ids) > settings.triage_batch_limit:
-        raise ControlError(422, f"at most {settings.triage_batch_limit} incidents per execution; {len(ids)} selected")
+    limit = admin_settings.get(settings, conn, "triage_batch_limit")
+    if len(ids) > limit:
+        raise ControlError(422, f"at most {limit} incidents per execution; {len(ids)} selected")
     known = {r[0] for r in conn.execute(f"SELECT id FROM incidents WHERE id IN ({','.join('?' * len(ids))})", ids)}
     missing = [i for i in ids if i not in known]
     if missing:
         raise ControlError(404, f"unknown incidents: {', '.join(missing[:5])}")
-    left = settings.triage_daily_cap - usage_today(conn, now)["runs"]
+    cap = admin_settings.get(settings, conn, "triage_daily_cap")
+    left = cap - usage_today(conn, now)["runs"]
     if len(ids) > left:
-        raise ControlError(429, f"daily cap of {settings.triage_daily_cap} triage runs: {max(0, left)} left today, {len(ids)} requested")
+        raise ControlError(429, f"daily cap of {cap} triage runs: {max(0, left)} left today, {len(ids)} requested")
     return ids
 
 
@@ -133,8 +136,8 @@ def due_auto_run(conn, now: datetime | None = None) -> bool:
 
 def auto_candidates(settings: Settings, conn, now: datetime | None = None) -> list[str]:
     """Citizen-reported incidents not yet triaged, newest first, within the per-run budget and the daily cap."""
-    left = settings.triage_daily_cap - usage_today(conn, now)["runs"]
-    n = max(0, min(settings.triage_budget_per_run, left))
+    left = admin_settings.get(settings, conn, "triage_daily_cap") - usage_today(conn, now)["runs"]
+    n = max(0, min(admin_settings.get(settings, conn, "triage_budget_per_run"), left))
     if n == 0:
         return []
     rows = conn.execute(

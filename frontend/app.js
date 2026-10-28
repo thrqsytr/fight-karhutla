@@ -1,14 +1,14 @@
 import { $, el, hydrateIcons, info, modal, section, siteFooter, svg, toast } from "/ui.js";
 import { applyStatic, DASHBOARD_ID, langSwitch, lang, locale, makeT } from "/i18n.js";
+import { authHeaders, openSignIn, token, verifierControl, VERIFIER_ID } from "/verifier.js";
 
-const t = makeT(DASHBOARD_ID, "en");
+const t = makeT({ ...DASHBOARD_ID, ...VERIFIER_ID }, "en");
 
 // MapLibre (about 300 KB) loads in parallel with the data instead of blocking the first API request.
 const MAPLIBRE_URL = "https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs";
 let maplibregl;
 
 const CFG = window.KARHUTLA_CONFIG || { mapProvider: "maplibre", attributions: [] };
-const TOKEN_KEY = "karhutla.verifierToken";
 const PANEL_KEY = "karhutla.panelHidden";
 const PAGE = 60;
 const RECENT_HOURS = 6;
@@ -49,8 +49,6 @@ function heatColor(frp) {
 }
 const heatExpr = (prop) => ["interpolate", ["linear"], ["coalesce", ["get", prop], 0], ...HEAT_STOPS.flat()];
 
-const token = () => localStorage.getItem(TOKEN_KEY) || "";
-const authHeaders = () => (token() ? { Authorization: `Bearer ${token()}` } : {});
 
 async function api(path, opts = {}) {
   const res = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...authHeaders(), ...(opts.headers || {}) } });
@@ -105,7 +103,13 @@ function renderViewControls() {
   fill($("#view-controls"),
     btn("plus", t("Zoom in"), () => map?.zoomIn()),
     btn("minus", t("Zoom out"), () => map?.zoomOut()),
-    btn("reset", t("Reset map view"), () => map?.flyTo({ ...HOME_VIEW, speed: 1.6 })));
+    btn("reset", t("Reset map view"), resetView));
+}
+
+/** Reset goes all the way back: home view, and an open incident returns to the list. */
+function resetView() {
+  map?.flyTo({ ...HOME_VIEW, speed: 1.6 });
+  if (state.selected || !$("#detail-view").hidden) renderList();
 }
 
 /* Source status: what the app last observed from each source, so a verifier knows what is current. */
@@ -478,10 +482,8 @@ function renderDetailSkeleton() {
 
 function verifierContent(inc) {
   if (!token()) {
-    const input = el("input", { type: "password", placeholder: t("Verifier token"), class: "input", "aria-label": t("Verifier token") });
-    const go = () => { if (input.value) { localStorage.setItem(TOKEN_KEY, input.value); location.reload(); } };
-    input.addEventListener("keydown", (e) => e.key === "Enter" && go());
-    return [el("div", { class: "actions" }, input, el("button", { class: "btn btn-primary", onclick: go }, t("Sign in")))];
+    return [el("p", { class: "empty" }, t("Approving or rejecting needs verifier mode.")),
+      el("div", { class: "actions" }, el("button", { class: "btn btn-primary", type: "button", onclick: () => openSignIn(t) }, svg("shield", "icon icon-sm"), t("Verifier sign in")))];
   }
   const approve = el("button", { class: "btn btn-primary" }, svg("check", "icon icon-sm"), t("Approve"));
   const reject = el("button", { class: "btn btn-ghost-danger" }, svg("x", "icon icon-sm"), t("Reject"));
@@ -498,8 +500,7 @@ function verifierContent(inc) {
   };
   approve.onclick = () => decide("approve");
   reject.onclick = () => decide("reject");
-  const out = el("button", { class: "btn", onclick: () => { localStorage.removeItem(TOKEN_KEY); location.reload(); } }, t("Sign out"));
-  return [el("div", { class: "actions" }, approve, reject, out)];
+  return [el("div", { class: "actions" }, approve, reject)];
 }
 
 /* Evidence rows. Citizen media is fetched with the verifier token, so it never sits at a public URL. */
@@ -1110,6 +1111,7 @@ async function main() {
   applyStatic(t);
   hydrateIcons();
   $("#lang-slot").replaceWith(langSwitch(el));
+  $("#verifier-slot").replaceWith(verifierControl(t));
   siteFooter($("#site-footer"), lang());
   renderViewControls();
   renderSources();

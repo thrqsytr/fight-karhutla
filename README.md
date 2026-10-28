@@ -19,9 +19,10 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Intake processing: citizen voice notes transcribed with Muse Voice Transcribe (Indonesian), photos read by Muse Spark, SAM 3.1 segmentation available to the agent
 - Sentinel-2 burn scar evidence: a clear before and after pair from Earth Search, dNBR computed in code, burned hectares counted from 20 m pixels at dNBR 0.27 or more, no hectares under heavy haze, before, after, and burn scar images in the incident view and on the map
 - Drone survey simulator (SIMULASI): a Blender flyover of a real incident built on its Sentinel-2 burn mask, planned by the app's mission planner, filtered at the ground station by Muse Glimmer on Modal, measured with SAM 3.1 and georeferenced to hectares by code, compared with render truth. Shown beside the incident, never used in triage
+- Admin panel at `/admin/` (verifier token to view, execution code to save): FIRMS fetch interval from 30 minutes to 2 days, enrichment budgets, Sentinel-2 reuse window, triage caps and schedule, spend, recent runs, and source health
 - Metered cost per triage from the usage of each call (first production run: $0.055, 8 of 8 claims grounded)
 - Dashboard with map, incident list, evidence panel, claims linked to evidence, gate details, and verifier approve or reject
-- 96 tests that run without a network
+- 100 tests that run without a network
 
 Not built yet: WhatsApp intake, replay mode, evaluation. Triage runs only on purpose: verifiers select incidents in the list or by drawing an area on the map (at most 5 per selection) and confirm with an execution code; a daily cap and a daily or hourly schedule over citizen reports bound the spend.
 

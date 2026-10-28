@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Res
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import agent, db, drone_replay, evidence, ingest, intake, reports, satellite, source_status, triage_control
+from . import admin_settings, agent, db, drone_replay, evidence, ingest, intake, reports, satellite, source_status, triage_control
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -35,29 +35,38 @@ SEVERITY_COLUMNS = "s.max_frp, s.sum_frp, COALESCE(s.high_conf_count, 0) AS high
 ATTRIBUTIONS = [firms.ATTRIBUTION, weather.ATTRIBUTION, osm.ATTRIBUTION, sentinel.ATTRIBUTION, "Satellite layers: NASA GIBS / Worldview"]
 
 
+SCHEDULER_TICK_MIN = 5
+
+
 def _start_scheduler(settings: Settings) -> BackgroundScheduler | None:
     if not settings.scheduler_enabled or settings.fixture_mode:
         return None
     sched = BackgroundScheduler(timezone="UTC")
 
     def job() -> None:
-        try:
-            ingest.run_once(settings)
-        except Exception:
-            log.exception("scheduled FIRMS ingest failed")
-        try:
-            evidence.run_enrichment(settings)
-        except Exception:
-            log.exception("scheduled evidence enrichment failed")
+        # The tick is frequent; the fetch runs only when the interval chosen in the admin panel has passed.
+        with db.session(settings.db_path) as conn:
+            due = admin_settings.fetch_due(settings, conn)
+            if due:
+                admin_settings.mark_fetch(conn)
+        if due:
+            try:
+                ingest.run_once(settings)
+            except Exception:
+                log.exception("scheduled FIRMS ingest failed")
+            try:
+                evidence.run_enrichment(settings)
+            except Exception:
+                log.exception("scheduled evidence enrichment failed")
         if settings.model_api_key:
             try:
                 auto_triage(settings)
             except Exception:
                 log.exception("scheduled triage failed")
 
-    sched.add_job(job, "interval", minutes=settings.firms_poll_minutes, id="firms", next_run_time=datetime.now(timezone.utc))
+    sched.add_job(job, "interval", minutes=SCHEDULER_TICK_MIN, id="tick", next_run_time=datetime.now(timezone.utc))
     sched.start()
-    log.info("scheduler started: FIRMS every %d min", settings.firms_poll_minutes)
+    log.info("scheduler started: tick every %d min, FIRMS interval from admin settings", SCHEDULER_TICK_MIN)
     return sched
 
 
@@ -526,6 +535,54 @@ def triage_mode(body: ModeIn, request: Request, settings: Settings = Depends(get
         _control(lambda: triage_control.set_mode(conn, body.mode))
     with db.session(settings.db_path) as conn:
         return triage_control.status(settings, conn)
+
+
+@app.get("/api/auth/check", dependencies=[Depends(require_verifier)])
+def auth_check() -> dict:
+    """Lets the browser confirm a verifier token before storing it."""
+    return {"ok": True}
+
+
+@app.get("/api/admin/overview", dependencies=[Depends(require_verifier)])
+def admin_overview(settings: Settings = Depends(get_settings)) -> dict:
+    with db.session(settings.db_path) as conn:
+        runs = [dict(r) for r in conn.execute(
+            "SELECT incident_id, started_at, outcome, seconds, cost_usd FROM agent_runs ORDER BY id DESC LIMIT 15")]
+        counts = {
+            "incidents": conn.execute("SELECT COUNT(*) FROM incidents").fetchone()[0],
+            "hotspots": conn.execute("SELECT COUNT(*) FROM hotspots").fetchone()[0],
+            "citizen_reports": conn.execute("SELECT COUNT(*) FROM evidence WHERE type='report'").fetchone()[0],
+            "satellite_pairs": conn.execute("SELECT COUNT(*) FROM evidence WHERE type='satellite'").fetchone()[0],
+            "triaged": conn.execute("SELECT COUNT(*) FROM incidents WHERE triage_json IS NOT NULL").fetchone()[0],
+        }
+        total = conn.execute("SELECT COUNT(*), COALESCE(SUM(cost_usd), 0) FROM agent_runs").fetchone()
+        return {
+            "settings": admin_settings.describe(settings, conn),
+            "schedule": admin_settings.schedule(settings, conn),
+            "triage": triage_control.status(settings, conn),
+            "counts": counts, "recent_runs": runs,
+            "spend_total": {"runs": total[0], "cost_usd": round(total[1], 4)},
+            "sources": source_status.snapshot(settings),
+            "build": {"git_sha": settings.git_sha, "fixture_mode": settings.fixture_mode, "scheduler_enabled": settings.scheduler_enabled,
+                      "model_configured": bool(settings.model_api_key), "baseten_configured": bool(settings.baseten_api_key)},
+        }
+
+
+class SettingsIn(CodeIn):
+    values: dict[str, int]
+
+
+@app.put("/api/admin/settings", dependencies=[Depends(require_verifier)])
+def admin_update(body: SettingsIn, request: Request, settings: Settings = Depends(get_settings)) -> dict:
+    """Change operator settings. Needs the execution code, because several settings change spend."""
+    _control(lambda: triage_control.check_code(settings, body.code, _client(request)))
+    try:
+        with db.session(settings.db_path) as conn:
+            changed = admin_settings.update(settings, conn, body.values)
+    except admin_settings.SettingError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    log.info("admin settings changed: %s", ", ".join(changed))
+    return {"changed": changed, **admin_overview(settings)}
 
 
 @app.get("/api/incidents/{incident_id}/runs", dependencies=[Depends(require_verifier)])
