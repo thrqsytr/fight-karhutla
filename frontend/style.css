@@ -568,6 +568,15 @@ body.panel-hidden .panel { visibility: hidden; padding: 0; border: 0; }
 .preflight { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
 .preflight li { display: flex; gap: 8px; align-items: flex-start; }
 .preflight .icon { color: var(--ok); flex: 0 0 auto; margin-top: 2px; }
+/* Background work */
+.spinner { width: 13px; height: 13px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; display: inline-block; animation: spin 0.8s linear infinite; flex: 0 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn[aria-busy="true"] { opacity: 1; cursor: progress; color: var(--blue); }
+.busy-badge { display: inline-flex; align-items: center; gap: 5px; color: var(--blue); font-weight: 600; }
+.busy-badge .spinner { width: 10px; height: 10px; }
+.busy-banner { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #b2ccff; background: var(--blue-soft); color: #1d3a8a; border-radius: var(--r-sm); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+
 /* 3D flight view */
 .btn-sm { padding: 5px 10px; font-size: 12px; min-height: 0; }
 .btn-sm[aria-pressed="false"] { opacity: 0.6; }

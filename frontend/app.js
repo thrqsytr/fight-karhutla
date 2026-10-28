@@ -223,6 +223,63 @@ function geo(items, props) {
   return { type: "FeatureCollection", features: items.map((i) => ({ type: "Feature", geometry: { type: "Point", coordinates: [i.lon, i.lat] }, properties: props(i) })) };
 }
 
+/* Background work per incident (collecting evidence, searching Sentinel-2, planning a drone survey). While it runs,
+   the button shows a spinner, the incident pulses on the map, its list card gets a badge, and the incident view a
+   banner. Triage running on the server (status triaging) shows the same way. */
+const busy = new Map();  // incident id -> Map(key -> label)
+const busyLabels = (id) => [...(busy.get(id)?.values() || []), ...(state.incidents.find((i) => i.id === id)?.status === "triaging" ? [t("Triage running")] : [])];
+
+async function track(id, key, label, btn, work) {
+  if (busy.get(id)?.has(key)) return toast(t("Already running: {what}", { what: label }), "alert");
+  if (!busy.has(id)) busy.set(id, new Map());
+  busy.get(id).set(key, label);
+  const restore = btn ? [...btn.childNodes] : null;
+  if (btn) { btn.disabled = true; btn.setAttribute("aria-busy", "true"); fill(btn, el("span", { class: "spinner", "aria-hidden": "true" }), `${label}...`); }
+  refreshBusy();
+  try {
+    return await work();
+  } finally {
+    busy.get(id)?.delete(key);
+    if (!busy.get(id)?.size) busy.delete(id);
+    if (btn?.isConnected) { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.replaceChildren(...restore); }
+    refreshBusy();
+  }
+}
+
+let busyTimer = null;
+function refreshBusy() {
+  const ids = [...new Set([...busy.keys(), ...state.incidents.filter((i) => i.status === "triaging").map((i) => i.id)])];
+  // List badges
+  document.querySelectorAll("#incident-list .incident[data-id]").forEach((li) => {
+    const on = ids.includes(li.dataset.id);
+    li.querySelector(".busy-badge")?.remove();
+    if (on) li.querySelector(".meta")?.append(el("span", { class: "busy-badge", title: busyLabels(li.dataset.id).join(", ") }, el("span", { class: "spinner", "aria-hidden": "true" }), t("In progress")));
+  });
+  // Banner in the open incident
+  const view = $("#detail-view");
+  view.querySelector(".busy-banner")?.remove();
+  if (!view.hidden && ids.includes(view.dataset.incident)) {
+    view.prepend(el("div", { class: "busy-banner", role: "status" }, el("span", { class: "spinner", "aria-hidden": "true" }),
+      el("span", {}, el("strong", {}, t("Working in the background: ")), busyLabels(view.dataset.incident).join(", "))));
+  }
+  // Pulsing ring on the map
+  if (!map?.getSource("busy")) return;
+  const pts = ids.map((id) => state.incidents.find((i) => i.id === id)).filter(Boolean);
+  map.getSource("busy").setData(geo(pts, (i) => ({ id: i.id })));
+  if (pts.length && !busyTimer) {
+    const t0 = performance.now();
+    busyTimer = setInterval(() => {
+      const k = ((performance.now() - t0) % 1400) / 1400;
+      // Grows from just outside the incident circle (as wide as the selection ring) at every zoom.
+      map.setPaintProperty("incident-busy", "circle-radius", ["interpolate", ["linear"], ["zoom"], 4, 10 + 18 * k, 11, 46 + 34 * k]);
+      map.setPaintProperty("incident-busy", "circle-stroke-opacity", 0.9 * (1 - k));
+    }, 50);
+  } else if (!pts.length && busyTimer) {
+    clearInterval(busyTimer);
+    busyTimer = null;
+  }
+}
+
 function setMapData() {
   if (!map) return;
   const hs = geo(state.hotspots, (h) => ({ id: h.id, frp: h.frp, conf: h.confidence, at: h.acquired_at, recent: isRecent(h.acquired_at) ? 1 : 0 }));
@@ -230,6 +287,7 @@ function setMapData() {
   if (map.getSource("hotspots")) {
     map.getSource("hotspots").setData(hs);
     map.getSource("incidents").setData(inc);
+    refreshBusy();
     return;
   }
   map.addSource("hotspots", { type: "geojson", data: hs, attribution: "Hotspots: NASA FIRMS" });
@@ -282,6 +340,11 @@ function setMapData() {
     id: "incident-picked", type: "circle", source: "incidents", filter: ["in", ["get", "id"], ["literal", [...picked]]],
     paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 8, 11, 42], "circle-color": "rgba(0,100,224,0.12)", "circle-stroke-color": "#0064e0", "circle-stroke-width": 2 },
   });
+
+  map.addSource("busy", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  map.addLayer({ id: "incident-busy", type: "circle", source: "busy",
+    paint: { "circle-radius": 12, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#0064e0", "circle-stroke-width": 3, "circle-stroke-opacity": 0.8 } });
+  refreshBusy();
 
   map.on("click", "incidents", (e) => (state.picking ? togglePick(e.features[0].properties.id) : openIncident(e.features[0].properties.id)));
   const hover = (layer, html) => {
@@ -405,7 +468,7 @@ function incidentCard(i) {
   const color = heatColor(i.max_frp);
   const act = () => (state.picking ? togglePick(i.id) : openIncident(i.id));
   const on = picked.has(i.id);
-  return el("li", { class: `card incident ${state.selected === i.id ? "active" : ""} ${state.picking ? "is-picking" : ""} ${on ? "is-picked" : ""}`, onclick: act, tabindex: "0",
+  return el("li", { class: `card incident ${state.selected === i.id ? "active" : ""} ${state.picking ? "is-picking" : ""} ${on ? "is-picked" : ""}`, dataset: { id: i.id }, onclick: act, tabindex: "0",
     onkeydown: (e) => (e.key === "Enter" || (state.picking && e.key === " ")) && (e.preventDefault(), act()), "aria-pressed": state.picking ? String(on) : null },
     state.picking ? el("span", { class: "pick-box", "aria-hidden": "true" }, on ? svg("check", "icon icon-sm") : null)
       : el("span", { class: "heat-dot", style: `color:${color};background:${color}22` }, isRecent(i.last_seen) ? el("span", { class: "pulse" }) : el("span", { class: "core" })),
@@ -453,7 +516,7 @@ function renderList() {
     shown.map(incidentCard),
     items.length > shown.length ? el("li", {}, el("button", { class: "btn more", onclick: () => { state.shown += PAGE; renderList(); } },
       t("Show {n} more of {rest}", { n: Math.min(PAGE, items.length - shown.length), rest: fmtNum(items.length - shown.length) }))) : null,
-  );
+  );  refreshBusy();
 }
 
 function bindListControls() {
@@ -968,15 +1031,17 @@ function showFlightPlan(p) {
 }
 
 async function proposeDrone(inc, btn) {
-  if (btn) btn.disabled = true;
-  try {
-    const r = await api(`/api/incidents/${inc.id}/drone-proposals`, { method: "POST", body: JSON.stringify({ reason: t("Planned by a verifier from the incident view.") }) });
-    toast(t(r.created ? "Drone survey proposed. Approve it to send it to a pilot." : "An active plan already exists; showing it."), "check");
-    openIncident(inc.id);
-  } catch (e) {
-    toast(t("Not proposed: {e}", { e: e.message }), "alert");
-    if (btn) btn.disabled = false;
-  }
+  let reload = false;
+  await track(inc.id, "drone", t("Planning a drone survey"), btn, async () => {
+    try {
+      const r = await api(`/api/incidents/${inc.id}/drone-proposals`, { method: "POST", body: JSON.stringify({ reason: t("Planned by a verifier from the incident view.") }) });
+      toast(t(r.created ? "Drone survey proposed. Approve it to send it to a pilot." : "An active plan already exists; showing it."), "check");
+      reload = true;
+    } catch (e) {
+      toast(t("Not proposed: {e}", { e: e.message }), "alert");
+    }
+  });
+  if (reload && state.selected === inc.id) openIncident(inc.id);
 }
 
 function decideProposal(inc, p, decision) {
@@ -1119,31 +1184,33 @@ async function droneSection(inc) {
 }
 
 async function fetchSatellite(id, btn) {
-  btn.disabled = true;
-  const label = btn.lastChild.textContent;
-  btn.lastChild.textContent = t("Searching Sentinel-2...");
-  try {
-    const r = await api(`/api/incidents/${id}/satellite`, { method: "POST" });
-    if (r.evidence_id) { toast(t(r.reused ? "Pair checked in the last 24 hours; showing it." : "Sentinel-2 pair stored as {id}.", { id: r.evidence_id }), "check"); openIncident(id); return; }
-    toast(t("No pair: {why}", { why: r.reason || "unknown" }), "alert");
-  } catch (e) {
-    toast(t("Sentinel-2 failed: {e}", { e: e.message }), "alert");
-  }
-  btn.disabled = false;
-  btn.lastChild.textContent = label;
+  let reload = false;
+  await track(id, "satellite", t("Searching Sentinel-2"), btn, async () => {
+    try {
+      const r = await api(`/api/incidents/${id}/satellite`, { method: "POST" });
+      if (r.evidence_id) { toast(t(r.reused ? "Pair checked in the last 24 hours; showing it." : "Sentinel-2 pair stored as {id}.", { id: r.evidence_id }), "check"); reload = true; return; }
+      toast(t("No pair: {why}", { why: r.reason || "unknown" }), "alert");
+    } catch (e) {
+      toast(t("Sentinel-2 failed: {e}", { e: e.message }), "alert");
+    }
+  });
+  if (reload && state.selected === id) openIncident(id);
 }
 
 async function collectNow(id, btn) {
-  btn.disabled = true;
-  try {
-    const r = await api(`/api/incidents/${id}/enrich`, { method: "POST" });
-    const failed = Object.entries(r.sources).filter(([, v]) => String(v).startsWith("failed")).map(([k]) => k);
-    toast(failed.length ? t("Collected, but {list} failed and will be retried.", { list: failed.join(", ") }) : t("Evidence collected."), failed.length ? "alert" : "check");
-    openIncident(id);
-  } catch (e) {
-    toast(t("Not collected: {e}", { e: e.message }), "alert");
-    btn.disabled = false;
-  }
+  let reload = false;
+  await track(id, "collect", t("Collecting evidence"), btn, async () => {
+    try {
+      const r = await api(`/api/incidents/${id}/enrich`, { method: "POST" });
+      const failed = Object.entries(r.sources).filter(([, v]) => String(v).startsWith("failed")).map(([k]) => k);
+      toast(failed.length ? t("Collected, but {list} failed and will be retried.", { list: failed.join(", ") }) : t("Evidence collected."), failed.length ? "alert" : "check");
+      reload = true;
+    } catch (e) {
+      toast(t("Not collected: {e}", { e: e.message }), "alert");
+    }
+  });
+  // Only reload the view if the reader is still on this incident; otherwise the ring and badge just disappear.
+  if (reload && state.selected === id) openIncident(id);
 }
 
 /* Triage view: claims link to their evidence, disputes and gate actions are shown, never hidden. */
@@ -1670,6 +1737,7 @@ async function openIncident(id) {
     section({ icon: "check", title: t("Verifier decision"), open: true, tip: t("Approve or reject is recorded as a label. Labels calibrate the evidence gate thresholds."), content: verifierContent(inc) }),
   ];
   fill($("#detail-view"), head, progress, sections);
+  refreshBusy();
   restoreDetailView(saved);
   // Drone plans and the simulated replay load after the main view so they never delay it.
   Promise.all([proposalSection(inc), droneSection(inc)]).then(([plan, sim]) => {

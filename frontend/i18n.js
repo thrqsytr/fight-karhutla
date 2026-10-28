@@ -123,6 +123,8 @@ export const DASHBOARD_ID = {
     "Medan: OpenStreetMap, dibuat datar (tanpa model elevasi). Titik panas oranye. Drone digambar {x} kali lebih besar dari aslinya. Inset: yang dilihat kameranya. OpenStreetMap nyaris kosong di hutan: pasangan Sentinel-2 (Cari citra Sentinel-2 di jendela insiden) memberi tampilan ini citra nyata.",
   "Drone camera": "Kamera drone",
   "3D view unavailable: {e}": "Tampilan 3D tidak tersedia: {e}",
+  "Already running: {what}": "Sudah berjalan: {what}", "In progress": "Sedang diproses", "Working in the background: ": "Proses latar belakang: ",
+  "Searching Sentinel-2": "Mencari Sentinel-2", "Collecting evidence": "Mengumpulkan bukti", "Planning a drone survey": "Merencanakan survei drone",
   "Drone survey plan": "Rencana survei drone", "Proposed": "Diusulkan",
   "Planned by a verifier from the incident view.": "Direncanakan verifikator dari tampilan insiden.",
   "Drone survey proposed. Approve it to send it to a pilot.": "Survei drone diusulkan. Setujui agar diteruskan ke pilot.",
