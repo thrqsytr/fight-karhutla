@@ -104,9 +104,54 @@ def _user_message(inc: dict, ev: list[dict]) -> str:
     )
 
 
-def _run_model(settings: Settings, inc: dict, ev: list[dict], ctx: tools.ToolContext) -> dict:
+def _tool_defs(allowed: set[str] | None) -> list[dict]:
+    return [d for d in tools.TOOL_DEFS if allowed is None or d["name"] in allowed]
+
+
+def _call(ctx: tools.ToolContext, name: str, arguments: str, calls: int, allowed: set[str] | None) -> dict:
+    if calls > MAX_TOOL_CALLS:
+        return {"status": "refused", "reason": "tool call limit reached; answer now"}
+    if allowed is not None and name not in allowed:
+        return {"status": "refused", "reason": f"tool {name} is not available in this run"}
+    return tools.call(ctx, name, arguments)
+
+
+def run_model(settings: Settings, inc: dict, ev: list[dict], ctx: tools.ToolContext, *, provider: str = "meta",
+              allowed: set[str] | None = None) -> dict:
+    """One agent pass. provider "meta" is production (Muse Spark 1.3, Responses API); "baseten" runs Muse Spark Open
+    through Chat Completions with the same prompt, tools, and schema, for evaluation at volume."""
+    if provider == "baseten":
+        return _run_chat(settings, inc, ev, ctx, allowed)
+    return _run_model(settings, inc, ev, ctx, allowed)
+
+
+def _run_chat(settings: Settings, inc: dict, ev: list[dict], ctx: tools.ToolContext, allowed: set[str] | None) -> dict:
+    client = meta_client.baseten(settings)
+    defs = [{"type": "function", "function": {k: d[k] for k in ("name", "description", "parameters")}} for d in _tool_defs(allowed)]
+    msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": _user_message(inc, ev)}]
+    calls = 0
+    while calls <= MAX_TOOL_CALLS:
+        r = client.chat.completions.create(model=meta_client.SPARK_OPEN, messages=msgs, tools=defs)
+        ctx.meter.spark(r.usage, model=meta_client.SPARK_OPEN)
+        m = r.choices[0].message
+        if not m.tool_calls:
+            break
+        msgs.append({"role": "assistant", "content": m.content or "",
+                     "tool_calls": [{"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}} for tc in m.tool_calls]})
+        for tc in m.tool_calls:
+            calls += 1
+            result = _call(ctx, tc.function.name, tc.function.arguments, calls, allowed)
+            msgs.append({"role": "tool", "tool_call_id": tc.id, "content": json.dumps(result, ensure_ascii=False)})
+    msgs.append({"role": "user", "content": "Return the triage now in the required format."})
+    final = client.chat.completions.create(model=meta_client.SPARK_OPEN, messages=msgs,
+                                           response_format={"type": "json_schema", "json_schema": {"name": "triage", "schema": OUTPUT_SCHEMA, "strict": True}})
+    ctx.meter.spark(final.usage, model=meta_client.SPARK_OPEN)
+    return json.loads(final.choices[0].message.content)
+
+
+def _run_model(settings: Settings, inc: dict, ev: list[dict], ctx: tools.ToolContext, allowed: set[str] | None = None) -> dict:
     client = meta_client.meta(settings)
-    resp = client.responses.create(model=meta_client.SPARK, instructions=SYSTEM, input=_user_message(inc, ev), tools=tools.TOOL_DEFS, reasoning=REASONING)
+    resp = client.responses.create(model=meta_client.SPARK, instructions=SYSTEM, input=_user_message(inc, ev), tools=_tool_defs(allowed), reasoning=REASONING)
     ctx.meter.spark(resp.usage)
     calls = 0
     while True:
@@ -116,10 +161,10 @@ def _run_model(settings: Settings, inc: dict, ev: list[dict], ctx: tools.ToolCon
         outputs = []
         for fc in fcs:
             calls += 1
-            result = tools.call(ctx, fc.name, fc.arguments) if calls <= MAX_TOOL_CALLS else {"status": "refused", "reason": "tool call limit reached; answer now"}
+            result = _call(ctx, fc.name, fc.arguments, calls, allowed)
             outputs.append({"type": "function_call_output", "call_id": fc.call_id, "output": json.dumps(result, ensure_ascii=False)})
         resp = client.responses.create(model=meta_client.SPARK, instructions=SYSTEM, input=outputs, previous_response_id=resp.id,
-                                       tools=tools.TOOL_DEFS, reasoning=REASONING)
+                                       tools=_tool_defs(allowed), reasoning=REASONING)
         ctx.meter.spark(resp.usage)
         if calls > MAX_TOOL_CALLS:
             break

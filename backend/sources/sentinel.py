@@ -12,6 +12,7 @@ import json
 import logging
 import math
 import os
+import time
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -41,6 +42,7 @@ PRE_GAP_DAYS = 2  # fires often start before the first hotspot; keep the "before
 AOI_BUFFER_M = 750
 AOI_MIN_HALF_M = 1000
 AOI_MAX_HALF_M = 5000
+READ_ATTEMPTS = 3
 
 # reader(href, bounds, shape, resampling, bands) -> array (bands, rows, cols)
 Reader = Callable[[str, tuple, tuple, str, int], np.ndarray]
@@ -79,12 +81,18 @@ def read_window(href: str, bounds: tuple, shape: tuple, resampling: str, bands: 
     from rasterio.windows import from_bounds
 
     env = {"GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR", "CPL_VSIL_CURL_ALLOWED_EXTENSIONS": ".tif", "GDAL_HTTP_TIMEOUT": "20", "GDAL_HTTP_MAX_RETRY": "2"}
-    try:
-        with rasterio.Env(**env), rasterio.open(href) as ds:
-            return ds.read(list(range(1, bands + 1)), window=from_bounds(*bounds, transform=ds.transform), out_shape=(bands, *shape),
-                           resampling=getattr(Resampling, resampling), boundless=True, fill_value=0)
-    except Exception as exc:  # rasterio raises its own error types for HTTP failures
-        raise SourceError(f"sentinel2 read failed for {os.path.basename(href)}: {exc}") from exc
+    last = None
+    # A range request can come back short (seen on 2026-10-28: a truncated TCI tile); a fresh read usually works.
+    for attempt in range(READ_ATTEMPTS):
+        try:
+            with rasterio.Env(**env), rasterio.open(href) as ds:
+                return ds.read(list(range(1, bands + 1)), window=from_bounds(*bounds, transform=ds.transform), out_shape=(bands, *shape),
+                               resampling=getattr(Resampling, resampling), boundless=True, fill_value=0)
+        except Exception as exc:  # rasterio raises its own error types for HTTP failures
+            last = exc
+            log.warning("sentinel2 read attempt %d failed for %s: %s", attempt + 1, os.path.basename(href), str(exc)[:200])
+            time.sleep(1.5 * (attempt + 1))
+    raise SourceError(f"sentinel2 read failed for {os.path.basename(href)}: {last}") from last
 
 
 def _epsg(item: dict) -> int:

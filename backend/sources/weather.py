@@ -7,6 +7,8 @@ from pathlib import Path
 from .http import fetch_text
 
 BASE_URL = "https://api.open-meteo.com/v1/forecast"
+ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+ARCHIVE_AFTER = timedelta(days=5)  # the forecast API keeps a few past days; older moments use the archive
 HOURLY = "wind_speed_10m,wind_direction_10m,precipitation,relative_humidity_2m"
 FIXTURE_FILE = "open_meteo_kaltim.json"
 ATTRIBUTION = "Weather data by Open-Meteo.com (CC BY 4.0)"
@@ -49,6 +51,14 @@ def get_weather(
             at = datetime.fromisoformat(payload["hourly"]["time"][23]).replace(tzinfo=timezone.utc)
     else:
         at = at or datetime.now(timezone.utc)
+        if datetime.now(timezone.utc) - at > ARCHIVE_AFTER:
+            # Evaluation and replay need the weather of a past fire, from the reanalysis archive.
+            params = {
+                "latitude": f"{lat:.3f}", "longitude": f"{lon:.3f}", "hourly": HOURLY, "wind_speed_unit": "ms", "timezone": "UTC",
+                "start_date": (at - timedelta(days=3)).date().isoformat(), "end_date": (at + timedelta(days=1)).date().isoformat(),
+            }
+            payload = json.loads(fetch_text("open_meteo", "GET", ARCHIVE_URL, cache_dir=cache_dir, cache_key=params, ttl_s=30 * 24 * 3600, params=params))
+            return {**summarize(payload, at), "source_api": "archive"}
         params = {
             "latitude": f"{lat:.3f}",
             "longitude": f"{lon:.3f}",
