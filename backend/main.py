@@ -502,6 +502,27 @@ def wa_verify(request: Request, settings: Settings = Depends(get_settings)) -> R
     return Response(q.get("hub.challenge", ""), media_type="text/plain")
 
 
+class CropIn(BaseModel):
+    box: tuple[int, int, int, int]  # left, top, right, bottom in pixels of the stored photo
+    reason: str = Field(default="", max_length=200)
+
+
+@app.post("/api/incidents/{incident_id}/evidence/{evidence_id}/crop", dependencies=[Depends(require_verifier)])
+def crop_citizen_photo(incident_id: str, evidence_id: str, body: CropIn, settings: Settings = Depends(get_settings)) -> dict:
+    """Redaction by a verifier: crop a citizen photo. The cut-away part is deleted with the original file."""
+    who = hashlib.sha256(("dashboard:" + settings.verifier_token).encode()).hexdigest()[:16]
+    try:
+        with db.session(settings.db_path) as conn:
+            out = reports.crop_photo(conn, settings.data_dir, incident_id, evidence_id, body.box, who, body.reason)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="photo evidence not found")
+    except reports.ReportError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    if reports.media_path(settings.data_dir, out["media_id"]) is None:  # read back
+        raise HTTPException(status_code=500, detail="cropped photo was not stored")
+    return out
+
+
 class ShowcaseIn(BaseModel):
     public: bool
 

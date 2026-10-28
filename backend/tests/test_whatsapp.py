@@ -221,6 +221,27 @@ def test_unconfigured_webhook_is_unavailable(settings):
         assert c.post("/api/wa/webhook", content=b"{}").status_code == 503
 
 
+def test_verifier_can_crop_a_citizen_photo_and_the_original_is_gone(wa):
+    s, sent = wa
+    from backend.main import app
+    with TestClient(app) as c:
+        post(c, body(msg("wamid.1", "image", id="MEDIA-IMG", mime_type="image/jpeg")))
+        post(c, body(msg("wamid.2", "location", **PIN)))
+        inc_id = texts_to(sent, REPORTER)[-1].split("sebagai ")[1].split(".")[0]
+        with db.session(s.db_path) as conn:
+            ev = next(e for e in db.list_evidence(conn, inc_id) if e["type"] == "image")
+        old = reports.media_path(s.data_dir, ev["payload"]["media_id"])
+        assert c.post(f"/api/incidents/{inc_id}/evidence/{ev['id']}/crop", json={"box": [0, 0, 64, 20]}, headers=AUTH).status_code == 422  # too small
+        assert c.post(f"/api/incidents/{inc_id}/evidence/{ev['id']}/crop", json={"box": [0, 0, 64, 48]}).status_code == 401
+        r = c.post(f"/api/incidents/{inc_id}/evidence/{ev['id']}/crop", json={"box": [0, 0, 64, 48], "reason": "screen"}, headers=AUTH)
+    assert r.status_code == 200 and (r.json()["width"], r.json()["height"]) == (64, 48)
+    assert not old.exists()
+    with db.session(s.db_path) as conn:
+        p = next(e for e in db.list_evidence(conn, inc_id) if e["type"] == "image")["payload"]
+    assert p["media_id"] == r.json()["media_id"] and p["sha256"] != p["redactions"][0]["original_sha256"]
+    assert p["redactions"][0]["box"] == [0, 0, 64, 48] and p["redactions"][0]["from_size"] == [64, 48]
+
+
 def test_report_log_is_public_only_after_a_verifier_marks_it(wa):
     s, sent = wa
     from backend.main import app

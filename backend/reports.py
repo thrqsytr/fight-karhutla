@@ -116,6 +116,36 @@ def _find_incident_to_join(conn, lat: float, lon: float, now: datetime) -> str |
 CITIZEN_TYPES = ("report", "image", "voice")
 
 
+def crop_photo(conn, data_dir: Path, incident_id: str, evidence_id: str, box: tuple[int, int, int, int], who: str, reason: str) -> dict:
+    """Crop a citizen photo to box (left, top, right, bottom) in pixels of the stored image.
+
+    For redaction: the original file is deleted, so what was cut away is gone. The evidence keeps an audit
+    record of the crop with the original hash. A model reading made before the crop stays as it was.
+    """
+    row = conn.execute("SELECT payload_json FROM evidence WHERE id=? AND type='image'", (f"{incident_id}/{evidence_id}",)).fetchone()
+    if row is None:
+        raise KeyError(evidence_id)
+    p = json.loads(row["payload_json"])
+    if p.get("capture_source") != "citizen":
+        raise ReportError("Only citizen photos can be cropped.")
+    old = media_path(data_dir, p["media_id"])
+    if old is None:
+        raise ReportError("The photo file is missing.")
+    img = Image.open(old)
+    left, top, right, bottom = box
+    if not (0 <= left < right <= img.width and 0 <= top < bottom <= img.height) or (right - left) < 32 or (bottom - top) < 32:
+        raise ReportError(f"Crop box must lie inside the {img.width}x{img.height} photo and keep at least 32 px.")
+    out = io.BytesIO()
+    img.convert("RGB").crop(box).save(out, format="JPEG", quality=90, optimize=True)
+    media_id, sha = _store(data_dir, out.getvalue(), "jpg")
+    p.setdefault("redactions", []).append({"kind": "crop", "box": list(box), "from_size": [img.width, img.height], "original_sha256": p.get("sha256"),
+                                           "at": db.utcnow(), "by": who, "reason": reason[:200]})
+    p.update({"media_id": media_id, "sha256": sha, "width": right - left, "height": bottom - top})
+    conn.execute("UPDATE evidence SET payload_json=? WHERE id=?", (json.dumps(p, ensure_ascii=False), f"{incident_id}/{evidence_id}"))
+    old.unlink()
+    return {"evidence_id": evidence_id, "media_id": media_id, "width": right - left, "height": bottom - top}
+
+
 def delete_citizen_data(conn, data_dir: Path, incident_id: str) -> dict:
     """Remove a report's text, photos, and voice notes, including the files.
 
