@@ -81,6 +81,11 @@ export const DASHBOARD_ID = {
   "Approving or rejecting needs verifier mode.": "Menyetujui atau menolak memerlukan mode verifikator.",
   "Zoom in": "Perbesar", "Zoom out": "Perkecil", "Data sources": "Sumber data",
   "Sentinel-2 burn scar": "Bekas terbakar Sentinel-2",
+  "Share": "Bagikan", "Not shareable yet: {e}": "Belum bisa dibagikan: {e}", "Share...": "Bagikan...", "WhatsApp": "WhatsApp", "Facebook": "Facebook",
+  "Copy link": "Salin tautan", "Copy text": "Salin teks", "Download image": "Unduh gambar", "Link copied.": "Tautan disalin.",
+  "Summary and link copied.": "Ringkasan dan tautan disalin.", "Share {id}": "Bagikan {id}",
+  "Only public information is shared: rounded location, satellite hotspots, status, and the nearest settlement. Citizen photos and text are never included.":
+    "Hanya informasi publik yang dibagikan: lokasi yang dibulatkan, titik panas satelit, status, dan permukiman terdekat. Foto dan teks warga tidak pernah disertakan.",
   "Drone survey plan": "Rencana survei drone", "Proposed": "Diusulkan",
   "Planned by a verifier from the incident view.": "Direncanakan verifikator dari tampilan insiden.",
   "Drone survey proposed. Approve it to send it to a pilot.": "Survei drone diusulkan. Setujui agar diteruskan ke pilot.",

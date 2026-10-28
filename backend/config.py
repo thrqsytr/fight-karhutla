@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     fixtures_dir: Path = REPO_ROOT / "fixtures"
     frontend_dir: Path = REPO_ROOT / "frontend"
     replay_dir: Path = REPO_ROOT / "replay"
+    public_url: str = "https://karhutla.thariq.xyz"  # absolute links in share pages and OG tags
     osm_fallback_url: str = ""  # where the server downloads the offline OSM extract once, if it is missing
     fixture_mode: bool = True
     scheduler_enabled: bool = False

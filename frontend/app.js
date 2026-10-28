@@ -1223,6 +1223,37 @@ function progressCard(inc) {
   );
 }
 
+/* Share: a public link whose preview (title, summary, static map image) WhatsApp and Facebook show. */
+async function openShare(inc) {
+  let s;
+  try {
+    s = await api(`/api/incidents/${encodeURIComponent(inc.id)}/share?lang=${lang()}`);
+  } catch (e) {
+    return toast(t("Not shareable yet: {e}", { e: e.message }), "alert");
+  }
+  const text = `${s.title}\n${s.description}\n${s.url}`;
+  const img = el("img", { class: "share-img", src: s.image, alt: s.title });
+  const copy = async (value, done) => {
+    try { await navigator.clipboard.writeText(value); toast(t(done), "check"); } catch { toast(value); }
+  };
+  const actions = [
+    navigator.share ? el("button", { class: "btn btn-primary", type: "button", onclick: () => navigator.share({ title: s.title, text: `${s.title}\n${s.description}`, url: s.url }).catch(() => {}) },
+      svg("share", "icon icon-sm"), t("Share...")) : null,
+    el("a", { class: "btn btn-wa", href: `https://wa.me/?text=${encodeURIComponent(text)}`, target: "_blank", rel: "noopener" }, t("WhatsApp")),
+    el("a", { class: "btn", href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(s.url)}`, target: "_blank", rel: "noopener" }, t("Facebook")),
+    el("button", { class: "btn", type: "button", onclick: () => copy(s.url, "Link copied.") }, t("Copy link")),
+    el("button", { class: "btn", type: "button", onclick: () => copy(text, "Summary and link copied.") }, t("Copy text")),
+    el("a", { class: "btn", href: s.image, download: `${inc.id}.png` }, t("Download image")),
+  ];
+  const dlg = modal({
+    title: t("Share {id}", { id: inc.id }),
+    body: [img, el("p", { class: "share-title" }, s.title), el("p", { class: "muted", style: "margin:0;font-size:13px" }, s.description),
+      el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("Only public information is shared: rounded location, satellite hotspots, status, and the nearest settlement. Citizen photos and text are never included."))],
+    actions: [el("div", { class: "share-actions" }, actions)],
+  });
+  dlg.card.classList.add("share-card");
+}
+
 /* The brief shows the reader's language first and the other one below it. */
 function briefParts(triage) {
   const [first, second] = lang() === "id" ? ["id", "en"] : ["en", "id"];
@@ -1249,7 +1280,9 @@ async function openIncident(id) {
   const recent = isRecent(inc.last_seen);
 
   const head = el("div", { class: "card detail-head" },
-    el("div", { class: "detail-title" }, el("h3", {}, inc.id), el("span", { class: "status", dataset: { status: inc.status } }, statusLabel(inc.status))),
+    el("div", { class: "detail-title" }, el("h3", {}, inc.id),
+      el("div", { class: "detail-title-right" }, el("span", { class: "status", dataset: { status: inc.status } }, statusLabel(inc.status)),
+        el("button", { class: "btn btn-icon", type: "button", title: t("Share"), "aria-label": t("Share"), onclick: () => openShare(inc) }, svg("share", "icon icon-sm")))),
     el("div", { class: "tags" },
       inc.simulation ? el("span", { class: "pill pill-sim" }, "SIMULASI") : null,
       recent ? el("span", { class: "pill pill-live" }, el("span", { class: "pulse" }), t("Active in last 6 h")) : null,
@@ -1362,6 +1395,13 @@ async function main() {
   if (inc.error) fill($("#incident-list"), el("li", { class: "empty" }, t("Could not load incidents: {e}", { e: inc.error.message })));
   else if (!state.selected) renderList();
   performance.mark("list-rendered");
+
+  // A shared link (/i/<id>) lands here with ?incident=<id>: open it once the list is in.
+  const wanted = new URLSearchParams(location.search).get("incident");
+  if (wanted && !inc.error) {
+    history.replaceState(null, "", location.pathname + location.hash);
+    openIncident(wanted);
+  }
 
   const [hs] = await Promise.all([hsP, mapP]);
   state.hotspots = hs.items;

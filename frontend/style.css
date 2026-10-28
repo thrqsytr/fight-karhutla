@@ -557,6 +557,15 @@ body.panel-hidden .panel { visibility: hidden; padding: 0; border: 0; }
 .proposal-pill.rejected { background: #fdecea; color: var(--st-likely); }
 .proposal-reason { margin: 0; font-size: 13px; color: var(--ink-2); }
 
+/* Share */
+.detail-title-right { display: flex; align-items: center; gap: 8px; }
+.share-card { width: min(640px, 100%); }
+.share-img { width: 100%; aspect-ratio: 1200 / 630; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--bg); display: block; }
+.share-title { margin: 0; font-weight: 700; }
+.share-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.btn-wa { background: #25d366; border-color: #25d366; color: #fff !important; }
+.btn-wa:hover { background: #1ebe5a; border-color: #1ebe5a; }
+
 /* Admin panel */
 .admin { max-width: 900px; }
 .admin-body { display: grid; gap: 12px; }

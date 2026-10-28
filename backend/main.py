@@ -9,11 +9,11 @@ from typing import Literal
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin_settings, agent, db, drone_missions, drone_replay, evidence, ingest, intake, reports, satellite, source_status, triage_control
+from . import admin_settings, agent, db, drone_missions, drone_replay, share, evidence, ingest, intake, reports, satellite, source_status, triage_control
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -335,6 +335,91 @@ def drone_file(mission_id: str, kind: str, name: str, settings: Settings = Depen
     if p is None:
         raise HTTPException(status_code=404, detail="file not found")
     return FileResponse(p, headers={"Cache-Control": "public, max-age=86400"})
+
+
+def _shareable(settings: Settings, incident_id: str) -> tuple[dict, list[dict], list[dict], str | None] | None:
+    """The public view of an incident, or None when the public may not see it."""
+    with db.session(settings.db_path) as conn:
+        row = conn.execute(
+            f"SELECT i.*, {SEVERITY_COLUMNS} FROM incidents i LEFT JOIN ({SEVERITY_SUBQUERY}) s ON s.incident_id = i.id WHERE i.id=?", (incident_id,)
+        ).fetchone()
+        if not row:
+            return None
+        inc = db.incident_row_to_dict(row)
+        if not _visible_to_public(conn, inc):
+            return None
+        evidence = [e for e in db.list_evidence(conn, incident_id) if e["type"] not in PRIVATE_EVIDENCE]
+        hotspots = [{"lat": round(r["lat"], PUBLIC_COORD_DECIMALS), "lon": round(r["lon"], PUBLIC_COORD_DECIMALS), "frp": r["frp"]}
+                    for r in conn.execute("SELECT lat, lon, frp FROM hotspots WHERE incident_id=?", (incident_id,))]
+        last = conn.execute("SELECT decision FROM verdicts WHERE incident_id=? ORDER BY id DESC LIMIT 1", (incident_id,)).fetchone()
+    verdict = last["decision"] if last and last["decision"] != "revoke" else None
+    return _public_view(inc), evidence, hotspots, verdict
+
+
+SHARE_LANGS = ("id", "en")
+
+
+@app.get("/og/{incident_id}.png")
+def og_image(incident_id: str, lang: str = "id", settings: Settings = Depends(get_settings)) -> Response:
+    """Static share image. Cached on disk until the incident changes (status, hotspots, verdict)."""
+    lang = lang if lang in SHARE_LANGS else "id"
+    found = _shareable(settings, incident_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="incident not found")
+    inc, evidence, hotspots, verdict = found
+    folder = settings.data_dir / "og"
+    path = folder / f"{incident_id}_{share.cache_key(inc, verdict, lang)}.png"
+    if not path.exists():
+        folder.mkdir(parents=True, exist_ok=True)
+        png = share.render(share.facts(inc, evidence, verdict, lang), hotspots, cache_dir=settings.cache_dir, lang=lang)
+        for old in folder.glob(f"{incident_id}_*.png"):
+            old.unlink(missing_ok=True)
+        path.write_bytes(png)
+    return FileResponse(path, media_type="image/png", headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/api/incidents/{incident_id}/share")
+def share_info(incident_id: str, lang: str = "id", settings: Settings = Depends(get_settings)) -> dict:
+    """The link, image, and text a share shows, so the dialog previews exactly what others will see."""
+    lang = lang if lang in SHARE_LANGS else "id"
+    found = _shareable(settings, incident_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="not shareable: citizen-only incidents are public only after a verifier approves them")
+    inc, evidence, _, verdict = found
+    base = settings.public_url.rstrip("/")
+    url = f"{base}/i/{incident_id}" + ("?lang=en" if lang == "en" else "")
+    title, desc = share.summary(share.facts(inc, evidence, verdict, lang), url, lang)
+    return {"url": url, "image": f"/og/{incident_id}.png?lang={lang}&v={share.cache_key(inc, verdict, lang)}", "title": title, "description": desc}
+
+
+@app.get("/i/{incident_id}", response_class=HTMLResponse)
+def share_page(incident_id: str, lang: str = "id", settings: Settings = Depends(get_settings)) -> HTMLResponse:
+    """What a shared link opens: OG tags for WhatsApp and Facebook previews, then a jump to the incident on the map."""
+    from html import escape
+
+    lang = lang if lang in SHARE_LANGS else "id"
+    found = _shareable(settings, incident_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="incident not found")
+    inc, evidence, _, verdict = found
+    base = settings.public_url.rstrip("/")
+    url = f"{base}/i/{incident_id}" + ("?lang=en" if lang == "en" else "")
+    target = f"/?incident={incident_id}"
+    image = f"{base}/og/{incident_id}.png?lang={lang}&v={share.cache_key(inc, verdict, lang)}"
+    title, desc = share.summary(share.facts(inc, evidence, verdict, lang), url, lang)
+    t, d = escape(title), escape(desc)
+    html = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>{t}: Fight Karhutla</title>
+<meta name="description" content="{d}">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Fight Karhutla">
+<meta property="og:title" content="{t}"><meta property="og:description" content="{d}"><meta property="og:url" content="{escape(url)}">
+<meta property="og:image" content="{escape(image)}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{t}"><meta name="twitter:card" content="summary_large_image">
+<meta http-equiv="refresh" content="0; url={escape(target)}"><link rel="stylesheet" href="/style.css"></head>
+<body class="page-doc"><main class="doc"><article class="card doc-body"><h2>{t}</h2><p>{d}</p>
+<p><img src="{escape(image)}" alt="{t}" style="width:100%;border-radius:12px"></p><p><a href="{escape(target)}">Fight Karhutla</a></p></article></main>
+<script>location.replace({target!r});</script></body></html>"""
+    return HTMLResponse(html, headers={"Cache-Control": "public, max-age=300"})
 
 
 @app.get("/api/sources")
