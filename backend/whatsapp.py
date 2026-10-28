@@ -353,8 +353,32 @@ def notify_reporters(settings: Settings, incident_id: str, decision: str) -> int
     return sum(send_text(settings, r["wa_id"], body, "verdict", incident_id) for r in rows)
 
 
+def record_statuses(settings: Settings, payload: dict) -> int:
+    """Delivery results for messages we sent: delivered, read, or failed with WhatsApp's error code and reason."""
+    rows = []
+    for entry in payload.get("entry") or []:
+        for change in entry.get("changes") or []:
+            for st in (change.get("value") or {}).get("statuses") or []:
+                errs = st.get("errors") or []
+                why = "; ".join(f"code {e.get('code')}: {e.get('title') or e.get('message', '')}"
+                                + (f" ({(e.get('error_data') or {}).get('details')})" if (e.get("error_data") or {}).get("details") else "")
+                                for e in errs)
+                rows.append(((f"{st.get('status')}: {why}" if why else str(st.get("status")))[:300], st.get("id", "")))
+    if rows:
+        with db.session(settings.db_path) as conn:
+            conn.executemany("UPDATE wa_outbox SET delivery=? WHERE detail=?", rows)
+        for delivery, _ in rows:
+            if delivery.startswith("failed"):
+                log.warning("whatsapp delivery %s", delivery)
+    return len(rows)
+
+
 def process_webhook(settings: Settings, payload: dict, after_report=None) -> None:
     """Background work for one webhook call: each message in turn, then its replies and notifications."""
+    try:
+        record_statuses(settings, payload)
+    except Exception:
+        log.exception("whatsapp status update failed")
     for m in parse(payload):
         try:
             with _lock:
@@ -384,6 +408,6 @@ def status(settings: Settings) -> dict:
     with db.session(settings.db_path) as conn:
         last_in = conn.execute("SELECT MAX(received_at) FROM wa_messages").fetchone()[0]
         out = [dict(r) for r in conn.execute(
-            "SELECT created_at, to_hash, purpose, incident_id, status, detail FROM wa_outbox ORDER BY id DESC LIMIT 10")]
+            "SELECT created_at, to_hash, purpose, incident_id, status, delivery, detail FROM wa_outbox ORDER BY id DESC LIMIT 10")]
     return {"configured": configured(settings), "last_inbound": last_in, "recent_outbound": out,
             "verifier_numbers": len([n for n in settings.wa_verifier_numbers.split(",") if n.strip()])}

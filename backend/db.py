@@ -148,6 +148,8 @@ MIGRATIONS = {
         "enrichment_json": "TEXT",  # per source: ok, or failed with the reason
         "reporter_count": "INTEGER NOT NULL DEFAULT 0",
     },
+    # "sent" only means WhatsApp accepted the message; the delivery result arrives later as a status webhook.
+    "wa_outbox": {"delivery": "TEXT"},
 }
 
 

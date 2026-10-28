@@ -174,6 +174,18 @@ def test_refused_send_is_recorded_with_the_reason(wa):
     assert r["status"] == "failed" and "131047" in r["detail"] and r["to_hash"] != "unreachable"
 
 
+def test_delivery_status_is_recorded_on_the_sent_message(wa):
+    s, _ = wa
+    db.init(s.db_path)
+    assert whatsapp.send_text(s, REPORTER, "hi", "reply")
+    status = {"entry": [{"changes": [{"value": {"statuses": [{"id": "wamid.out1", "status": "failed", "recipient_id": REPORTER,
+              "errors": [{"code": 131030, "title": "Recipient phone number not in allowed list", "error_data": {"details": "add it in API Setup"}}]}]}}]}]}
+    assert whatsapp.record_statuses(s, status) == 1
+    with db.session(s.db_path) as conn:
+        d = conn.execute("SELECT delivery FROM wa_outbox").fetchone()[0]
+    assert d.startswith("failed: code 131030") and "allowed list" in d and "API Setup" in d
+
+
 def test_public_form_can_not_claim_whatsapp_location(settings):
     from backend.main import app
     with TestClient(app) as c:
