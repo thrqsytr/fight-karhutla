@@ -14,6 +14,11 @@ const PAGE = 60;
 const RECENT_HOURS = 6;
 const BASEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 const HOME_VIEW = { center: [117.5, -1.5], zoom: 4.4 };
+const BASEMAP_KEY = "karhutla.basemap";
+// World view: Esri World Imagery under the positron boundaries and labels. Display only, never evidence.
+const WORLD_TILES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+// Credits as listed on the ArcGIS item 10df2279f9684e4a9f6a7f08febac2a9 (checked 2026-10-29).
+const WORLD_ATTRIBUTION = "Imagery: Esri, Vantor, Earthstar Geographics, and the GIS User Community";
 
 const STATUS = {
   pending_triage: { label: "Pending triage", color: "#7a8b99" },
@@ -104,6 +109,63 @@ function renderViewControls() {
     btn("plus", t("Zoom in"), () => map?.zoomIn()),
     btn("minus", t("Zoom out"), () => map?.zoomOut()),
     btn("reset", t("Reset map view"), resetView));
+  renderBasemapSwitch();
+}
+
+/* Basemap switch under the zoom group: the light map, or world satellite imagery with the same labels. */
+const basemap = () => (localStorage.getItem(BASEMAP_KEY) === "world" ? "world" : "map");
+let baseLayers = [];  // positron layer ids, captured before the app adds its own layers
+const savedPaint = new Map();  // layer id + property -> positron value, restored when leaving World
+
+function renderBasemapSwitch() {
+  const opt = (key, label, tip) => el("button", { type: "button", class: "map-btn basemap-opt", title: tip, "aria-label": tip,
+    "aria-pressed": String(basemap() === key), onclick: () => setBasemap(key) }, label);
+  fill($("#basemap-switch"),
+    opt("map", t("Map"), t("Light map with places, roads, and boundaries.")),
+    opt("world", t("World"), t("World satellite imagery from Esri with the same boundaries and labels. Display only: not used as evidence, and the image date varies by place.")));
+}
+
+function setBasemap(key) {
+  localStorage.setItem(BASEMAP_KEY, key);
+  renderBasemapSwitch();
+  applyBasemap();
+}
+
+function applyBasemap() {
+  if (!map?.getLayer("world-imagery")) return;
+  const world = basemap() === "world";
+  const paint = (id, prop, value) => {
+    const k = `${id}|${prop}`;
+    if (world) {
+      if (!savedPaint.has(k)) savedPaint.set(k, map.getPaintProperty(id, prop));
+      map.setPaintProperty(id, prop, value);
+    } else if (savedPaint.has(k)) {
+      map.setPaintProperty(id, prop, savedPaint.get(k));
+    }
+  };
+  map.setLayoutProperty("world-imagery", "visibility", world ? "visible" : "none");
+  for (const id of baseLayers) {
+    const type = map.getLayer(id).type;
+    const keep = type === "symbol" || id.startsWith("boundary") || id.startsWith("highway_motorway");
+    map.setLayoutProperty(id, "visibility", !world || keep ? "visible" : "none");
+    if (type === "symbol") {
+      paint(id, "text-color", "#ffffff");
+      paint(id, "text-halo-color", "rgba(0,0,0,0.75)");
+      paint(id, "text-halo-width", 1.4);
+    } else if (id.startsWith("boundary")) {
+      paint(id, "line-color", "rgba(255,255,255,0.7)");
+    } else if (id.startsWith("highway_motorway")) {
+      paint(id, "line-opacity", 0.45);
+    }
+  }
+}
+
+function addWorldImagery() {
+  baseLayers = map.getStyle().layers.map((l) => l.id);
+  map.addSource("world-imagery", { type: "raster", tileSize: 256, maxzoom: 19, tiles: [WORLD_TILES], attribution: WORLD_ATTRIBUTION });
+  // Right above the background, so every positron layer that stays visible draws over the imagery.
+  map.addLayer({ id: "world-imagery", type: "raster", source: "world-imagery", layout: { visibility: "none" } }, baseLayers[1]);
+  applyBasemap();
 }
 
 /** Reset goes all the way back: home view, and an open incident returns to the list. */
@@ -187,6 +249,7 @@ async function initMap() {
   collapseAttribution(map);
   popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
   await new Promise((resolve) => map.on("load", resolve));
+  addWorldImagery();
   addNasaLayers();
 }
 

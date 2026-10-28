@@ -80,6 +80,10 @@ export const DASHBOARD_ID = {
   "Still missing": "Yang masih kurang",
   "Approving or rejecting needs verifier mode.": "Menyetujui atau menolak memerlukan mode verifikator.",
   "Zoom in": "Perbesar", "Zoom out": "Perkecil", "Data sources": "Sumber data",
+  "Map": "Peta", "World": "World", "Basemap": "Peta dasar",
+  "Light map with places, roads, and boundaries.": "Peta terang dengan nama tempat, jalan, dan batas wilayah.",
+  "World satellite imagery from Esri with the same boundaries and labels. Display only: not used as evidence, and the image date varies by place.":
+    "Citra satelit dunia dari Esri dengan batas wilayah dan label yang sama. Hanya tampilan: tidak dipakai sebagai bukti, dan tanggal citra berbeda di tiap tempat.",
   "Sentinel-2 burn scar": "Bekas terbakar Sentinel-2",
   "Share": "Bagikan", "Not shareable yet: {e}": "Belum bisa dibagikan: {e}", "Share...": "Bagikan...", "WhatsApp": "WhatsApp", "Facebook": "Facebook",
   "Copy link": "Salin tautan", "Copy text": "Salin teks", "Download image": "Unduh gambar", "Link copied.": "Tautan disalin.",
