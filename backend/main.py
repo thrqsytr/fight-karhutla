@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin_settings, agent, db, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control, whatsapp
+from . import admin_settings, agent, db, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control, wa_reports, whatsapp
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -500,6 +500,44 @@ def wa_verify(request: Request, settings: Settings = Depends(get_settings)) -> R
     if not settings.wa_verify_token or q.get("hub.mode") != "subscribe" or not hmac.compare_digest(q.get("hub.verify_token", ""), settings.wa_verify_token):
         raise HTTPException(status_code=403, detail="verification failed")
     return Response(q.get("hub.challenge", ""), media_type="text/plain")
+
+
+class ShowcaseIn(BaseModel):
+    public: bool
+
+
+@app.get("/api/wa/reports")
+def wa_report_log(verifier: bool = Depends(is_verifier), settings: Settings = Depends(get_settings)) -> dict:
+    """WhatsApp report log. Verifiers see every report; the public sees only those marked as public examples."""
+    with db.session(settings.db_path) as conn:
+        ids = wa_reports.incident_ids(conn, public=not verifier)
+        items = [r for r in (wa_reports.build(conn, i, verifier=verifier) for i in ids) if r]
+    return {"verifier": verifier, "count": len(items), "items": items, "templates": wa_reports.reply_templates(),
+            "whatsapp": {"configured": whatsapp.configured(settings)}}
+
+
+@app.put("/api/wa/reports/{incident_id}/showcase", dependencies=[Depends(require_verifier)])
+def wa_showcase(incident_id: str, body: ShowcaseIn, settings: Settings = Depends(get_settings)) -> dict:
+    who = hashlib.sha256(("dashboard:" + settings.verifier_token).encode()).hexdigest()[:16]
+    with db.session(settings.db_path) as conn:
+        if not wa_reports.incident_ids(conn, public=False).count(incident_id):
+            raise HTTPException(status_code=404, detail="no WhatsApp report for this incident")
+        wa_reports.set_public(conn, incident_id, body.public, who)
+    with db.session(settings.db_path) as conn:  # read back
+        return {"incident_id": incident_id, "public": wa_reports.is_public(conn, incident_id)}
+
+
+@app.get("/api/wa/reports/{incident_id}/media/{media_id}")
+def wa_report_media(incident_id: str, media_id: str, verifier: bool = Depends(is_verifier), settings: Settings = Depends(get_settings)) -> FileResponse:
+    """A photo or voice note of a WhatsApp report marked public (or any, for a verifier)."""
+    with db.session(settings.db_path) as conn:
+        allowed = wa_reports.media_belongs(conn, incident_id, media_id) and (verifier or wa_reports.is_public(conn, incident_id))
+    path = reports.media_path(settings.data_dir, media_id) if allowed else None
+    if path is None:
+        raise HTTPException(status_code=404, detail="media not found")
+    ext = path.suffix.lstrip(".")
+    mime = "image/jpeg" if ext == "jpg" else next((m for m, e in reports.AUDIO_TYPES.items() if e == ext), "application/octet-stream")
+    return FileResponse(path, media_type=mime, headers={"Cache-Control": "private, no-cache"})
 
 
 @app.post("/api/wa/webhook")

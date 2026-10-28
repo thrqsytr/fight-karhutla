@@ -142,6 +142,7 @@ export function modal({ title, body, actions = [], onClose }) {
 export const SITE_PAGES = [
   { path: "/about/", id: "Tentang", en: "About" },
   { path: "/sources/", id: "Sumber data", en: "Data sources" },
+  { path: "/whatsapp/", id: "Laporan WhatsApp", en: "WhatsApp reports" },
   { path: "/privacy/", id: "Privasi", en: "Privacy" },
   { path: "/terms/", id: "Ketentuan", en: "Terms" },
   { path: "/license/", id: "Lisensi", en: "License" },

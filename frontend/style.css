@@ -616,6 +616,33 @@ body.panel-hidden .panel { visibility: hidden; padding: 0; border: 0; }
 .admin { max-width: 900px; }
 .admin-body { display: grid; gap: 12px; }
 .admin-card { padding: 18px 20px; display: grid; gap: 12px; }
+/* WhatsApp report log */
+.wa-log { max-width: 900px; }
+.wa-report-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wa-report-head .admin-title { flex: 1; min-width: 0; }
+.wa-report-head .admin-title a { color: var(--blue); text-decoration: none; }
+.wa-dt { display: inline-flex; align-items: center; gap: 4px; }
+.wa-limit { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: var(--r-sm); background: var(--warn-soft); color: #93370d; font-size: 13px; }
+.wa-limit .icon { flex: none; margin-top: 2px; }
+.wa-block { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+.wa-block-title { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.wa-msg, .wa-result { display: grid; gap: 6px; }
+.wa-msg-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12.5px; }
+.wa-bubble { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--bg); font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; max-width: 640px; }
+.wa-bubble-out { background: #e7f8ef; }
+.wa-media { max-width: 320px; }
+.wa-photo { display: block; width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--r-sm); background: var(--bg); }
+.wa-audio { width: 100%; max-width: 320px; }
+.wa-flags, .wa-delivery { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; }
+.wa-flag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: var(--line-soft); color: var(--ink-2); font-size: 12px; }
+.wa-flag.on { background: var(--ok-soft); color: #067647; }
+.wa-flag.bad { background: #fdecea; color: #b42318; }
+.wa-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.wa-step { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+.wa-step p { margin: 2px 0 0; font-size: 12px; overflow-wrap: anywhere; }
+.wa-step-dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--line-soft); color: var(--ink-3); }
+.wa-step.done .wa-step-dot { background: var(--ok-soft); color: #067647; }
+.wa-step.fail .wa-step-dot { background: #fdecea; color: #b42318; }
 .admin-title { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 16px; }
 .admin-sub { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); }
 .admin-stats { grid-template-columns: repeat(5, 1fr); }

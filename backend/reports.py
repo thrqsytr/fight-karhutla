@@ -138,6 +138,7 @@ def delete_citizen_data(conn, data_dir: Path, incident_id: str) -> dict:
             files += 1
     conn.execute(f"DELETE FROM evidence WHERE incident_id=? AND type IN ({','.join('?' * len(CITIZEN_TYPES))})", (incident_id, *CITIZEN_TYPES))
     conn.execute("DELETE FROM wa_reporters WHERE incident_id=?", (incident_id,))  # the reporter's number goes with the report
+    conn.execute("DELETE FROM wa_showcase WHERE incident_id=?", (incident_id,))  # nothing left to show
     removed_incident = inc["hotspot_count"] == 0
     if removed_incident:
         conn.execute("DELETE FROM evidence WHERE incident_id=?", (incident_id,))
@@ -145,6 +146,7 @@ def delete_citizen_data(conn, data_dir: Path, incident_id: str) -> dict:
         conn.execute("DELETE FROM drone_flights WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM drone_proposals WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM wa_outbox WHERE incident_id=?", (incident_id,))
+        conn.execute("DELETE FROM wa_showcase WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM incidents WHERE id=?", (incident_id,))
         shutil.rmtree(data_dir / "satellite" / incident_id, ignore_errors=True)
     else:

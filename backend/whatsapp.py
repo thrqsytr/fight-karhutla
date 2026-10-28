@@ -174,8 +174,8 @@ def send_text(settings: Settings, to: str, body: str, purpose: str, incident_id:
     if status == "failed":
         log.warning("whatsapp %s to %s failed: %s", purpose, reporter_hash(settings, to), detail)
     with db.session(settings.db_path) as conn:
-        conn.execute("INSERT INTO wa_outbox (created_at, to_hash, purpose, incident_id, status, detail) VALUES (?,?,?,?,?,?)",
-                     (db.utcnow(), reporter_hash(settings, to), purpose, incident_id, status, detail))
+        conn.execute("INSERT INTO wa_outbox (created_at, to_hash, purpose, incident_id, status, detail, body) VALUES (?,?,?,?,?,?,?)",
+                     (db.utcnow(), reporter_hash(settings, to), purpose, incident_id, status, detail, body))
     return status == "sent"
 
 
@@ -392,9 +392,12 @@ def process_webhook(settings: Settings, payload: dict, after_report=None) -> Non
         except Exception:
             log.exception("whatsapp message %s failed", m.msg_id)
             out = []
+        with db.session(settings.db_path) as conn:
+            row = conn.execute("SELECT state_json FROM wa_sessions WHERE wa_id=?", (m.wa_id,)).fetchone()
+        current = json.loads(row["state_json"]).get("incident_id") if row else None
         for purpose, body in out:
             if purpose == "reply":
-                send_text(settings, m.wa_id, body, "reply")
+                send_text(settings, m.wa_id, body, "reply", current)
             elif purpose == "after":
                 if after_report:
                     after_report(settings, body)

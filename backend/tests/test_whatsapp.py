@@ -219,3 +219,39 @@ def test_unconfigured_webhook_is_unavailable(settings):
     from backend.main import app
     with TestClient(app) as c:
         assert c.post("/api/wa/webhook", content=b"{}").status_code == 503
+
+
+def test_report_log_is_public_only_after_a_verifier_marks_it(wa):
+    s, sent = wa
+    from backend.main import app
+    with TestClient(app) as c:
+        post(c, body(msg("wamid.1", "image", id="MEDIA-IMG", mime_type="image/jpeg", caption="asap tebal")))
+        post(c, body(msg("wamid.2", "location", **PIN)))
+        inc_id = texts_to(sent, REPORTER)[-1].split("sebagai ")[1].split(".")[0]
+
+        assert c.get("/api/wa/reports").json()["count"] == 0
+        full = c.get("/api/wa/reports", headers=AUTH).json()
+        assert full["verifier"] and full["count"] == 1
+        r = full["items"][0]
+        assert r["incident_id"] == inc_id and not r["public"]
+        assert [i["type"] for i in r["items"]] == ["report", "image"]
+        # Both replies are on record with their text, the first one sent before the incident existed.
+        assert [x["body"] for x in r["replies"]] == [whatsapp.TEXT["need_location"], texts_to(sent, REPORTER)[-1]]
+        assert [n["purpose"] for n in r["notifications"]] == ["verifier"]
+        assert REPORTER not in json.dumps(r) and VERIFIER not in json.dumps(r)
+        media = r["items"][1]["media_url"].rsplit("/", 1)[1]
+        assert c.get(f"/api/wa/reports/{inc_id}/media/{media}").status_code == 404
+
+        assert c.put(f"/api/wa/reports/{inc_id}/showcase", json={"public": True}).status_code == 401
+        assert c.put(f"/api/wa/reports/{inc_id}/showcase", json={"public": True}, headers=AUTH).json()["public"] is True
+        pub = c.get("/api/wa/reports").json()
+        assert pub["count"] == 1 and not pub["verifier"]
+        p = pub["items"][0]
+        assert p["items"][1]["media_url"] == f"/api/wa/reports/{inc_id}/media/{media}"
+        assert len(str(p["lat"]).split(".")[1]) <= 3
+        got = c.get(p["items"][1]["media_url"])
+        assert got.status_code == 200 and got.headers["content-type"] == "image/jpeg"
+        assert c.get(f"/api/wa/reports/{inc_id}/media/MED-0000000000000000.jpg").status_code == 404  # not this report's file
+
+        assert c.put(f"/api/wa/reports/{inc_id}/showcase", json={"public": False}, headers=AUTH).json()["public"] is False
+        assert c.get("/api/wa/reports").json()["count"] == 0

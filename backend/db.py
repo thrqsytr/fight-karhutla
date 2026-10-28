@@ -116,6 +116,9 @@ CREATE TABLE IF NOT EXISTS wa_outbox (
     detail TEXT
 );
 
+-- WhatsApp reports a verifier chose to show on the public report log.
+CREATE TABLE IF NOT EXISTS wa_showcase (incident_id TEXT PRIMARY KEY, marked_at TEXT NOT NULL, marked_by TEXT NOT NULL);
+
 CREATE TABLE IF NOT EXISTS verdicts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     incident_id TEXT NOT NULL REFERENCES incidents(id),
@@ -150,7 +153,7 @@ MIGRATIONS = {
         "reporter_count": "INTEGER NOT NULL DEFAULT 0",
     },
     # "sent" only means WhatsApp accepted the message; the delivery result arrives later as a status webhook.
-    "wa_outbox": {"delivery": "TEXT"},
+    "wa_outbox": {"delivery": "TEXT", "body": "TEXT"},
 }
 
 

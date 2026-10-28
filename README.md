@@ -16,6 +16,7 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Evidence per incident: hotspot cluster summary, Open-Meteo weather, nearest settlement, road, river, lake, and fire station from OSM, with quota budgets and failures shown as unknown
 - Citizen report form at `/lapor` (location, up to 3 photos, voice note, text) with EXIF stripped and media visible to verifiers only
 - WhatsApp intake (Cloud API, test number): photos, voice notes, text, and a location pin in any order become the same report as the form; the webhook checks Meta's signature, the reporter gets the incident number and later the verifier's decision, verifiers get a message with a link for every new citizen report (form or WhatsApp). Evidence keeps a salted hash of the number, never the number
+- WhatsApp report log at `/whatsapp/`: per report, what the resident sent, what Muse Voice Transcribe and Muse Spark found, each processing step, and every bot reply with its delivery result. Real reports from production; verifiers see all and choose which ones the public sees
 - Triage agent: Muse Spark 1.3 calls incident-bound tools, answers in a strict schema, passes the evidence gate, and gets a critique pass from Muse Spark Open on Baseten (public evidence only; claims on citizen evidence are reviewed on Meta Model API)
 - Intake processing: citizen voice notes transcribed with Muse Voice Transcribe (Indonesian), photos read by Muse Spark, SAM 3.1 segmentation available to the agent
 - Sentinel-2 burn scar evidence: a clear before and after pair from Earth Search, dNBR computed in code, burned hectares counted from 20 m pixels at dNBR 0.27 or more, no hectares under heavy haze, before, after, and burn scar images in the incident view and on the map
@@ -31,7 +32,7 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Map basemap switch under the zoom controls: a light map, or world satellite imagery with the same boundaries and labels (display only, never evidence)
 - Replay mode: three recorded incidents from the 2025 dry season (clearly burned, false positive, needs more info) load as SIMULASI from the admin panel, with no network and no model call
 - Evaluation on 30 historical clusters labelled with Sentinel-2 dNBR, three baselines, results below
-- 139 tests that run without a network
+- 140 tests that run without a network
 
 WhatsApp works one way for now: reports come in (tested in production on 2026-10-29: text, photo, voice note, and a pin became one incident with transcript, photo reading, weather, and OSM), but Meta blocks every outgoing message (error 131031, account locked) because the business account is a person, not a verified business. Replies and notifications are still attempted and recorded with that reason. It runs on Meta's test number, so only registered tester numbers can report. Triage runs only on purpose: verifiers select incidents in the list or by drawing an area on the map (at most 5 per selection) and confirm with an execution code; a daily cap and a daily or hourly schedule over citizen reports bound the spend.
 
