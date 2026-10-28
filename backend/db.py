@@ -1,5 +1,6 @@
 """SQLite storage. Every tool result is stored with an ID and timestamp; that ID is the evidence."""
 
+import hashlib
 import json
 import sqlite3
 from contextlib import contextmanager
@@ -163,6 +164,13 @@ def init(path: Path) -> None:
                     conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
         _allow_revoke(conn)
         _allow_cancelled(conn)
+        _hash_message_ids(conn)
+
+
+def _hash_message_ids(conn: sqlite3.Connection) -> None:
+    """Rows written before message ids were hashed: a wamid carries the recipient's number in base64."""
+    for r in conn.execute("SELECT id, detail FROM wa_outbox WHERE detail LIKE 'wamid.%'").fetchall():
+        conn.execute("UPDATE wa_outbox SET detail=? WHERE id=?", ("wamid:" + hashlib.sha256(r["detail"].encode()).hexdigest()[:16], r["id"]))
 
 
 def _allow_revoke(conn: sqlite3.Connection) -> None:

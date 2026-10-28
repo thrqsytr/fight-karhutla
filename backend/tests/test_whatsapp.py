@@ -186,6 +186,18 @@ def test_delivery_status_is_recorded_on_the_sent_message(wa):
     assert d.startswith("failed: code 131030") and "allowed list" in d and "API Setup" in d
 
 
+def test_message_ids_are_stored_hashed_because_they_carry_the_number(wa):
+    s, _ = wa
+    db.init(s.db_path)
+    whatsapp.send_text(s, REPORTER, "hi", "reply")
+    with db.session(s.db_path) as conn:
+        conn.execute("INSERT INTO wa_outbox (created_at, to_hash, purpose, status, detail) VALUES ('t','h','reply','sent','wamid.HBgLMTU1NTAwMDExMTU')")
+    db.init(s.db_path)  # rows from before the fix are hashed on start
+    with db.session(s.db_path) as conn:
+        details = [r[0] for r in conn.execute("SELECT detail FROM wa_outbox")]
+    assert all(d.startswith("wamid:") for d in details) and not any("wamid." in d for d in details)
+
+
 def test_public_form_can_not_claim_whatsapp_location(settings):
     from backend.main import app
     with TestClient(app) as c:

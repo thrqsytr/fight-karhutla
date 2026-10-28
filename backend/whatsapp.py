@@ -70,6 +70,11 @@ class GraphError(RuntimeError):
     """WhatsApp Cloud API refused or failed. The message is recorded as the reason."""
 
 
+def message_ref(wamid: str) -> str:
+    """A wamid is base64 that contains the recipient's number, so only its hash is stored."""
+    return "wamid:" + hashlib.sha256(wamid.encode()).hexdigest()[:16]
+
+
 def configured(settings: Settings) -> bool:
     return bool(settings.wa_access_token and settings.wa_phone_number_id and settings.wa_app_secret)
 
@@ -160,7 +165,8 @@ def send_text(settings: Settings, to: str, body: str, purpose: str, incident_id:
         resp = _graph(settings, "POST", f"{settings.wa_phone_number_id}/messages",
                       json={"messaging_product": "whatsapp", "to": to, "type": "text", "text": {"body": body}})
         if resp.status_code == 200:
-            detail = ((resp.json().get("messages") or [{}])[0]).get("id")
+            wamid = ((resp.json().get("messages") or [{}])[0]).get("id")
+            detail = message_ref(wamid) if wamid else None
         else:
             status, detail = "failed", _error(resp)
     except GraphError as exc:
@@ -363,7 +369,7 @@ def record_statuses(settings: Settings, payload: dict) -> int:
                 why = "; ".join(f"code {e.get('code')}: {e.get('title') or e.get('message', '')}"
                                 + (f" ({(e.get('error_data') or {}).get('details')})" if (e.get("error_data") or {}).get("details") else "")
                                 for e in errs)
-                rows.append(((f"{st.get('status')}: {why}" if why else str(st.get("status")))[:300], st.get("id", "")))
+                rows.append(((f"{st.get('status')}: {why}" if why else str(st.get("status")))[:300], message_ref(st.get("id", ""))))
     if rows:
         with db.session(settings.db_path) as conn:
             conn.executemany("UPDATE wa_outbox SET delivery=? WHERE detail=?", rows)
