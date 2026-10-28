@@ -510,6 +510,9 @@ body.panel-hidden .panel { visibility: hidden; padding: 0; border: 0; }
 .verifier-btn.is-on { color: #067647; border-color: #bfead3; background: var(--ok-soft); }
 .verifier-btn.is-on .pulse { color: var(--ok); }
 @media (max-width: 1140px) { .verifier-btn .btn-label { display: none; } .verifier-btn { width: 34px; padding: 0; } }
+/* WhatsApp report log, next to Report: label on wide screens, icon only when the header is tight. */
+a.btn-wa-log { color: var(--ink); text-decoration: none; }
+@media (max-width: 1140px) { .btn-wa-log .btn-label { display: none; } .btn-wa-log { width: 34px; padding: 0; justify-content: center; } }
 /* Header controls share one height so they line up. */
 .topbar-right { gap: 10px; }
 .lang-switch { height: 34px; align-items: center; }

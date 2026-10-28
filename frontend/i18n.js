@@ -182,7 +182,7 @@ export const DASHBOARD_ID = {
   "Offline copy": "Salinan offline",
   "On": "Aktif", "Down": "Gangguan", "Simulation": "Simulasi", "Not checked": "Belum dicek",
   "Newest pass: {when}.": "Lintasan terbaru: {when}.", "Last checked: {when}.": "Terakhir dicek: {when}.",
-  "Report": "Lapor",
+  "Report": "Lapor", "WhatsApp reports": "Laporan WhatsApp",
   "Incidents": "Insiden",
   "Hotspots within 2 km and 24 hours are grouped into one incident. A hotspot is a thermal anomaly, not a confirmed fire.":
     "Titik panas dalam radius 2 km dan 24 jam digabung menjadi satu insiden. Titik panas adalah anomali termal, bukan kebakaran yang terkonfirmasi.",
@@ -215,7 +215,7 @@ export const DASHBOARD_ID = {
   "True color (VIIRS)": "Warna asli (VIIRS)", "Aerosol optical depth (MODIS)": "Kedalaman optik aerosol (MODIS)",
   "Smoke and dust index (OMPS)": "Indeks asap dan debu (OMPS)",
   "Daily true-color image from VIIRS. Smoke plumes are visible as grey-brown haze.": "Citra warna asli harian VIIRS. Gumpalan asap terlihat sebagai kabut abu kecokelatan.",
-  "How much haze, smoke, or dust blocks sunlight. Higher is thicker. Gaps are clouds or no data.": "Seberapa banyak kabut, asap, atau debu menghalangi cahaya. Makin tinggi makin tebal. Celah berarti awan atau tidak ada data.",
+  "How much haze, smoke, or dust blocks sunlight. Higher is thicker. Each square is one cell of the product, about 100 km wide, so it shows regional haze, not where a fire is. Gaps are clouds or no data.": "Seberapa banyak kabut, asap, atau debu menghalangi cahaya. Makin tinggi makin tebal. Setiap kotak adalah satu sel data selebar sekitar 100 km, jadi layer ini menunjukkan kabut asap regional, bukan lokasi api. Celah berarti awan atau tidak ada data.",
   "UV aerosol index: positive values flag light-absorbing aerosol such as smoke and dust, even above some clouds.": "Indeks aerosol UV: nilai positif menandai aerosol penyerap cahaya seperti asap dan debu, bahkan di atas sebagian awan.",
   "No incidents match this filter.": "Tidak ada insiden yang cocok dengan filter ini.",
   "({n})": "({n})", "({n} of {total})": "({n} dari {total})",

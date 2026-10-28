@@ -39,7 +39,7 @@ const NASA_LAYERS = [
   { key: "truecolor", id: "VIIRS_SNPP_CorrectedReflectance_TrueColor", tms: "GoogleMapsCompatible_Level9", ext: "jpg", maxzoom: 9, opacity: 0.9,
     label: "True color (VIIRS)", tip: "Daily true-color image from VIIRS. Smoke plumes are visible as grey-brown haze." },
   { key: "aod", id: "MODIS_Combined_Value_Added_AOD", tms: "GoogleMapsCompatible_Level6", ext: "png", maxzoom: 6, opacity: 0.65,
-    label: "Aerosol optical depth (MODIS)", tip: "How much haze, smoke, or dust blocks sunlight. Higher is thicker. Gaps are clouds or no data." },
+    label: "Aerosol optical depth (MODIS)", tip: "How much haze, smoke, or dust blocks sunlight. Higher is thicker. Each square is one cell of the product, about 100 km wide, so it shows regional haze, not where a fire is. Gaps are clouds or no data." },
   { key: "aerosolindex", id: "OMPS_Aerosol_Index", tms: "GoogleMapsCompatible_Level6", ext: "png", maxzoom: 6, opacity: 0.65,
     label: "Smoke and dust index (OMPS)", tip: "UV aerosol index: positive values flag light-absorbing aerosol such as smoke and dust, even above some clouds." },
 ];
@@ -113,7 +113,7 @@ function renderViewControls() {
 }
 
 /* Basemap switch under the zoom group: the light map, or world satellite imagery with the same labels. */
-const basemap = () => (localStorage.getItem(BASEMAP_KEY) === "world" ? "world" : "map");
+const basemap = () => (localStorage.getItem(BASEMAP_KEY) === "map" ? "map" : "world");  // World by default (owner choice, decision 53)
 let baseLayers = [];  // positron layer ids, captured before the app adds its own layers
 const savedPaint = new Map();  // layer id + property -> positron value, restored when leaving World
 
