@@ -368,7 +368,7 @@ def og_image(incident_id: str, lang: str = "id", settings: Settings = Depends(ge
         raise HTTPException(status_code=404, detail="incident not found")
     inc, evidence, hotspots, verdict = found
     folder = settings.data_dir / "og"
-    path = folder / f"{incident_id}_{share.cache_key(inc, verdict, lang)}.png"
+    path = folder / f"{incident_id}_{share.cache_key(inc, verdict, lang, evidence)}.png"
     if not path.exists():
         folder.mkdir(parents=True, exist_ok=True)
         png = share.render(share.facts(inc, evidence, verdict, lang), hotspots, cache_dir=settings.cache_dir, lang=lang)
@@ -389,7 +389,7 @@ def share_info(incident_id: str, lang: str = "id", settings: Settings = Depends(
     base = settings.public_url.rstrip("/")
     url = f"{base}/i/{incident_id}" + ("?lang=en" if lang == "en" else "")
     title, desc = share.summary(share.facts(inc, evidence, verdict, lang), url, lang)
-    return {"url": url, "image": f"/og/{incident_id}.png?lang={lang}&v={share.cache_key(inc, verdict, lang)}", "title": title, "description": desc}
+    return {"url": url, "image": f"/og/{incident_id}.png?lang={lang}&v={share.cache_key(inc, verdict, lang, evidence)}", "title": title, "description": desc}
 
 
 @app.get("/i/{incident_id}", response_class=HTMLResponse)
@@ -405,7 +405,7 @@ def share_page(incident_id: str, lang: str = "id", settings: Settings = Depends(
     base = settings.public_url.rstrip("/")
     url = f"{base}/i/{incident_id}" + ("?lang=en" if lang == "en" else "")
     target = f"/?incident={incident_id}"
-    image = f"{base}/og/{incident_id}.png?lang={lang}&v={share.cache_key(inc, verdict, lang)}"
+    image = f"{base}/og/{incident_id}.png?lang={lang}&v={share.cache_key(inc, verdict, lang, evidence)}"
     title, desc = share.summary(share.facts(inc, evidence, verdict, lang), url, lang)
     t, d = escape(title), escape(desc)
     html = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">

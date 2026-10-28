@@ -55,3 +55,9 @@ def test_summary_marks_ai_status_and_verification():
     assert "rekomendasi AI" in title and "4 titik panas" in desc and "12,5 MW" in desc and "13.00 WITA" in desc
     title, _ = share.summary(share.facts(inc, [], "approve", "en"), "u", "en")
     assert "Verified" in title and "AI recommendation" not in title
+
+
+def test_cache_key_changes_when_a_pair_is_measured_again():
+    inc = {"status": "likely_fire", "hotspot_count": 4, "last_seen": "2026-10-27T05:00:00+00:00", "max_frp": 12.5}
+    ev = [{"id": "EV-003", "type": "satellite"}]
+    assert share.cache_key(inc, None, "id", ev) != share.cache_key(inc, None, "id", ev + [{"id": "EV-006", "type": "satellite"}])

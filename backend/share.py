@@ -95,8 +95,11 @@ def summary(f: dict, url: str, lang: str = "id") -> tuple[str, str]:
     return head, desc
 
 
-def cache_key(inc: dict, verdict: str | None, lang: str) -> str:
-    raw = "|".join(str(x) for x in (inc["status"], inc["hotspot_count"], inc["last_seen"], inc.get("max_frp"), verdict, lang, 3))
+def cache_key(inc: dict, verdict: str | None, lang: str, evidence: list[dict] = ()) -> str:
+    # The image also shows the latest burn scar and nearest settlement, so their evidence IDs are part of the key:
+    # a re-measured Sentinel-2 pair must not leave the old hectares on a cached image.
+    latest = [next((e["id"] for e in reversed(evidence) if e["type"] == t), None) for t in ("satellite", "osm")]
+    raw = "|".join(str(x) for x in (inc["status"], inc["hotspot_count"], inc["last_seen"], inc.get("max_frp"), verdict, lang, *latest, 4))
     return hashlib.sha1(raw.encode()).hexdigest()[:10]
 
 
