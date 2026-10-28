@@ -27,6 +27,7 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Admin panel at `/admin/` (verifier token to view, execution code to save): FIRMS fetch interval from 30 minutes to 2 days, enrichment budgets, Sentinel-2 reuse window, triage caps and schedule, spend, recent runs, and source health
 - Metered cost per triage from the usage of each call (first production run: $0.055, 8 of 8 claims grounded)
 - Dashboard with map, incident list, evidence panel, claims linked to evidence, gate details, and verifier approve or reject
+- Map basemap switch under the zoom controls: a light map, or world satellite imagery with the same boundaries and labels (display only, never evidence)
 - Replay mode: three recorded incidents from the 2025 dry season (clearly burned, false positive, needs more info) load as SIMULASI from the admin panel, with no network and no model call
 - Evaluation on 30 historical clusters labelled with Sentinel-2 dNBR, three baselines, results below
 - 126 tests that run without a network
@@ -123,8 +124,11 @@ Development used a Code Assistant for acceleration and debugging.
 ## Data attribution
 
 - NASA FIRMS (VIIRS and MODIS NRT)
+- NASA GIBS / Worldview map layers (VIIRS true color, MODIS AOD, OMPS aerosol index)
+- Contains modified Copernicus Sentinel data (Sentinel-2 L2A via Earth Search)
 - Weather data by Open-Meteo.com (CC BY 4.0)
-- Map data (c) OpenStreetMap contributors, ODbL
+- Map data (c) OpenStreetMap contributors, ODbL; light basemap by OpenFreeMap
+- World imagery: Esri, Vantor, Earthstar Geographics, and the GIS User Community
 
 ## License
 
