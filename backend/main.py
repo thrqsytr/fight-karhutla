@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin_settings, agent, db, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control
+from . import admin_settings, agent, db, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control, whatsapp
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -238,7 +238,7 @@ class VerdictIn(BaseModel):
 
 
 @app.post("/api/incidents/{incident_id}/verdict", dependencies=[Depends(require_verifier)])
-def post_verdict(incident_id: str, body: VerdictIn, settings: Settings = Depends(get_settings)) -> dict:
+def post_verdict(incident_id: str, body: VerdictIn, background: BackgroundTasks, settings: Settings = Depends(get_settings)) -> dict:
     verifier_hash = hashlib.sha256(("dashboard:" + settings.verifier_token).encode()).hexdigest()[:16]
     with db.session(settings.db_path) as conn:
         if not conn.execute("SELECT 1 FROM incidents WHERE id=?", (incident_id,)).fetchone():
@@ -260,6 +260,8 @@ def post_verdict(incident_id: str, body: VerdictIn, settings: Settings = Depends
         row = conn.execute("SELECT id, decision, created_at FROM verdicts WHERE id=?", (vid,)).fetchone()
     if not row:
         raise HTTPException(status_code=500, detail="verdict was not persisted")
+    if body.decision in ("approve", "reject"):
+        background.add_task(whatsapp.notify_reporters, settings, incident_id, body.decision)
     return dict(row)
 
 
@@ -486,7 +488,34 @@ async def post_report(
     if stored != len(keys):
         raise HTTPException(status_code=500, detail="report was not fully stored")
     background.add_task(_enrich_after_report, settings, result["incident_id"])
+    what = whatsapp._what(len(photo_items), 1 if audio_item else 0, bool((text or "").strip()))
+    background.add_task(whatsapp.notify_verifiers, settings, result["incident_id"], what, "form web")
     return result
+
+
+@app.get("/api/wa/webhook")
+def wa_verify(request: Request, settings: Settings = Depends(get_settings)) -> Response:
+    """Meta calls this once when the webhook is registered and expects the challenge back."""
+    q = request.query_params
+    if not settings.wa_verify_token or q.get("hub.mode") != "subscribe" or not hmac.compare_digest(q.get("hub.verify_token", ""), settings.wa_verify_token):
+        raise HTTPException(status_code=403, detail="verification failed")
+    return Response(q.get("hub.challenge", ""), media_type="text/plain")
+
+
+@app.post("/api/wa/webhook")
+async def wa_webhook(request: Request, background: BackgroundTasks, settings: Settings = Depends(get_settings)) -> dict:
+    """WhatsApp Cloud API events. The signature is checked on the raw body; work runs after the 200 so Meta does not resend."""
+    if not whatsapp.configured(settings):
+        raise HTTPException(status_code=503, detail="whatsapp is not configured")
+    body = await request.body()
+    if not whatsapp.verify_signature(settings.wa_app_secret, body, request.headers.get("x-hub-signature-256")):
+        raise HTTPException(status_code=401, detail="bad signature")
+    try:
+        payload = json.loads(body)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="body is not JSON")
+    background.add_task(whatsapp.process_webhook, settings, payload, _enrich_after_report)
+    return {"ok": True}
 
 
 @app.delete("/api/incidents/{incident_id}/citizen-data", dependencies=[Depends(require_verifier)])
@@ -768,6 +797,7 @@ def admin_overview(settings: Settings = Depends(get_settings)) -> dict:
             "spend_total": {"runs": total[0], "cost_usd": round(total[1], 4)},
             "sources": source_status.snapshot(settings),
             "replay": {"loaded": replay._loaded(conn), "cases": replay.summaries(settings.replay_dir)},
+            "whatsapp": whatsapp.status(settings),
             "build": {"git_sha": settings.git_sha, "fixture_mode": settings.fixture_mode, "scheduler_enabled": settings.scheduler_enabled,
                       "model_configured": bool(settings.model_api_key), "baseten_configured": bool(settings.baseten_api_key)},
         }

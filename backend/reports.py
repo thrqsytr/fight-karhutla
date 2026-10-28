@@ -1,4 +1,4 @@
-"""Citizen report intake from the web form (and later WhatsApp).
+"""Citizen report intake from the web form and WhatsApp.
 
 Photos are re-encoded without metadata, so EXIF (including GPS and device data) never reaches storage.
 A report within 2 km and 24 h of an existing incident joins it; otherwise it opens a new incident.
@@ -33,6 +33,9 @@ AUDIO_TYPES = {
     "audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a", "audio/x-m4a": "m4a",
     "audio/mpeg": "mp3", "audio/wav": "wav", "audio/x-wav": "wav", "audio/aac": "aac",
 }
+# Where the location came from, per channel. The public form can not claim to be WhatsApp.
+LOCATION_SOURCES = {"web": {"gps", "map_pick"}, "whatsapp": {"whatsapp"}}
+CHANNEL_LABEL = {"web": "web", "whatsapp": "WhatsApp"}
 MEDIA_ID = re.compile(r"^MED-[0-9a-f]{16}\.(jpg|webm|ogg|m4a|mp3|wav|aac)$")
 
 # Simple per-client limit for a public form. In memory: it resets on restart, which is acceptable for a demo.
@@ -134,12 +137,14 @@ def delete_citizen_data(conn, data_dir: Path, incident_id: str) -> dict:
             p.unlink()
             files += 1
     conn.execute(f"DELETE FROM evidence WHERE incident_id=? AND type IN ({','.join('?' * len(CITIZEN_TYPES))})", (incident_id, *CITIZEN_TYPES))
+    conn.execute("DELETE FROM wa_reporters WHERE incident_id=?", (incident_id,))  # the reporter's number goes with the report
     removed_incident = inc["hotspot_count"] == 0
     if removed_incident:
         conn.execute("DELETE FROM evidence WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM verdicts WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM drone_flights WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM drone_proposals WHERE incident_id=?", (incident_id,))
+        conn.execute("DELETE FROM wa_outbox WHERE incident_id=?", (incident_id,))
         conn.execute("DELETE FROM incidents WHERE id=?", (incident_id,))
         shutil.rmtree(data_dir / "satellite" / incident_id, ignore_errors=True)
     else:
@@ -159,12 +164,17 @@ def submit(
     photos: list[Photo],
     audio: Audio | None,
     now: datetime | None = None,
+    channel: str = "web",
+    reporter: str | None = None,
+    new_reporter: bool = True,
 ) -> dict:
+    """Store one report. `reporter` is a salted hash of a WhatsApp number (never the number); `new_reporter`
+    is False when the same person adds to a report they already sent, so reporter_count stays honest."""
     now = now or datetime.now(timezone.utc)
     text = (text or "").strip()
     if not in_indonesia(lat, lon):
         raise ReportError("Lokasi berada di luar wilayah Indonesia.")
-    if location_source not in {"gps", "map_pick"}:
+    if location_source not in LOCATION_SOURCES.get(channel, set()):
         raise ReportError("Sumber lokasi tidak dikenal.")
     if accuracy_m is not None and not 0 <= accuracy_m <= 50_000:
         raise ReportError("Nilai akurasi lokasi tidak valid.")
@@ -192,8 +202,8 @@ def submit(
         inc_id = joined
         conn.execute(
             """UPDATE incidents SET trigger = CASE WHEN trigger = 'hotspot_cluster' THEN 'merged' ELSE trigger END,
-               last_seen = MAX(last_seen, ?), reporter_count = reporter_count + 1, updated_at = ? WHERE id = ?""",
-            (ts, db.utcnow(), inc_id),
+               last_seen = MAX(last_seen, ?), reporter_count = reporter_count + ?, updated_at = ? WHERE id = ?""",
+            (ts, 1 if new_reporter else 0, db.utcnow(), inc_id),
         )
     else:
         inc_id = db.next_incident_id(conn, now)
@@ -204,19 +214,22 @@ def submit(
         )
 
     loc = {"lat": lat, "lon": lon, "accuracy_m": accuracy_m, "location_source": location_source}
+    who = {"channel": channel, **({"reporter": reporter} if reporter else {})}
+    via = CHANNEL_LABEL.get(channel, channel)
     ev_ids = []
     if text:
-        ev_ids.append(db.add_evidence(conn, inc_id, "report", "Citizen report (web)", f"Citizen description: {text[:160]}",
-                                      {**loc, "text": text, "submitted_at": ts, "channel": "web"}))
+        ev_ids.append(db.add_evidence(conn, inc_id, "report", f"Citizen report ({via})", f"Citizen description: {text[:160]}",
+                                      {**loc, "text": text, "submitted_at": ts, **who}))
     for i, (data, w, h) in enumerate(cleaned, start=1):
         media_id, sha = _store(data_dir, data, "jpg")
         payload = image_payload(media_id=media_id, sha256=sha, width=w, height=h, lat=lat, lon=lon, captured_at=ts,
                                 capture_source="citizen", location_source=location_source)
-        ev_ids.append(db.add_evidence(conn, inc_id, "image", "Citizen photo (web)", f"Citizen photo {i} of {len(cleaned)}, {w}x{h}, metadata removed", payload))
+        payload.update(who)
+        ev_ids.append(db.add_evidence(conn, inc_id, "image", f"Citizen photo ({via})", f"Citizen photo {i} of {len(cleaned)}, {w}x{h}, metadata removed", payload))
     if audio is not None:
         mime = audio.content_type.split(";")[0]
         media_id, sha = _store(data_dir, audio.data, AUDIO_TYPES[mime])
-        ev_ids.append(db.add_evidence(conn, inc_id, "voice", "Citizen voice note (web)", "Citizen voice note, transcription pending",
-                                      {**loc, "media_id": media_id, "sha256": sha, "mime": mime, "bytes": len(audio.data),
+        ev_ids.append(db.add_evidence(conn, inc_id, "voice", f"Citizen voice note ({via})", "Citizen voice note, transcription pending",
+                                      {**loc, **who, "media_id": media_id, "sha256": sha, "mime": mime, "bytes": len(audio.data),
                                        "transcript": None, "asr_status": "pending", "asr_provider": None}))
     return {"incident_id": inc_id, "joined_existing": bool(joined), "evidence_ids": ev_ids, "needs_human": True}

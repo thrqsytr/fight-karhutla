@@ -99,6 +99,22 @@ CREATE TABLE IF NOT EXISTS drone_flights (
 );
 CREATE INDEX IF NOT EXISTS drone_flights_proposal ON drone_flights(proposal_id);
 
+-- WhatsApp: delivered message ids (webhooks repeat), open conversations, reporters to tell the decision,
+-- and every outgoing message with its result. Numbers live only in wa_sessions and wa_reporters, both expire.
+CREATE TABLE IF NOT EXISTS wa_messages (msg_id TEXT PRIMARY KEY, received_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS wa_sessions (wa_id TEXT PRIMARY KEY, state_json TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS wa_reporters (incident_id TEXT NOT NULL, wa_id TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS wa_reporters_incident ON wa_reporters(incident_id);
+CREATE TABLE IF NOT EXISTS wa_outbox (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    to_hash TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    incident_id TEXT,
+    status TEXT NOT NULL,
+    detail TEXT
+);
+
 CREATE TABLE IF NOT EXISTS verdicts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     incident_id TEXT NOT NULL REFERENCES incidents(id),
