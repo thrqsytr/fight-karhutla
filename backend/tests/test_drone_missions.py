@@ -29,6 +29,35 @@ def test_one_open_proposal_and_a_single_decision(settings):
         assert decide("reject").status_code == 409
         listed = c.get(f"/api/incidents/{inc_id}/drone-proposals", headers=AUTH).json()
         assert listed["count"] == 1 and listed["items"][0]["plan"]["waypoints"]
+        # An approved plan is still active: proposing again returns it instead of a second plan.
+        while_approved = c.post(f"/api/incidents/{inc_id}/drone-proposals", json={"reason": "more"}, headers=AUTH).json()
+        assert not while_approved["created"] and while_approved["id"] == first["id"]
+        # Cancelling it frees the incident for a new plan; cancel only applies to an approved plan.
+        assert decide("cancel").json()["status"] == "cancelled"
+        assert decide("cancel").status_code == 409
+        fresh = c.post(f"/api/incidents/{inc_id}/drone-proposals", json={"reason": "new"}, headers=AUTH).json()
+        assert fresh["created"] and fresh["id"] != first["id"]
+        assert c.post(f"/api/drone-proposals/{fresh['id']}/decision", json={"decision": "cancel"}, headers=AUTH).status_code == 409
+
+
+def test_old_database_gains_cancelled(settings):
+    import sqlite3
+
+    from backend import db
+
+    with sqlite3.connect(settings.db_path) as raw:
+        raw.executescript("""CREATE TABLE incidents (id TEXT PRIMARY KEY);
+            CREATE TABLE drone_proposals (id INTEGER PRIMARY KEY AUTOINCREMENT, incident_id TEXT NOT NULL REFERENCES incidents(id),
+            source TEXT NOT NULL CHECK (source IN ('agent', 'verifier')), reason TEXT,
+            status TEXT NOT NULL CHECK (status IN ('proposed', 'approved', 'rejected')), plan_json TEXT NOT NULL,
+            created_at TEXT NOT NULL, decided_at TEXT, decided_by TEXT, note TEXT);
+            INSERT INTO incidents VALUES ('INC-1');
+            INSERT INTO drone_proposals (incident_id, source, status, plan_json, created_at) VALUES ('INC-1', 'verifier', 'approved', '{}', 'x');""")
+    raw.close()
+    db.init(settings.db_path)
+    with db.session(settings.db_path) as conn:
+        conn.execute("UPDATE drone_proposals SET status='cancelled' WHERE id=1")
+        assert conn.execute("SELECT status FROM drone_proposals WHERE id=1").fetchone()[0] == "cancelled"
 
 
 def test_agent_tool_returns_a_plan_not_an_observation(settings):

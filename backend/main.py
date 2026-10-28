@@ -639,7 +639,7 @@ class ProposalIn(BaseModel):
 
 
 class ProposalDecisionIn(BaseModel):
-    decision: Literal["approve", "reject"]
+    decision: Literal["approve", "reject", "cancel"]
     note: str | None = Field(default=None, max_length=300)
 
 

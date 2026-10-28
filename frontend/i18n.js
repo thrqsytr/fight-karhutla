@@ -86,6 +86,15 @@ export const DASHBOARD_ID = {
   "Summary and link copied.": "Ringkasan dan tautan disalin.", "Share {id}": "Bagikan {id}",
   "Only public information is shared: rounded location, satellite hotspots, status, and the nearest settlement. Citizen photos and text are never included.":
     "Hanya informasi publik yang dibagikan: lokasi yang dibulatkan, titik panas satelit, status, dan permukiman terdekat. Foto dan teks warga tidak pernah disertakan.",
+  "Cancelled": "Dibatalkan", "Play simulated flight": "Putar simulasi terbang", "Cancel plan": "Batalkan rencana",
+  "Keep plan": "Pertahankan rencana", "See an example survey result": "Lihat contoh hasil survei",
+  "Simulated flight: frame {k} of {n}, {done} of {total} flight time": "Simulasi terbang: frame {k} dari {n}, {done} dari {total} waktu terbang",
+  "Flight replayed about {x} times faster. Only the route is simulated: this plan has no imagery until a pilot flies it.":
+    "Diputar sekitar {x} kali lebih cepat. Hanya rutenya yang disimulasikan: rencana ini belum punya citra sampai pilot menerbangkannya.",
+  "One active plan per incident. Cancel the approved plan to make a new one.": "Satu rencana aktif per insiden. Batalkan rencana yang sudah disetujui untuk membuat yang baru.",
+  "Cancel this drone survey?": "Batalkan survei drone ini?",
+  "The approved plan is withdrawn and kept on record. A new plan can then be proposed.": "Rencana yang disetujui ditarik dan tetap tercatat. Setelah itu rencana baru bisa diusulkan.",
+  "Mission cancelled and recorded.": "Misi dibatalkan dan tercatat.", "An active plan already exists; showing it.": "Sudah ada rencana aktif; ditampilkan.",
   "Drone survey plan": "Rencana survei drone", "Proposed": "Diusulkan",
   "Planned by a verifier from the incident view.": "Direncanakan verifikator dari tampilan insiden.",
   "Drone survey proposed. Approve it to send it to a pilot.": "Survei drone diusulkan. Setujui agar diteruskan ke pilot.",

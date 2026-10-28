@@ -555,6 +555,9 @@ body.panel-hidden .panel { visibility: hidden; padding: 0; border: 0; }
 .proposal-pill.proposed { background: #f0ebff; color: #5b3fd6; }
 .proposal-pill.approved { background: var(--ok-soft); color: #067647; }
 .proposal-pill.rejected { background: #fdecea; color: var(--st-likely); }
+.proposal-pill.cancelled { background: var(--line-soft); color: var(--ink-2); }
+.proposal.cancelled, .proposal.rejected { opacity: 0.75; }
+.flight-status { margin: 0; font-size: 12px; font-variant-numeric: tabular-nums; color: #5b3fd6; }
 .proposal-reason { margin: 0; font-size: 13px; color: var(--ink-2); }
 
 /* Share */

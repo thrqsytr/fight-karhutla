@@ -15,7 +15,11 @@ SPEED_MS = 8.0
 SECONDS_PER_FRAME = 2.0
 BATTERY_MIN = 25  # typical usable flight time of a small mapping drone
 OPEN = "proposed"
-DECISIONS = {"approve": "approved", "reject": "rejected"}
+# A plan is active while it waits for a decision or for a pilot. One active plan per incident: proposing again
+# returns it, and an approved plan is cancelled (not rejected) before a new one is made.
+ACTIVE = (OPEN, "approved")
+DECISIONS = {"approve": "approved", "reject": "rejected", "cancel": "cancelled"}
+FROM_STATUS = {"approve": OPEN, "reject": OPEN, "cancel": "approved"}
 
 
 class ProposalError(ValueError):
@@ -64,11 +68,11 @@ def list_for(conn, incident_id: str) -> list[dict]:
 
 
 def propose(conn, incident_id: str, *, source: str, reason: str) -> tuple[dict, bool]:
-    """Returns (proposal, created). An incident has at most one open proposal; asking again returns it."""
+    """Returns (proposal, created). An incident has at most one active plan; asking again returns it."""
     inc = conn.execute("SELECT lat, lon FROM incidents WHERE id=?", (incident_id,)).fetchone()
     if inc is None:
         raise ProposalError(404, "incident not found")
-    open_ = conn.execute("SELECT * FROM drone_proposals WHERE incident_id=? AND status=? ORDER BY id DESC LIMIT 1", (incident_id, OPEN)).fetchone()
+    open_ = conn.execute("SELECT * FROM drone_proposals WHERE incident_id=? AND status IN (?, ?) ORDER BY id DESC LIMIT 1", (incident_id, *ACTIVE)).fetchone()
     if open_:
         return _row(open_), False
     points = [(r["lat"], r["lon"]) for r in conn.execute("SELECT lat, lon FROM hotspots WHERE incident_id=?", (incident_id,))] or [(inc["lat"], inc["lon"])]
@@ -82,12 +86,12 @@ def propose(conn, incident_id: str, *, source: str, reason: str) -> tuple[dict, 
 
 def decide(conn, proposal_id: int, decision: str, verifier_hash: str, note: str | None) -> dict:
     if decision not in DECISIONS:
-        raise ProposalError(422, "decision must be approve or reject")
+        raise ProposalError(422, "decision must be approve, reject, or cancel")
     row = conn.execute("SELECT * FROM drone_proposals WHERE id=?", (proposal_id,)).fetchone()
     if row is None:
         raise ProposalError(404, "proposal not found")
-    if row["status"] != OPEN:
-        raise ProposalError(409, f"proposal is already {row['status']}")
+    if row["status"] != FROM_STATUS[decision]:
+        raise ProposalError(409, f"proposal is {row['status']}; {decision} needs a {FROM_STATUS[decision]} plan")
     conn.execute("UPDATE drone_proposals SET status=?, decided_at=?, decided_by=?, note=? WHERE id=?",
                  (DECISIONS[decision], db.utcnow(), verifier_hash, (note or "").strip()[:300] or None, proposal_id))
     return _row(conn.execute("SELECT * FROM drone_proposals WHERE id=?", (proposal_id,)).fetchone())

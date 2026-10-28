@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS drone_proposals (
     incident_id TEXT NOT NULL REFERENCES incidents(id),
     source TEXT NOT NULL CHECK (source IN ('agent', 'verifier')),
     reason TEXT,
-    status TEXT NOT NULL CHECK (status IN ('proposed', 'approved', 'rejected')),
+    status TEXT NOT NULL CHECK (status IN ('proposed', 'approved', 'rejected', 'cancelled')),
     plan_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
     decided_at TEXT,
@@ -131,6 +131,7 @@ def init(path: Path) -> None:
                 if name not in have:
                     conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
         _allow_revoke(conn)
+        _allow_cancelled(conn)
 
 
 def _allow_revoke(conn: sqlite3.Connection) -> None:
@@ -152,6 +153,31 @@ def _allow_revoke(conn: sqlite3.Connection) -> None:
         );
         INSERT INTO verdicts SELECT * FROM verdicts_old;
         DROP TABLE verdicts_old;
+    """)
+
+
+def _allow_cancelled(conn: sqlite3.Connection) -> None:
+    """Drone plans gained 'cancelled' (an approved plan withdrawn so a new one can be made). Same rebuild as _allow_revoke."""
+    row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='drone_proposals'").fetchone()
+    if row is None or "'cancelled'" in row[0]:
+        return
+    conn.executescript("""
+        ALTER TABLE drone_proposals RENAME TO drone_proposals_old;
+        CREATE TABLE drone_proposals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            incident_id TEXT NOT NULL REFERENCES incidents(id),
+            source TEXT NOT NULL CHECK (source IN ('agent', 'verifier')),
+            reason TEXT,
+            status TEXT NOT NULL CHECK (status IN ('proposed', 'approved', 'rejected', 'cancelled')),
+            plan_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            decided_at TEXT,
+            decided_by TEXT,
+            note TEXT
+        );
+        INSERT INTO drone_proposals SELECT * FROM drone_proposals_old;
+        DROP TABLE drone_proposals_old;
+        CREATE INDEX IF NOT EXISTS drone_proposals_incident ON drone_proposals(incident_id);
     """)
 
 
