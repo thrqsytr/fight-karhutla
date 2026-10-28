@@ -115,6 +115,14 @@ export const DASHBOARD_ID = {
   "None: only the route was simulated. A real flight would upload its frames here.": "Tidak ada: hanya rutenya yang disimulasikan. Penerbangan sungguhan akan mengunggah framenya di sini.",
   "Preview route": "Pratinjau rute", "Fly again": "Terbangkan lagi", "Start flight (simulated pilot)": "Mulai terbang (pilot simulasi)",
   "Last flight aborted at frame {k} of {n}, {when}.": "Penerbangan terakhir dibatalkan di frame {k} dari {n}, {when}.",
+  "Loading 3D view...": "Memuat tampilan 3D...", "3D flight view": "Tampilan terbang 3D", "Follow the drone": "Ikuti drone", "Close": "Tutup",
+  "View in 3D": "Lihat 3D", "Replay in 3D": "Putar ulang 3D", "Preview in 3D": "Pratinjau 3D", "Route preview": "Pratinjau rute",
+  "Ground: Sentinel-2 after the fire ({d}), burn scar in red, laid flat (no elevation model). Hotspots in orange. The drone is drawn {x} times larger than life. Inset: what its camera sees.":
+    "Medan: Sentinel-2 setelah kebakaran ({d}), bekas terbakar merah, dibuat datar (tanpa model elevasi). Titik panas oranye. Drone digambar {x} kali lebih besar dari aslinya. Inset: yang dilihat kameranya.",
+  "Ground: OpenStreetMap, laid flat (no elevation model). Hotspots in orange. The drone is drawn {x} times larger than life. Inset: what its camera sees. OpenStreetMap shows little in forest: a Sentinel-2 pair (Find Sentinel-2 images in the incident view) gives this view real imagery.":
+    "Medan: OpenStreetMap, dibuat datar (tanpa model elevasi). Titik panas oranye. Drone digambar {x} kali lebih besar dari aslinya. Inset: yang dilihat kameranya. OpenStreetMap nyaris kosong di hutan: pasangan Sentinel-2 (Cari citra Sentinel-2 di jendela insiden) memberi tampilan ini citra nyata.",
+  "Drone camera": "Kamera drone",
+  "3D view unavailable: {e}": "Tampilan 3D tidak tersedia: {e}",
   "Drone survey plan": "Rencana survei drone", "Proposed": "Diusulkan",
   "Planned by a verifier from the incident view.": "Direncanakan verifikator dari tampilan insiden.",
   "Drone survey proposed. Approve it to send it to a pilot.": "Survei drone diusulkan. Setujui agar diteruskan ke pilot.",

@@ -21,6 +21,7 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Drone survey simulator (SIMULASI): a Blender flyover of a real incident built on its Sentinel-2 burn mask, planned by the app's mission planner, filtered at the ground station by Muse Glimmer on Modal, measured with SAM 3.1 and georeferenced to hectares by code, compared with render truth. Shown beside the incident, never used in triage
 - Drone survey proposals: the agent's `plan_drone_survey` tool or a verifier plans a lawnmower flight over the hotspots; only a verifier can approve it, and no drone flies by itself
 - Simulated pilot: an approved plan is flown on the map with telemetry simulated from the plan and the incident's wind (battery packs, ground speed, frames), on a shared sim clock; abort, land, and replay
+- 3D flight view (three.js): the drone flies the plan on autopilot from the same telemetry, over the incident's Sentinel-2 image with its burn scar (or OpenStreetMap), with a chase camera the reader can orbit and an inset of the drone's nadir camera. The ground is flat and the drone is drawn 30 times larger than life; the view says so
 - Offline OpenStreetMap fallback from a dated Geofabrik extract, used when every Overpass server is down
 - Share any public incident: a link with a WhatsApp and Facebook preview (summary plus a static map image with the hotspots)
 - Admin panel at `/admin/` (verifier token to view, execution code to save): FIRMS fetch interval from 30 minutes to 2 days, enrichment budgets, Sentinel-2 reuse window, triage caps and schedule, spend, recent runs, and source health
@@ -28,7 +29,7 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Dashboard with map, incident list, evidence panel, claims linked to evidence, gate details, and verifier approve or reject
 - Replay mode: three recorded incidents from the 2025 dry season (clearly burned, false positive, needs more info) load as SIMULASI from the admin panel, with no network and no model call
 - Evaluation on 30 historical clusters labelled with Sentinel-2 dNBR, three baselines, results below
-- 122 tests that run without a network
+- 125 tests that run without a network
 
 Not built yet: WhatsApp intake (no Business API credentials). Triage runs only on purpose: verifiers select incidents in the list or by drawing an area on the map (at most 5 per selection) and confirm with an execution code; a daily cap and a daily or hourly schedule over citizen reports bound the spend.
 
@@ -93,6 +94,14 @@ What this shows:
 - Muse Spark 1.3 cost $1.73 for the 30, $0.058 per incident, from the usage of each call. Baseten runs on hackathon credit that is not metered per token.
 
 Run it: `eval/build_dataset.py` (or `eval/dataset_modal.py` next to the data), then `eval/run_eval.py --provider meta` (or `baseten`). Raw results: [eval/results/](eval/results/).
+
+## Related research
+
+The drone survey is a simulation, built the way recent work builds synthetic wildfire imagery: a 3D scene derived from real data, with exact truth for every frame.
+
+- Chen, Sun, Li, et al. *A Simulation-Grounded Agentic VLM Framework for Wildfire Monitoring and Reporting.* arXiv:2610.02451 (2026). Turns 2D fire simulations into Blender proxy scenes with labels and uses them as memory for VLM wildfire reports. Our survey also renders in Blender from real ground (a Sentinel-2 burn mask) and measures against the render truth.
+- Sun, Lo, Hu. *WildfireX-SLAM: A Large-scale Low-altitude RGB-D Dataset for Wildfire SLAM and Beyond.* arXiv:2510.27133 (MMM 2026). Synthetic low-altitude forest and wildfire imagery from Unreal Engine 5, because real forest data is costly to collect.
+- Schuck, Rath, Hua, et al. *Crazyflow: An Accurate, GPU-Accelerated, Differentiable Drone Simulator in JAX.* arXiv:2606.01478 (2026), and Tayal. *MuJoCo-Drones-Gym: A GPU-Accelerated Multi-Drone Simulator for Control and Reinforcement Learning.* arXiv:2606.08039 (2026). Physics simulators for control and learning. Our flight telemetry is a deliberately simple kinematic model (cruise speed, wind along each leg, battery drain); a physics simulator like these would be the next step for flight dynamics, and is not used here.
 
 ## Run locally
 

@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin_settings, agent, db, drone_flight, drone_missions, drone_replay, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control
+from . import admin_settings, agent, db, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -700,6 +700,44 @@ def start_flight(proposal_id: int, body: FlightIn, settings: Settings = Depends(
 def finish_flight(flight_id: int, body: FlightFinishIn, settings: Settings = Depends(get_settings)) -> dict:
     with db.session(settings.db_path) as conn:
         return _flight(lambda: drone_flight.finish(conn, flight_id, body.outcome, body.note))
+
+
+def _plan_row(conn, proposal_id: int):
+    row = conn.execute("SELECT incident_id, plan_json FROM drone_proposals WHERE id=?", (proposal_id,)).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="proposal not found")
+    return row["incident_id"], json.loads(row["plan_json"])
+
+
+@app.get("/api/drone-proposals/{proposal_id}/ground", dependencies=[Depends(require_verifier)])
+def plan_ground(proposal_id: int, settings: Settings = Depends(get_settings)) -> dict:
+    """What the 3D flight view lays under the plan: the incident's Sentinel-2 pair when it covers the plan, else OSM tiles."""
+    with db.session(settings.db_path) as conn:
+        incident_id, plan = _plan_row(conn, proposal_id)
+        evidence = db.list_evidence(conn, incident_id)
+    sat = ground.satellite_ground(evidence, plan["bbox"])
+    if sat:
+        base = f"/api/satellite/{incident_id}/"
+        return {"kind": "sentinel2", "flat": True, "corners": sat["corners"], "image": base + sat["post"],
+                "mask": base + sat["mask"] if sat["mask"] else None, "evidence_id": sat["evidence_id"], "burned_area_ha": sat["burned_area_ha"],
+                "dates": sat["dates"], "attribution": sat["attribution"]}
+    try:
+        corners = ground.osm_extent(plan["bbox"])[4]
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {"kind": "osm", "flat": True, "corners": corners, "image": f"/api/drone-proposals/{proposal_id}/ground.jpg", "mask": None,
+            "attribution": "© OpenStreetMap contributors"}
+
+
+@app.get("/api/drone-proposals/{proposal_id}/ground.jpg", dependencies=[Depends(require_verifier)])
+def plan_ground_image(proposal_id: int, settings: Settings = Depends(get_settings)) -> Response:
+    with db.session(settings.db_path) as conn:
+        _, plan = _plan_row(conn, proposal_id)
+    path = settings.data_dir / "ground" / f"plan-{proposal_id}.jpg"
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(ground.osm_mosaic(plan["bbox"], settings.cache_dir))
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})
 
 
 @app.get("/api/auth/check", dependencies=[Depends(require_verifier)])

@@ -666,6 +666,8 @@ const EXAMPLE_SURVEY = "INC-20261025-0407";  // the incident with a simulated su
    and keeps a sim clock; the browser places the drone at the sim time on the map. A route preview uses the same
    drawing with a local clock. No drone is connected in this build. */
 const PREVIEW_S = 24;
+const REPLAY_3D_S = 75;  // a whole flight in about a minute in the 3D view
+const DRONE_SCALE_3D = 30;  // as drawn in flight3d.js
 const FLY_LAYERS = ["drone-fly-foot-fill", "drone-fly-foot-line", "drone-fly-shots", "drone-fly-pos"];
 let flight = null;  // { timer, onStop }
 
@@ -826,6 +828,68 @@ function finishFlight(inc, f, outcome) {
   };
 }
 
+/* 3D view of a flight: the same telemetry and clock as the console, drawn in three.js (frontend/flight3d.js). */
+async function open3DView(inc, p, tel, clock, label) {
+  let view = null;
+  const hud = {};
+  const cell = (k, l) => { hud[k] = el("strong", { class: "num" }, "-"); return el("div", { class: "f3d-cell" }, el("span", {}, t(l)), hud[k]); };
+  const stage = el("div", { class: "f3d-stage" }, el("div", { class: "f3d-loading" }, t("Loading 3D view...")));
+  const maskBtn = el("button", { class: "btn btn-sm", type: "button", hidden: true, "aria-pressed": "true" }, t("Burn scar"));
+  const note = el("p", { class: "f3d-note" });
+  const close = () => { view?.destroy(); overlay.remove(); document.removeEventListener("keydown", onKey); clearInterval(timer); };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  const overlay = el("div", { class: "f3d", role: "dialog", "aria-modal": "true", "aria-label": t("3D flight view") },
+    el("div", { class: "f3d-head" },
+      el("span", { class: "pill pill-sim" }, "SIMULASI"), el("strong", {}, t("3D flight view")), el("span", { class: "muted" }, inc.id),
+      el("span", { class: "f3d-state" }), el("div", { class: "f3d-tools" }, maskBtn,
+        el("button", { class: "btn btn-sm", type: "button", onclick: () => view?.recentre() }, svg("target", "icon icon-sm"), t("Follow the drone")),
+        el("button", { class: "btn btn-icon", type: "button", "aria-label": t("Close"), onclick: () => close() }, svg("x", "icon icon-sm")))),
+    stage,
+    el("div", { class: "f3d-hud" }, cell("clock", "Flight time"), cell("frame", "Frame"), cell("battery", "Battery"), cell("speed", "Ground speed"), cell("alt", "Altitude"), cell("wind", "Wind")),
+    note);
+  document.body.append(overlay);
+  document.addEventListener("keydown", onKey);
+  let current = null;
+  const timer = setInterval(() => {
+    if (!current) return;
+    const { st, s } = current;
+    overlay.querySelector(".f3d-state").textContent = label(st, s);
+    hud.clock.textContent = `${mmss(s)} / ${mmss(tel.duration_s)}`;
+    hud.frame.textContent = `${st.shots} / ${tel.samples.length}`;
+    hud.battery.textContent = `${Math.round(st.battery_pct)}% · ${t("pack {n} of {m}", { n: st.pack, m: tel.packs })}`;
+    hud.speed.textContent = `${fmtNum(st.ground_speed_ms)} m/s`;
+    hud.alt.textContent = `${Math.round(st.alt_m)} m`;
+    hud.wind.textContent = windText(tel.wind);
+  }, 200);
+  try {
+    const [{ createFlight3D }, ground] = await Promise.all([import("/flight3d.js"), api(`/api/drone-proposals/${p.id}/ground`)]);
+    const loadImage = async (url) => {
+      const res = await fetch(url, { headers: url.startsWith("/api/drone-proposals/") ? authHeaders() : {} });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return createImageBitmap(await res.blob(), { imageOrientation: "flipY" });
+    };
+    stage.replaceChildren();
+    view = createFlight3D(stage, {
+      plan: p.plan, ground, hotspots: inc.hotspots, loadImage, t,
+      getState: () => {
+        const s = Math.max(0, Math.min(tel.duration_s, clock()));
+        current = { st: telemetryAt(tel, s), s };
+        return current.st;
+      },
+    });
+    if (view.hasMask) {
+      maskBtn.hidden = false;
+      maskBtn.onclick = () => { const on = maskBtn.getAttribute("aria-pressed") !== "true"; maskBtn.setAttribute("aria-pressed", String(on)); view.setMask(on); };
+    }
+    note.textContent = t(ground.kind === "sentinel2"
+      ? "Ground: Sentinel-2 after the fire ({d}), burn scar in red, laid flat (no elevation model). Hotspots in orange. The drone is drawn {x} times larger than life. Inset: what its camera sees."
+      : "Ground: OpenStreetMap, laid flat (no elevation model). Hotspots in orange. The drone is drawn {x} times larger than life. Inset: what its camera sees. OpenStreetMap shows little in forest: a Sentinel-2 pair (Find Sentinel-2 images in the incident view) gives this view real imagery.", { d: ground.dates?.[1] || "", x: DRONE_SCALE_3D })
+      + ` ${ground.attribution || ""}`;
+  } catch (e) {
+    stage.replaceChildren(el("p", { class: "empty" }, t("3D view unavailable: {e}", { e: e.message })));
+  }
+}
+
 /* What an approved plan shows: before a flight, during it, and after. */
 function flightBlock(inc, p) {
   const f = p.flight;
@@ -845,8 +909,10 @@ function flightBlock(inc, p) {
       con.node.dataset.done = String(done);
       land.setAttribute("aria-disabled", String(!done));
     });
+    const live3d = btn("", "layers", "View in 3D", () => open3DView(inc, p, f.telemetry, () => ((Date.now() - started) / 1000) * f.speed,
+      (st, s) => t(s >= f.telemetry.duration_s ? "Route done: ready to land" : st.swapping ? "Battery swap on the ground" : "Flying (simulated pilot)")));
     return [con.node, el("p", { class: "muted", style: "margin:0;font-size:11px" }, t("Played x{x} faster than real time.", { x: f.speed })),
-      el("div", { class: "actions" }, land, btn("btn-ghost-danger", "x", "Abort flight", () => finishFlight(inc, f, "aborted")))];
+      el("div", { class: "actions" }, land, live3d, btn("btn-ghost-danger", "x", "Abort flight", () => finishFlight(inc, f, "aborted")))];
   }
   if (f?.state === "completed") {
     const tel = f.telemetry;
@@ -864,16 +930,24 @@ function flightBlock(inc, p) {
         el("dt", {}, t("Frames")), el("dd", { class: "num" }, `${f.frames_captured} / ${tel.samples.length}`),
         el("dt", {}, t("Wind")), el("dd", {}, windText(tel.wind)),
         el("dt", {}, t("Imagery")), el("dd", {}, t(inc.id === EXAMPLE_SURVEY ? "Simulated survey of this incident: frames, Glimmer filter, SAM area below." : "None: only the route was simulated. A real flight would upload its frames here."))),
-      con.node, el("div", { class: "actions" }, replay, example)];
+      con.node, el("div", { class: "actions" }, replay,
+        btn("", "layers", "Replay in 3D", () => { const t0 = performance.now(); open3DView(inc, p, tel, () => ((performance.now() - t0) / 1000) * (tel.duration_s / REPLAY_3D_S), () => t("Replay")); }),
+        example)];
   }
   const preview = btn("", "play", "Preview route", () => {
     const t0 = performance.now();
     const tel = { samples: plan.waypoints.map((w, i) => ({ ...w, t_s: i, alt_m: plan.altitude_agl_m, ground_speed_ms: 8, battery_pct: 100, pack: 1 })), duration_s: plan.waypoints.length - 1, packs: 1 };
     runFlight(p, tel, () => ((performance.now() - t0) / 1000) * (tel.duration_s / PREVIEW_S), null);
   });
+  const preview3d = btn("", "layers", "Preview in 3D", () => {
+    const t0 = performance.now();
+    const tel = { samples: plan.waypoints.map((w, i) => ({ ...w, t_s: i * 15, alt_m: plan.altitude_agl_m, ground_speed_ms: 8, battery_pct: 100, pack: 1 })),
+      duration_s: (plan.waypoints.length - 1) * 15, packs: 1, wind: null };
+    open3DView(inc, p, tel, () => ((performance.now() - t0) / 1000) * (tel.duration_s / REPLAY_3D_S), () => t("Route preview"));
+  });
   return [
     f?.state === "aborted" ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("Last flight aborted at frame {k} of {n}, {when}.", { k: f.frames_captured, n: f.telemetry.samples.length, when: fmtTime(f.finished_at) })) : null,
-    el("div", { class: "actions" }, btn("btn-primary", "play", f?.state === "aborted" ? "Fly again" : "Start flight (simulated pilot)", () => startFlightDialog(inc, p)), preview, example,
+    el("div", { class: "actions" }, btn("btn-primary", "play", f?.state === "aborted" ? "Fly again" : "Start flight (simulated pilot)", () => startFlightDialog(inc, p)), preview, preview3d, example,
       btn("btn-ghost-danger", "x", "Cancel plan", () => decideProposal(inc, p, "cancel")))];
 }
 
