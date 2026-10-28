@@ -35,6 +35,8 @@ export const ICONS = {
   plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
   chat: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8"/><path d="M8 12h5"/>',
+  expand: '<path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/>',
+  collapse: '<path d="M8 5l4 4 4-4"/><path d="M8 19l4-4 4 4"/>',
   image: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>',
 };
 export const svg = (name, cls = "icon") => {
@@ -122,6 +124,58 @@ export function section({ icon, title, count, tip, open = false, live = false, c
     head.setAttribute("aria-expanded", String(next));
   });
   return s;
+}
+
+/* Fold: long text shows its first lines; a vertical expand icon opens the rest. The button appears only when
+   the text is actually cut, so short text stays plain. One component for every long block. */
+export function fold(content, { lines = 2 } = {}) {
+  const id = document.documentElement.lang === "id";
+  const body = el("div", { class: "fold-body", style: `--fold-lines:${lines}` }, content);
+  const btn = el("button", { class: "fold-btn", type: "button", "aria-expanded": "false", hidden: true });
+  const paint = (open) => {
+    btn.replaceChildren(svg(open ? "collapse" : "expand", "icon icon-sm"), el("span", {}, open ? (id ? "Sembunyikan" : "Show less") : (id ? "Selengkapnya" : "Show more")));
+    btn.setAttribute("aria-expanded", String(open));
+  };
+  const box = el("div", { class: "fold", dataset: { open: "false" } }, body, btn);
+  paint(false);
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = box.dataset.open !== "true";
+    box.dataset.open = String(open);
+    paint(open);
+  });
+  // Measure once laid out (and again on resize): show the button only when the clamp hides something.
+  const check = () => { if (box.dataset.open !== "true" && body.isConnected) btn.hidden = body.scrollHeight <= body.clientHeight + 1; };
+  new ResizeObserver(check).observe(body);
+  // The observer can report before the node is in the page (size 0) and stay quiet after; measure again once drawn.
+  requestAnimationFrame(() => requestAnimationFrame(check));
+  setTimeout(check, 400);
+  return box;
+}
+
+/* Tabs: one bar of views over one panel. The active tab is kept in the URL hash (#tab=key), so a reload or a
+   shared link opens the same view. Each item: { key, label, icon, count, render() }. */
+export function tabs(items, { onChange } = {}) {
+  const fromHash = () => new URLSearchParams(location.hash.slice(1)).get("tab");
+  let active = items.some((i) => i.key === fromHash()) ? fromHash() : items[0].key;
+  const bar = el("div", { class: "tabbar card", role: "tablist" });
+  const panel = el("div", { class: "tabpanel", role: "tabpanel" });
+  const paint = () => {
+    bar.replaceChildren(...items.map((i) => el("button", { class: "tabbar-btn", type: "button", role: "tab", "aria-selected": String(i.key === active),
+      onclick: () => select(i.key) }, svg(i.icon, "icon icon-sm"), el("span", {}, i.label), i.count ? el("span", { class: "tabbar-count num" }, String(i.count)) : null)));
+    panel.replaceChildren(...[items.find((i) => i.key === active).render()].flat(Infinity).filter(Boolean));
+    hydrateIcons(panel);
+  };
+  const select = (key) => {
+    active = key;
+    const h = new URLSearchParams(location.hash.slice(1));
+    h.set("tab", key);
+    history.replaceState(null, "", `#${h}`);
+    paint();
+    onChange?.(key);
+  };
+  paint();
+  return { node: el("div", { class: "tabs-wrap" }, bar, panel), select, refresh: paint, get active() { return active; } };
 }
 
 /* Modal: the one dialog component (native alert, confirm, and prompt are not used). Esc or the backdrop closes it. */

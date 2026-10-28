@@ -1,4 +1,4 @@
-import { $, el, hydrateIcons, info, modal, siteFooter, svg, toast } from "/ui.js";
+import { $, el, fold, hydrateIcons, info, modal, siteFooter, svg, tabs, toast } from "/ui.js";
 import { applyStatic, lang, langSwitch, locale, makeT } from "/i18n.js";
 import { authHeaders, openSignIn, token, verifierControl, VERIFIER_ID } from "/verifier.js";
 
@@ -48,6 +48,12 @@ const ADMIN_ID = {
   "Remove the replayed incidents, their evidence, and any verdicts given on them? Real incidents are not touched, and the replay can be loaded again.":
     "Hapus insiden replay, buktinya, dan keputusan yang sudah diberikan padanya? Insiden nyata tidak tersentuh, dan replay bisa dimuat lagi.",
   "Open on map": "Buka di peta", "Recorded with {m}.": "Direkam dengan {m}.",
+  "Overview": "Ringkasan", "WhatsApp": "WhatsApp", "Cloud API": "Cloud API", "Last inbound message": "Pesan masuk terakhir", "Verifier numbers": "Nomor verifikator",
+  "Meta refuses outgoing messages from this business account until it passes business verification. Incoming reports work; every reply is still attempted and its refusal recorded.":
+    "Meta menolak pesan keluar dari akun bisnis ini sampai lolos verifikasi bisnis. Laporan masuk berjalan; setiap balasan tetap dicoba dan penolakannya dicatat.",
+  "Recent outgoing messages": "Pesan keluar terakhir", "Numbers are shown as the first characters of a salted hash.": "Nomor ditampilkan sebagai karakter awal dari hash bergaram.",
+  "Sent": "Dikirim", "Purpose": "Tujuan", "To": "Ke", "Result": "Hasil", "reply": "balasan", "verifier": "verifikator", "verdict": "keputusan",
+  "failed": "gagal", "sent": "terkirim", "No outgoing messages yet.": "Belum ada pesan keluar.", "Open the WhatsApp report log": "Buka log laporan WhatsApp",
 };
 const t = makeT({ ...ADMIN_ID, ...VERIFIER_ID }, "en");
 const INTERVAL_LABEL = { 30: "30 min", 60: "1 h", 180: "3 h", 360: "6 h", 720: "12 h", 1440: "1 day", 2880: "2 days" };
@@ -151,18 +157,16 @@ function save() {
   code.addEventListener("keydown", (e) => e.key === "Enter" && go());
 }
 
-function render() {
-  const d = state.data;
+function systemCard(d) {
   const b = d.build;
-  const group = (g) => d.settings.filter((s) => s.group === g).map(settingControl);
-  const tr = d.triage;
-  const n = Object.keys(state.pending).length;
-  const sched = d.schedule;
   const srcRow = ([key, v]) => el("tr", {}, el("td", {}, { firms: "NASA FIRMS", weather: "Open-Meteo", osm: "OSM (Overpass)", sentinel2: "Sentinel-2" }[key] || key),
     el("td", {}, el("span", { class: "src-item", dataset: { state: v.state } }, el("span", { class: "src-state" }, el("span", { class: "src-dot" }), t(v.state)))),
     el("td", {}, v.checked_at ? fmtTime(v.checked_at) : ""));
-  fill($("#admin-body"),
-    card("activity", t("System"),
+  return card("activity", t("System"),
+    el("div", { class: "stats-grid admin-stats" },
+      [["Incidents", d.counts.incidents], ["Hotspots", d.counts.hotspots], ["Citizen reports", d.counts.citizen_reports], ["Sentinel-2 pairs", d.counts.satellite_pairs], ["Triaged", d.counts.triaged]]
+        .map(([l, v]) => el("div", { class: "stat" }, el("div", { class: "stat-v num" }, Number(v).toLocaleString(locale())), el("div", { class: "stat-l" }, t(l))))),
+    el("div", { class: "admin-cols" },
       el("dl", { class: "kv" },
         kvRow(t("Build"), el("span", { class: "mono" }, b.git_sha)),
         kvRow(t("Mode"), t(b.fixture_mode ? "Simulation (fixtures)" : "Live data")),
@@ -170,29 +174,70 @@ function render() {
         kvRow(t("Meta Model API"), t(b.model_configured ? "configured" : "missing")),
         kvRow(t("Baseten"), t(b.baseten_configured ? "configured" : "missing")),
         kvRow(t("Total metered spend"), `$${d.spend_total.cost_usd.toFixed(2)} · ${t("{n} runs", { n: d.spend_total.runs })}`)),
-      el("div", { class: "stats-grid admin-stats" },
-        [["Incidents", d.counts.incidents], ["Hotspots", d.counts.hotspots], ["Citizen reports", d.counts.citizen_reports], ["Sentinel-2 pairs", d.counts.satellite_pairs], ["Triaged", d.counts.triaged]]
-          .map(([l, v]) => el("div", { class: "stat" }, el("div", { class: "stat-v num" }, Number(v).toLocaleString(locale())), el("div", { class: "stat-l" }, t(l))))),
-      el("h3", { class: "admin-sub" }, t("Data sources")),
-      el("table", { class: "hs-table" }, el("tr", {}, el("th", {}, ""), el("th", {}, t("State")), el("th", {}, t("Last checked"))), Object.entries(d.sources).map(srcRow))),
-    card("satellite", t("Data fetching"),
-      el("dl", { class: "kv" },
-        kvRow(t("Last fetch"), sched.last_fetch ? fmtTime(sched.last_fetch) : t("never")),
-        kvRow(t("Next fetch"), sched.next_fetch ? fmtTime(sched.next_fetch) : t("at the next scheduler tick"))),
-      group("data")),
-    card("shield", t("AI triage"),
+      el("div", {}, el("h3", { class: "admin-sub" }, t("Data sources")),
+        el("table", { class: "hs-table" }, el("tr", {}, el("th", {}, ""), el("th", {}, t("State")), el("th", {}, t("Last checked"))), Object.entries(d.sources).map(srcRow)))));
+}
+
+function fetchCard(d) {
+  const sched = d.schedule;
+  return card("satellite", t("Data fetching"),
+    el("dl", { class: "kv" },
+      kvRow(t("Last fetch"), sched.last_fetch ? fmtTime(sched.last_fetch) : t("never")),
+      kvRow(t("Next fetch"), sched.next_fetch ? fmtTime(sched.next_fetch) : t("at the next scheduler tick"))),
+    el("div", { class: "admin-grid" }, d.settings.filter((s) => s.group === "data").map(settingControl)));
+}
+
+function triageCard(d) {
+  const tr = d.triage;
+  return card("shield", t("AI triage"),
+    el("div", { class: "admin-cols" },
       el("div", { class: "admin-setting" },
         el("div", { class: "admin-setting-head" }, el("span", { class: "admin-label" }, t("Scheduled triage"))),
         el("div", { class: "segmented admin-seg", role: "group" }, tr.modes.map((m) => el("button", { type: "button", "aria-pressed": String(m === tr.mode), onclick: () => m !== tr.mode && changeMode(m) }, t(MODE_LABEL[m]))))),
-      el("dl", { class: "kv" }, kvRow(t("Today"), t("{runs} of {cap} runs, ${cost}", { runs: tr.today.runs, cap: tr.daily_cap, cost: tr.today.cost_usd.toFixed(2) }))),
-      group("triage"),
-      el("h3", { class: "admin-sub" }, t("Recent triage runs")),
-      d.recent_runs.length ? el("div", { class: "doc-table-wrap" }, el("table", { class: "hs-table" },
-        el("tr", {}, ["Incident", "Started", "Outcome", "Seconds", "Cost"].map((h) => el("th", {}, t(h)))),
-        d.recent_runs.map((r) => el("tr", {}, el("td", { class: "mono" }, r.incident_id), el("td", {}, fmtTime(r.started_at)),
-          el("td", {}, r.outcome), el("td", { class: "num" }, r.seconds == null ? "" : Math.round(r.seconds)), el("td", { class: "num" }, r.cost_usd == null ? "" : `$${r.cost_usd.toFixed(3)}`)))))
-        : el("p", { class: "empty" }, t("No triage runs yet."))),
-    replayCard(d.replay),
+      el("dl", { class: "kv" }, kvRow(t("Today"), t("{runs} of {cap} runs, ${cost}", { runs: tr.today.runs, cap: tr.daily_cap, cost: tr.today.cost_usd.toFixed(2) })))),
+    el("div", { class: "admin-grid" }, d.settings.filter((s) => s.group === "triage").map(settingControl)),
+    el("h3", { class: "admin-sub" }, t("Recent triage runs")),
+    d.recent_runs.length ? el("div", { class: "doc-table-wrap" }, el("table", { class: "hs-table" },
+      el("tr", {}, ["Incident", "Started", "Outcome", "Seconds", "Cost"].map((h) => el("th", {}, t(h)))),
+      d.recent_runs.map((r) => el("tr", {}, el("td", { class: "mono" }, el("a", { href: `/?incident=${encodeURIComponent(r.incident_id)}` }, r.incident_id)), el("td", {}, fmtTime(r.started_at)),
+        el("td", {}, r.outcome), el("td", { class: "num" }, r.seconds == null ? "" : Math.round(r.seconds)), el("td", { class: "num" }, r.cost_usd == null ? "" : `$${r.cost_usd.toFixed(3)}`)))))
+      : el("p", { class: "empty" }, t("No triage runs yet.")));
+}
+
+function whatsappCard(w) {
+  const failed = (x) => x.status !== "sent" || String(x.delivery || "").startsWith("failed");
+  return card("chat", t("WhatsApp"),
+    el("dl", { class: "kv" },
+      kvRow(t("Cloud API"), t(w.configured ? "configured" : "missing")),
+      kvRow(t("Last inbound message"), w.last_inbound ? fmtTime(w.last_inbound) : t("never")),
+      kvRow(t("Verifier numbers"), String(w.verifier_numbers))),
+    el("p", { class: "wa-limit" }, svg("alert", "icon icon-sm"), t("Meta refuses outgoing messages from this business account until it passes business verification. Incoming reports work; every reply is still attempted and its refusal recorded.")),
+    el("h3", { class: "admin-sub" }, t("Recent outgoing messages"), info(t("Numbers are shown as the first characters of a salted hash."))),
+    w.recent_outbound.length ? el("div", { class: "doc-table-wrap" }, el("table", { class: "hs-table" },
+      el("tr", {}, ["Sent", "Purpose", "To", "Result", "Incident"].map((h) => el("th", {}, t(h)))),
+      w.recent_outbound.map((x) => el("tr", {}, el("td", {}, fmtTime(x.created_at)), el("td", {}, t(x.purpose)), el("td", { class: "mono" }, `#${x.to_hash.slice(0, 6)}`),
+        el("td", {}, el("span", { class: `wa-flag ${failed(x) ? "bad" : "on"}` }, t(failed(x) ? "failed" : "sent")), x.delivery ? fold(el("span", { class: "muted", lang: "en" }, x.delivery), { lines: 1 }) : null),
+        el("td", { class: "mono" }, x.incident_id ? el("a", { href: `/?incident=${encodeURIComponent(x.incident_id)}` }, x.incident_id) : "")))))
+      : el("p", { class: "empty" }, t("No outgoing messages yet.")),
+    el("div", { class: "actions" }, el("a", { class: "btn", href: "/whatsapp/" }, svg("chat", "icon icon-sm"), t("Open the WhatsApp report log"))));
+}
+
+// Which tab a setting belongs to, so the tab can show how many unsaved changes it holds.
+const pendingIn = (group) => Object.keys(state.pending).filter((k) => state.data.settings.find((s) => s.key === k)?.group === group).length;
+
+function render() {
+  const d = state.data;
+  const n = Object.keys(state.pending).length;
+  const view = tabs([
+    { key: "system", label: t("Overview"), icon: "activity", render: () => systemCard(d) },
+    { key: "data", label: t("Data fetching"), icon: "satellite", count: pendingIn("data"), render: () => fetchCard(d) },
+    { key: "triage", label: t("AI triage"), icon: "shield", count: pendingIn("triage"), render: () => triageCard(d) },
+    d.whatsapp ? { key: "whatsapp", label: t("WhatsApp"), icon: "chat", render: () => whatsappCard(d.whatsapp) } : null,
+    { key: "replay", label: t("Demo replay"), icon: "play", render: () => replayCard(d.replay) },
+  ].filter(Boolean));
+  fill($("#admin-body"),
+    view.node,
+    // Unsaved changes stay visible on every tab, so leaving a tab never hides them.
     n ? el("div", { class: "card admin-savebar" }, el("span", {}, t("{n} unsaved change(s)", { n })),
       el("div", { class: "actions" }, el("button", { class: "btn", type: "button", onclick: () => { state.pending = {}; render(); } }, t("Discard")),
         el("button", { class: "btn btn-primary", type: "button", onclick: save }, svg("check", "icon icon-sm"), t("Save")))) : null,

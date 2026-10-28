@@ -555,6 +555,9 @@ a.btn-wa-log { color: var(--ink); text-decoration: none; }
 
 /* Drone survey proposals */
 .proposal { border: 1px solid var(--line-soft); border-radius: var(--r-sm); padding: 10px 12px; display: grid; gap: 8px; }
+/* Plan and flight actions in two columns instead of one tall stack. */
+.proposal .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.proposal .actions .btn { justify-content: center; min-width: 0; }
 .proposal.proposed { border-color: #d9d0fd; background: #faf8ff; }
 .proposal-pill { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--line-soft); color: var(--ink-2); }
 .proposal-pill.proposed { background: #f0ebff; color: #5b3fd6; }
@@ -599,6 +602,24 @@ a.btn-wa-log { color: var(--ink); text-decoration: none; }
 .f3d-cell strong { font-size: 14px; font-variant-numeric: tabular-nums; }
 .f3d-note { margin: 0; padding: 6px 14px 8px; background: #fff; color: var(--ink-2); font-size: 11px; }
 @media (max-width: 720px) { .f3d-hud { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* Data console: a see-through CLI log over the 3D view; it never takes the pointer, so the camera still orbits. */
+.f3d-console { position: absolute; z-index: 2; top: 12px; left: 12px; width: min(420px, 46%); max-height: 46%; display: flex; flex-direction: column; border-radius: 8px;
+  background: rgba(6, 14, 22, 0.58); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); box-shadow: 0 4px 18px rgba(0,0,0,.25); color: #d7f5e3; pointer-events: none; overflow: hidden; }
+.f3d-console-head { display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 11px; letter-spacing: .04em; border-bottom: 1px solid rgba(255,255,255,.12); pointer-events: auto; }
+.f3d-console-dot { width: 7px; height: 7px; border-radius: 50%; background: #3ddc84; box-shadow: 0 0 6px #3ddc84; animation: f3d-blink 1.2s steps(2) infinite; }
+.f3d-console-sim { margin-left: auto; font-size: 10px; font-weight: 700; color: #fdb022; }
+.f3d-console .info { color: #d7f5e3; }
+.f3d-log { overflow: hidden; padding: 6px 10px 8px; font-family: var(--mono); font-size: 11px; line-height: 1.5; display: flex; flex-direction: column; justify-content: flex-end; min-height: 0; }
+.f3d-line { flex: none; display: flex; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: f3d-in .25s ease-out; }
+.f3d-line > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.f3d-line.ill { opacity: .55; font-style: italic; }
+.f3d-t { color: #7f97a8; flex: none; }
+.f3d-tag { flex: none; width: 44px; font-weight: 700; }
+.tag-gps { color: #6cc4ff; } .tag-cam { color: #ffd166; } .tag-batt { color: #ff9f6b; } .tag-sys { color: #3ddc84; } .tag-wx { color: #b6a4ff; } .tag-edge, .tag-link { color: #9fb3c2; }
+@keyframes f3d-in { from { opacity: 0; transform: translateY(4px); } }
+@keyframes f3d-blink { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .f3d-line, .f3d-console-dot { animation: none; } }
+@media (max-width: 720px) { .f3d-console { width: calc(100% - 24px); max-height: 34%; } .f3d-log { font-size: 10px; } }
 .flight-status { margin: 0; font-size: 12px; font-variant-numeric: tabular-nums; color: #5b3fd6; }
 .proposal-reason { margin: 0; font-size: 13px; color: var(--ink-2); }
 
@@ -619,6 +640,21 @@ a.btn-wa-log { color: var(--ink); text-decoration: none; }
 .admin { max-width: 900px; }
 .admin-body { display: grid; gap: 12px; }
 .admin-card { padding: 18px 20px; display: grid; gap: 12px; }
+/* Tabs (ui.js tabs) */
+.tabs-wrap { display: grid; gap: 12px; }
+.tabbar { display: flex; gap: 4px; padding: 4px; overflow-x: auto; scrollbar-width: thin; }
+.tabbar-btn { display: inline-flex; align-items: center; gap: 6px; flex: none; border: 0; background: transparent; padding: 8px 12px; border-radius: var(--r-sm); font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.tabbar-btn:hover { background: var(--bg); color: var(--ink); }
+.tabbar-btn[aria-selected="true"] { background: var(--blue); color: #fff; }
+.tabbar-count { font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--warn-soft); color: #93370d; }
+.tabbar-btn[aria-selected="true"] .tabbar-count { background: #fff; color: var(--blue); }
+.tabpanel { display: grid; gap: 12px; }
+/* Fold (ui.js fold): long text clamped to a few lines with a vertical expand toggle */
+.fold { display: grid; gap: 2px; justify-items: start; min-width: 0; }
+.fold-body { min-width: 0; width: 100%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--fold-lines, 2); line-clamp: var(--fold-lines, 2); overflow: hidden; }
+.fold[data-open="true"] .fold-body { display: block; -webkit-line-clamp: unset; line-clamp: unset; overflow: visible; }
+.fold-btn { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; padding: 2px 0; font: inherit; font-size: 12px; font-weight: 600; color: var(--blue); cursor: pointer; }
+.fold-btn:hover { text-decoration: underline; }
 /* WhatsApp report log */
 .wa-log { max-width: 900px; }
 .wa-report-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -649,6 +685,9 @@ a.btn-wa-log { color: var(--ink); text-decoration: none; }
 .admin-title { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 16px; }
 .admin-sub { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); }
 .admin-stats { grid-template-columns: repeat(5, 1fr); }
+/* Two columns side by side on wide screens: settings and their context sit next to each other, not stacked. */
+.admin-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px 20px; align-items: start; }
+.admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
 .admin-setting { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: var(--r-sm); }
 .admin-setting.changed { border-color: #b5d0f8; background: #f7faff; }
 .admin-setting-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }

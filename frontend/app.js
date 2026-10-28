@@ -1,4 +1,4 @@
-import { $, el, hydrateIcons, info, modal, section, siteFooter, svg, toast } from "/ui.js";
+import { $, el, fold, hydrateIcons, info, modal, section, siteFooter, svg, toast } from "/ui.js";
 import { applyStatic, DASHBOARD_ID, langSwitch, lang, locale, makeT } from "/i18n.js";
 import { authHeaders, openSignIn, token, verifierControl, VERIFIER_ID } from "/verifier.js";
 
@@ -730,15 +730,22 @@ function voiceButton(mediaId) {
   return b;
 }
 
+/** The burned area of the newest Sentinel-2 pair, for the section title (the gist without opening it). */
+function burnedGist(inc) {
+  const ev = [...inc.evidence].reverse().find((e) => e.type === "satellite");
+  if (!ev) return null;
+  return ev.payload.burned_area_ha == null ? t("not claimed") : `${fmtNum(ev.payload.burned_area_ha)} ha`;
+}
+
 function evidenceRows(inc) {
   const rows = inc.evidence.map((e) => {
     const extra = [];
-    if (e.type === "report") extra.push(el("p", { class: "brief", style: "margin-top:4px" }, e.payload.text));
+    if (e.type === "report") extra.push(fold(el("p", { class: "brief", style: "margin-top:4px" }, e.payload.text), { lines: 3 }));
     if (e.type === "voice") extra.push(el("div", { style: "margin-top:6px" }, voiceButton(e.payload.media_id)),
-      el("p", { class: "muted", style: "margin:4px 0 0;font-size:12px" }, e.payload.transcript ? t("Transcript: {t}", { t: e.payload.transcript }) : t("Transcript pending")));
+      fold(el("p", { class: "muted", style: "margin:4px 0 0;font-size:12px" }, e.payload.transcript ? t("Transcript: {t}", { t: e.payload.transcript }) : t("Transcript pending"))));
     // The report summary repeats the citizen's text, so show the full text once instead.
     const head = e.type === "report" ? `${e.type} · ${e.source}` : `${e.type} · ${e.source}: ${e.summary}`;
-    return el("div", { class: "ev", dataset: { ev: e.id } }, el("span", { class: "ev-id" }, e.id), el("div", { style: "flex:1;min-width:0" }, head, extra));
+    return el("div", { class: "ev", dataset: { ev: e.id } }, el("span", { class: "ev-id" }, e.id), el("div", { style: "flex:1;min-width:0" }, fold(head), extra));
   });
   const photos = inc.evidence.filter((e) => e.type === "image" && e.payload.media_id);
   if (photos.length) rows.push(el("div", { class: "media-grid" }, photos.map((e) => photoTile(e.payload.media_id, `${e.id} ${t("citizen photo")}`))));
@@ -1000,6 +1007,67 @@ function finishFlight(inc, f, outcome) {
   };
 }
 
+/* Data console over the 3D view, written like a CLI log. Plain lines are computed: plan, simulated telemetry,
+   and the incident's weather evidence. Lines starting with "~" illustrate a real drone's data path (onboard
+   filter, downlink to the ground station); no drone is connected, so they carry no measured data. */
+const CONSOLE_LINES = 80;
+const CONSOLE_GPS_EVERY_MS = 1500;
+const pad2 = (n) => String(n).padStart(2, "0");
+
+function dataConsole(p, tel) {
+  const plan = p.plan;
+  const total = tel.samples.length;
+  const log = el("div", { class: "f3d-log", role: "log", "aria-live": "off" });
+  const node = el("div", { class: "f3d-console" },
+    el("div", { class: "f3d-console-head" }, el("span", { class: "f3d-console-dot" }), el("strong", {}, t("DATA CONSOLE")), el("span", { class: "f3d-console-sim" }, "SIMULASI"),
+      info(t("Plain lines are computed from the flight plan, the simulated telemetry, and the incident's weather evidence. Lines starting with ~ only illustrate how a real drone would filter and send its frames; no drone is connected."), "tip-right")),
+    log);
+  const st0 = { shots: -1, pack: null, swapping: false, done: false, gpsAt: 0, started: false };
+  const write = (s, tag, text, ill = false) => {
+    log.append(el("div", { class: `f3d-line ${ill ? "ill" : ""}` }, el("span", { class: "f3d-t" }, mmss(s)), el("span", { class: `f3d-tag tag-${tag.toLowerCase()}` }, (ill ? "~" : "") + tag), el("span", {}, text)));
+    while (log.childElementCount > CONSOLE_LINES) log.firstChild.remove();
+    log.scrollTop = log.scrollHeight;
+  };
+  const bearing = (a, b) => {
+    const dx = (b.lon - a.lon) * Math.cos((a.lat * Math.PI) / 180), dy = b.lat - a.lat;
+    return Math.round(((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360);
+  };
+  const update = (st, s) => {
+    if (!st0.started) {
+      st0.started = true;
+      write(s, "SYS", t("autopilot armed · plan #{id} · {lines} lines x {n} frames · {alt} m AGL", { id: p.id, lines: plan.lines, n: plan.frames_per_line, alt: plan.altitude_agl_m }));
+      write(s, "WX", `${windText(tel.wind)}${tel.wind?.evidence_id ? ` (${String(tel.wind.evidence_id).split("/").pop()})` : ""}`);
+      write(s, "BATT", t("{n} pack(s) planned · swap at 20%", { n: tel.packs }));
+      st0.shots = st.shots;
+    }
+    if (st.pack !== st0.pack && st0.pack != null) write(s, "BATT", t("pack {n} of {m} in · back to the route", { n: st.pack, m: tel.packs }));
+    st0.pack = st.pack;
+    if (st.swapping && !st0.swapping) write(s, "BATT", t("battery low · returning to swap packs, about 5 min on the ground"));
+    st0.swapping = st.swapping;
+    const fresh = st.shots - st0.shots;
+    if (fresh > 4) {
+      write(s, "CAM", t("frames {a}-{b} of {n} captured", { a: pad2(st0.shots + 1), b: pad2(st.shots), n: total }));
+    } else {
+      for (let k = st0.shots + 1; k <= st.shots; k++) {
+        write(s, "CAM", t("frame {k}/{n} · GSD {gsd} m · footprint {w} x {h} m", { k: pad2(k), n: total, gsd: fmtNum(plan.gsd_m), w: Math.round(plan.footprint_m[0]), h: Math.round(plan.footprint_m[1]) }));
+        write(s, "EDGE", t("frame {k} → onboard filter → queued", { k: pad2(k) }), true);
+        write(s, "LINK", t("frame {k} → ground station", { k: pad2(k) }), true);
+      }
+    }
+    st0.shots = st.shots;
+    const now = performance.now();
+    const fix = `${st.lat.toFixed(5)},${st.lon.toFixed(5)}`;
+    if (!st.swapping && !st.done && now - st0.gpsAt > CONSOLE_GPS_EVERY_MS && fix !== st0.fix) {
+      st0.gpsAt = now;
+      st0.fix = fix;
+      write(s, "GPS", `${st.lat.toFixed(5)}, ${st.lon.toFixed(5)} · ALT ${Math.round(st.alt_m)} m · GS ${fmtNum(st.ground_speed_ms)} m/s · HDG ${pad2(bearing(st.a, st.b))}° · BAT ${Math.round(st.battery_pct)}%`);
+    }
+    if (st.done && !st0.done) write(s, "SYS", t("route complete · {n} frames · landing", { n: total }));
+    st0.done = st.done;
+  };
+  return { node, update };
+}
+
 /* 3D view of a flight: the same telemetry and clock as the console, drawn in three.js (frontend/flight3d.js). */
 async function open3DView(inc, p, tel, clock, label) {
   let view = null;
@@ -1007,13 +1075,16 @@ async function open3DView(inc, p, tel, clock, label) {
   const cell = (k, l) => { hud[k] = el("strong", { class: "num" }, "-"); return el("div", { class: "f3d-cell" }, el("span", {}, t(l)), hud[k]); };
   const stage = el("div", { class: "f3d-stage" }, el("div", { class: "f3d-loading" }, t("Loading 3D view...")));
   const maskBtn = el("button", { class: "btn btn-sm", type: "button", hidden: true, "aria-pressed": "true" }, t("Burn scar"));
+  const dc = dataConsole(p, tel);
+  const consoleBtn = el("button", { class: "btn btn-sm", type: "button", "aria-pressed": "true" }, svg("list", "icon icon-sm"), t("Console"));
+  consoleBtn.onclick = () => { const on = consoleBtn.getAttribute("aria-pressed") !== "true"; consoleBtn.setAttribute("aria-pressed", String(on)); dc.node.hidden = !on; };
   const note = el("p", { class: "f3d-note" });
   const close = () => { view?.destroy(); overlay.remove(); document.removeEventListener("keydown", onKey); clearInterval(timer); };
   const onKey = (e) => { if (e.key === "Escape") close(); };
   const overlay = el("div", { class: "f3d", role: "dialog", "aria-modal": "true", "aria-label": t("3D flight view") },
     el("div", { class: "f3d-head" },
       el("span", { class: "pill pill-sim" }, "SIMULASI"), el("strong", {}, t("3D flight view")), el("span", { class: "muted" }, inc.id),
-      el("span", { class: "f3d-state" }), el("div", { class: "f3d-tools" }, maskBtn,
+      el("span", { class: "f3d-state" }), el("div", { class: "f3d-tools" }, consoleBtn, maskBtn,
         el("button", { class: "btn btn-sm", type: "button", onclick: () => view?.recentre() }, svg("target", "icon icon-sm"), t("Follow the drone")),
         el("button", { class: "btn btn-icon", type: "button", "aria-label": t("Close"), onclick: () => close() }, svg("x", "icon icon-sm")))),
     stage,
@@ -1022,9 +1093,11 @@ async function open3DView(inc, p, tel, clock, label) {
   document.body.append(overlay);
   document.addEventListener("keydown", onKey);
   let current = null;
+  // The HUD and the console read the clock themselves, so they keep time even when the 3D loop is throttled.
   const timer = setInterval(() => {
-    if (!current) return;
-    const { st, s } = current;
+    const s = Math.max(0, Math.min(tel.duration_s, clock()));
+    const st = telemetryAt(tel, s);
+    current = { st, s };
     overlay.querySelector(".f3d-state").textContent = label(st, s);
     hud.clock.textContent = `${mmss(s)} / ${mmss(tel.duration_s)}`;
     hud.frame.textContent = `${st.shots} / ${tel.samples.length}`;
@@ -1032,6 +1105,7 @@ async function open3DView(inc, p, tel, clock, label) {
     hud.speed.textContent = `${fmtNum(st.ground_speed_ms)} m/s`;
     hud.alt.textContent = `${Math.round(st.alt_m)} m`;
     hud.wind.textContent = windText(tel.wind);
+    dc.update(st, s);
   }, 200);
   try {
     const [{ createFlight3D }, ground] = await Promise.all([import("/flight3d.js"), api(`/api/drone-proposals/${p.id}/ground`)]);
@@ -1040,7 +1114,7 @@ async function open3DView(inc, p, tel, clock, label) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return createImageBitmap(await res.blob(), { imageOrientation: "flipY" });
     };
-    stage.replaceChildren();
+    stage.replaceChildren(dc.node);
     view = createFlight3D(stage, {
       plan: p.plan, ground, hotspots: inc.hotspots, loadImage, t,
       getState: () => {
@@ -1232,7 +1306,8 @@ async function proposalSection(inc) {
   btn.onclick = () => proposeDrone(inc);
   const flyingId = r.items.find((p) => p.flight?.state === "flying")?.id ?? null;
   r.items.forEach((p) => { p.otherFlying = flyingId != null && flyingId !== p.id; });
-  const node = section({ icon: "target", title: t("Drone survey plan"), count: r.count, open: open,
+  // Open only when a plan waits for a verifier's decision; otherwise the title says what is there.
+  const node = section({ icon: "target", title: t("Drone survey plan"), count: r.count, open: r.items.some((p) => p.status === "proposed"),
     tip: t("A mapping flight planned over the hotspots: lawnmower lines at 120 m above ground. The AI agent may propose one when independent evidence is missing; only a verifier can approve it. Planning is free."),
     content: [r.items.length ? r.items.map((p) => proposalCard(inc, p)) : el("p", { class: "empty" }, t("No drone survey planned.")),
       open ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("One active plan per incident. Cancel the approved plan to make a new one."))
@@ -1680,7 +1755,7 @@ function progressCard(inc) {
   if (verdict?.decision === "approve") headline = el("div", { class: "phead ok" }, svg("check", "icon"), el("div", {}, el("strong", {}, t("Verified")), el("span", {}, t("A human verifier approved this incident on {when}.", { when: fmtTime(verdict.created_at) }))));
   else if (verdict?.decision === "reject") headline = el("div", { class: "phead bad" }, svg("x", "icon"), el("div", {}, el("strong", {}, t("Rejected")), el("span", {}, t("A human verifier rejected this incident on {when}.", { when: fmtTime(verdict.created_at) }))));
   else if (!tri) headline = el("div", { class: "phead" }, svg("info", "icon"), el("div", {}, el("strong", {}, t("Not triaged yet")),
-    el("span", {}, t("What you see is raw detection: hotspots and the evidence collected so far. No AI or human has judged it. The status will change after AI triage, and only a verifier can mark it verified."))));
+    fold(el("span", {}, t("What you see is raw detection: hotspots and the evidence collected so far. No AI or human has judged it. The status will change after AI triage, and only a verifier can mark it verified.")))));
   else headline = el("div", { class: "phead warn" }, svg("activity", "icon"), el("div", {}, el("strong", {}, t("AI recommendation: {s}", { s: statusLabel(inc.status) })),
     el("span", {}, tri.hidden ? t("Built on citizen evidence; details are shown after a verifier approves.")
       : t("Confidence {c}%, judged on {when}. Waiting for a human verifier to approve or reject.", { c: Math.round((tri.confidence ?? 0) * 100), when: triagedAt ? fmtTime(triagedAt) : "" }))));
@@ -1718,7 +1793,7 @@ function progressCard(inc) {
       step(triDone, t("AI triage"), tri ? statusLabel(inc.status) : t("not yet"), stage === 3),
       step(!!verdict, t("Human verifier"), verdict ? t(verdict.decision === "approve" ? "approved" : "rejected") : t("waiting"), stage === 4)),
     missing.length ? el("div", { class: "pmissing" }, el("div", { class: "legend-label" }, t("Still missing")),
-      missing.map((m) => el("div", { class: "pmiss" }, el("strong", {}, t(m.title)), m.why ? el("p", {}, t(m.why)) : null,
+      missing.map((m) => el("div", { class: "pmiss" }, el("strong", {}, t(m.title)), m.why ? fold(el("p", {}, t(m.why))) : null,
         m.list?.length ? el("ul", {}, m.list.map((u) => el("li", {}, u))) : null,
         m.actions.filter(Boolean).length ? el("div", { class: "actions" }, m.actions) : null))) : null,
     nextStep,
@@ -1862,10 +1937,10 @@ async function openIncident(id) {
       content: claimRows(triage) }),
     section({ icon: "shield", title: t("Evidence gate"), tip: t("Deterministic checks between the model and the verifier: schema, evidence existence, numbers against tool results, area from real masks, location, and content rules. Every change is listed."),
       content: gateRows(gate) }),
-    section({ icon: "satellite", title: t("Sentinel-2 burn scar"), open: inc.evidence.some((e) => e.type === "satellite"),
+    section({ icon: "satellite", title: t("Sentinel-2 burn scar"), count: burnedGist(inc),
       tip: t("Before and after images from Sentinel-2. dNBR is the drop in the normalized burn ratio; burned hectares count 20 m pixels at dNBR 0.27 or more, computed by code. Under heavy haze no hectares are claimed."),
       content: satelliteContent(inc) }),
-    section({ icon: "activity", title: t("Evidence"), count: inc.evidence.length, open: inc.evidence.length > 0, tip: t("Every tool result is stored with a numbered ID. Claims link to these IDs. Citizen photos, voice, and text are shown to verifiers only."),
+    section({ icon: "activity", title: t("Evidence"), count: inc.evidence.length, tip: t("Every tool result is stored with a numbered ID. Claims link to these IDs. Citizen photos, voice, and text are shown to verifiers only."),
       content: [evidenceRows(inc), token() && missingSources(inc).length
         ? el("div", { class: "actions" }, el("button", { class: "btn", type: "button", dataset: { busy: "collect" }, onclick: () => collectNow(inc.id) }, svg("activity", "icon icon-sm"), t("Collect missing evidence")))
         : null] }),
