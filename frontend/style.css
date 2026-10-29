@@ -420,6 +420,12 @@ a.btn-primary, a.btn-report { color: #fff; }
 .doc-body { padding: 22px 26px; font-size: 14px; line-height: 1.65; }
 .doc-body h2 { margin: 0 0 2px; font-size: 20px; }
 .doc-body h3 { margin: 22px 0 6px; font-size: 15px; }
+.doc-body h4 { margin: 14px 0 4px; font-size: 13.5px; color: var(--ink-2); }
+/* On this page: anchor chips under the intro of a long information page. */
+.doc-toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
+.doc-toc a { padding: 3px 10px; border-radius: 999px; background: var(--bg); color: var(--blue); font-size: 12.5px; font-weight: 600; text-decoration: none; }
+.doc-toc a:hover { background: var(--blue-soft); }
+.doc-body h3[id] { scroll-margin-top: 70px; }
 .doc-body p, .doc-body ul, .doc-body ol { margin: 0 0 10px; }
 .doc-body li { margin-bottom: 6px; }
 .doc-body a { color: var(--blue); }
@@ -431,6 +437,14 @@ a.btn-primary, a.btn-report { color: #fff; }
 .doc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .doc-table th { text-align: left; font-weight: 600; color: var(--ink-2); padding: 8px; border-bottom: 1px solid var(--line); }
 .doc-table td { padding: 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+/* On a phone a three-column table becomes one card per row, each cell under its column name. */
+@media (max-width: 520px) {
+  .doc-table-stack thead { display: none; }
+  .doc-table-stack tr { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .doc-table-stack td { display: block; padding: 0; border: 0; }
+  .doc-table-stack td:first-child { font-weight: 700; }
+  .doc-table-stack td:not(:first-child)::before { content: attr(data-label) ": "; font-weight: 600; color: var(--ink-2); }
+}
 .doc-attrib { font-size: 12px; color: var(--ink-2); }
 @media (max-width: 520px) { .doc-body { padding: 16px; } }
 

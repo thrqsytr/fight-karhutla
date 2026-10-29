@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Tentang: Fight Karhutla</title>
-  <meta name="description" content="Apa itu Fight Karhutla, cara kerjanya, dan batasannya.">
+  <meta name="description" content="Apa itu Fight Karhutla, untuk siapa, cara kerjanya, peran Meta AI, semua fiturnya, dan batasannya.">
   <meta name="theme-color" content="#0064e0">
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -29,75 +29,169 @@
     <article class="card doc-body" lang="id" data-title="Tentang">
       <h2>Tentang Fight Karhutla</h2>
       <p class="doc-meta">Diperbarui 30 Oktober 2026.</p>
-      <p>Fight Karhutla mengubah titik panas satelit dan laporan warga menjadi insiden kebakaran hutan dan lahan yang disertai bukti, untuk diperiksa verifikator manusia. Proyek ini dibuat untuk Meta Global AI Developer Hackathon 2026 dan masih berupa prototipe.</p>
+      <p>Fight Karhutla mengubah sinyal satelit dan laporan warga menjadi insiden kebakaran hutan dan lahan yang disertai bukti dan rekomendasi pemadaman, untuk diputuskan manusia. Aplikasi ini mendeteksi lahan yang sedang terbakar dan mengukur lahan yang baru terbakar. Proyek ini dibuat untuk Meta Global AI Developer Hackathon 2026 dan masih berupa prototipe.</p>
+      <nav class="doc-toc" aria-label="Isi halaman">
+        <a href="#darurat">Bukan kanal darurat</a><a href="#untuk-siapa">Untuk siapa</a><a href="#cara-kerja">Cara kerja</a><a href="#meta-ai">Peran Meta AI</a><a href="#fitur">Fitur</a><a href="#data">Data dan privasi</a><a href="#batasan">Batasan</a><a href="#kontak">Pembuat</a>
+      </nav>
 
       <h3 id="darurat">Bukan kanal darurat resmi</h3>
       <div class="doc-callout"><span data-icon="alert"></span><p>Fight Karhutla bukan kanal darurat resmi dan tidak menggantikan BPBD, Manggala Agni, atau pemadam kebakaran. Bila ada bahaya bagi orang, hubungi <a href="tel:112">112</a>, BPBD, atau pemadam kebakaran setempat lebih dulu.</p></div>
 
-      <h3>Cara kerja</h3>
+      <h3 id="untuk-siapa">Untuk siapa</h3>
+      <ul>
+        <li><strong>Warga</strong> di dekat lokasi: melapor dengan foto, pesan suara, teks, dan lokasi lewat halaman <a href="/lapor/">Lapor</a> atau WhatsApp.</li>
+        <li><strong>Verifikator</strong>, misalnya petugas posko: memeriksa bukti, menyetujui atau menolak rekomendasi AI, dan merencanakan survei drone.</li>
+        <li><strong>Pengambil keputusan dan regu darat</strong>: memakai insiden yang sudah diverifikasi dan rekomendasi pemadaman sebagai bahan, bukan perintah.</li>
+        <li><strong>Publik</strong>: melihat peta insiden, bukti satelit, dan contoh laporan yang dipilih verifikator.</li>
+      </ul>
+
+      <h3 id="cara-kerja">Cara kerja</h3>
       <ol>
-        <li><strong>Deteksi.</strong> Titik panas dari NASA FIRMS (VIIRS dan MODIS) diambil terjadwal; intervalnya diatur di panel admin, dari 30 menit sampai 2 hari. Titik panas dalam radius 2 km dan 24 jam digabung menjadi satu insiden. Warga juga bisa melapor lewat halaman <a href="/lapor/">Lapor</a> atau WhatsApp; laporannya masuk ke insiden yang sama.</li>
-        <li><strong>Bukti.</strong> Setiap insiden dilengkapi data cuaca (Open-Meteo), jalan, sumber air (sungai, danau, kanal, anak sungai), permukiman, pos pemadam, dan kantor polisi, tentara, serta pemerintahan terdekat dari OpenStreetMap dan Overture Maps, citra Sentinel-2 sebelum dan sesudah (luas bekas terbakar dihitung kode dari dNBR), dan laporan warga.</li>
-        <li><strong>Triase AI, hanya bila diminta.</strong> Model AI menyusun ringkasan, rekomendasi status, risiko, dan tindakan yang disarankan, dalam bahasa Indonesia dan Inggris. Triase hanya berjalan dengan kode eksekusi, maksimal 5 insiden per pilihan dan 30 per hari, atau lewat jadwal harian untuk insiden yang dilaporkan warga.</li>
-        <li><strong>Gerbang bukti.</strong> Setiap klaim AI harus menunjuk bukti yang ada. Angka, jarak, dan luas dihitung ulang oleh kode; klaim yang tidak cocok ditolak. Klaim lalu diperiksa ulang oleh model kedua.</li>
-        <li><strong>Rekomendasi pemadaman.</strong> Kode menghitung dari bukti arah sebaran dan sisi pendekatan, akses, sumber air, pos pemadam dan kantor terdekat, tingkat kekeringan, dan ukuran api. Panduan bagi pengambil keputusan, bukan perintah.</li>
-        <li><strong>Manusia memutuskan.</strong> Setiap insiden berakhir menunggu verifikator. Verifikator juga menyetujui survei drone (simulasi) dan memilih laporan WhatsApp yang tampil publik. Tidak ada pesan atau perintah yang dikirim otomatis ke siapa pun.</li>
+        <li><strong>Deteksi.</strong> Titik panas NASA FIRMS (VIIRS dan MODIS) diambil terjadwal, dengan interval 30 menit sampai 2 hari yang diatur di panel admin. Titik panas dalam 2 km dan 24 jam digabung menjadi satu insiden. Laporan warga dari Lapor dan WhatsApp masuk ke insiden yang sama.</li>
+        <li><strong>Bukti, dikumpulkan kode.</strong> Cuaca dari Open-Meteo; jalan, sumber air (sungai, danau, kanal, anak sungai), permukiman, pos pemadam, serta kantor polisi, tentara, dan pemerintahan terdekat dari OpenStreetMap dan Overture Maps; citra Sentinel-2 sebelum dan sesudah, dengan luas bekas terbakar dihitung kode dari dNBR. Setiap bukti disimpan dengan nomor. Insiden dengan 3 titik panas atau lebih, daya radiasi api 20 MW atau lebih, dan setiap laporan warga diperkaya otomatis.</li>
+        <li><strong>Meta AI menganalisis dan menyusun.</strong> Model Meta membaca bukti, foto, dan suara, lalu menyusun status, ringkasan, klaim, risiko, dan tindakan yang disarankan dalam dua bahasa. Rinciannya di bagian berikut.</li>
+        <li><strong>Gerbang bukti, kode memeriksa AI.</strong> Skema, bukti yang dirujuk, angka terhadap hasil alat, luas dari masker nyata, lokasi, dan aturan isi diperiksa. Klaim tanpa dukungan dibuang atau statusnya diturunkan; titik panas saja tidak pernah menjadi "kemungkinan besar api". Rekomendasi pemadaman dihitung kode dari bukti.</li>
+        <li><strong>Manusia memutuskan.</strong> Setiap insiden berakhir menunggu verifikator. Tidak ada pesan atau perintah yang dikirim otomatis ke siapa pun.</li>
       </ol>
 
-      <h3>Model AI yang dipakai</h3>
-      <ul>
-        <li>Meta Model API: Muse Spark 1.3 (triase dalam dua bahasa dan membaca foto), SAM 3.1 (segmentasi area terbakar), Muse Voice Transcribe (pesan suara ke teks).</li>
-        <li>Modal: Muse Glimmer (bobot terbuka) memilih frame drone yang dikirim dalam simulasi drone.</li>
-        <li>Baseten: Muse Spark Open untuk memeriksa ulang klaim yang hanya memakai data publik.</li>
-      </ul>
-      <p>Semua model hanya dipakai untuk inferensi. Tidak ada model yang dilatih dengan data pengguna.</p>
+      <h3 id="meta-ai">Peran Meta AI</h3>
+      <div class="doc-table-wrap"><table class="doc-table doc-table-stack">
+        <thead><tr><th>Model</th><th>Tugas</th><th>Yang dijaga kode</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Model">Muse Spark 1.3 (Meta Model API)</td><td data-label="Tugas">Agen triase: memanggil alat yang terikat pada insiden, membaca foto warga, menulis status, ringkasan, klaim, risiko, dan tindakan dalam bahasa Indonesia dan Inggris; meninjau klaim yang bersandar pada bukti warga</td><td data-label="Yang dijaga kode">Setiap klaim wajib menunjuk nomor bukti; angka dicocokkan dengan hasil alat; kalimat tentang penyebab dibuang</td></tr>
+          <tr><td data-label="Model">Muse Voice Transcribe (Meta Model API)</td><td data-label="Tugas">Pesan suara warga berbahasa Indonesia menjadi teks</td><td data-label="Yang dijaga kode">Agen membaca transkripnya, bukan audionya</td></tr>
+          <tr><td data-label="Model">SAM 3.1 (Meta Model API)</td><td data-label="Tugas">Menandai area terbakar pada foto dan frame drone, dengan konsep yang dipilih Muse Spark</td><td data-label="Yang dijaga kode">Hektar dihitung kode dari masker dan ukuran piksel di tanah</td></tr>
+          <tr><td data-label="Model">Muse Spark Open (Baseten)</td><td data-label="Tugas">Model kedua yang menyanggah klaim yang tidak didukung bukti, hanya untuk bukti publik</td><td data-label="Yang dijaga kode">Klaim yang disanggah ditandai untuk verifikator</td></tr>
+          <tr><td data-label="Model">Muse Glimmer (bobot terbuka, Modal)</td><td data-label="Tugas">Dalam simulasi drone, memilih frame yang layak dikirim ke stasiun darat</td><td data-label="Yang dijaga kode">Frame yang tidak dikirim tetap dicatat</td></tr>
+        </tbody>
+      </table></div>
+      <p>Semua model hanya dipakai untuk inferensi; tidak ada yang dilatih dengan data pengguna. Triase memakai kredit dan hanya berjalan bila diminta: verifikator memilih insiden (paling banyak 5 sekali pilih) dengan kode eksekusi, dalam batas harian, atau lewat jadwal harian atau per jam untuk laporan warga. Biaya per triase sekitar $0,15.</p>
 
-      <h3>Batasan</h3>
+      <h3 id="fitur">Fitur</h3>
+      <h4>Untuk semua orang</h4>
       <ul>
-        <li>Titik panas adalah anomali termal, bukan kebakaran yang pasti. Titik panas saja tidak pernah menghasilkan status "kemungkinan besar api".</li>
-        <li>Awan tebal dapat menyembunyikan api dan asap dari satelit.</li>
-        <li>AI bisa keliru. Ringkasan adalah bahan pertimbangan, bukan keputusan.</li>
+        <li><strong>Peta insiden</strong>: titik panas dan insiden, saringan (3+ titik panas, keyakinan tinggi, 6 jam terakhir), urutan panas, jumlah, atau terbaru, lapisan asap dan aerosol NASA GIBS, peta dasar Peta atau World, legenda, dan status setiap sumber data.</li>
+        <li><strong>Detail insiden</strong>: kartu progres (terdeteksi, bukti, triase AI, verifikator) dengan apa yang masih kurang; ringkasan dan klaim AI yang terhubung ke bukti; rincian gerbang bukti; bukti bernomor dan daftar titik panas.</li>
+        <li><strong>Rekomendasi pemadaman</strong>: arah sebaran dan sisi pendekatan, akses darat, sumber air terdekat, pos pemadam, kantor untuk koordinasi, tingkat kekeringan, dan ukuran api, dengan ambang yang disebut; arah sebaran dan tempat sekitar bisa digambar di peta.</li>
+        <li><strong>Bekas terbakar Sentinel-2</strong>: citra sebelum, sesudah, dan masker bekas terbakar di detail insiden dan di peta, dengan luas dalam hektar.</li>
+        <li><strong>Lapor</strong>: lokasi, 1 sampai 3 foto, pesan suara, dan teks; metadata foto dihapus.</li>
+        <li><strong>WhatsApp</strong>: foto, suara, teks, dan pin lokasi dalam urutan apa pun menjadi satu laporan. Saat ini satu arah: laporan masuk, balasan bot ditolak Meta sampai akun lolos verifikasi bisnis.</li>
+        <li><strong><a href="/whatsapp/">Laporan WhatsApp</a></strong>: untuk laporan yang dipilih verifikator, isi kiriman, hasil Muse Spark dan Voice Transcribe, langkah pemrosesan, dan balasan bot beserta hasil kirimnya.</li>
+        <li><strong>Bagikan</strong>: tautan insiden dengan pratinjau WhatsApp dan Facebook (ringkasan dan gambar peta).</li>
+        <li><strong>Dua bahasa</strong>: Indonesia dan Inggris, termasuk teks yang ditulis AI. Penjelasan "Cara kerja" bisa dibuka lagi dari footer.</li>
+      </ul>
+      <h4>Untuk verifikator</h4>
+      <ul>
+        <li>Masuk dengan token verifikator; melihat foto, suara, dan teks warga; menyamarkan data pribadi di foto.</li>
+        <li>Menyetujui atau menolak rekomendasi AI, dan membatalkan keputusan dengan alasan; setiap keputusan tercatat.</li>
+        <li>Mencari pasangan citra Sentinel-2, mengumpulkan bukti yang kurang, dan menjalankan triase AI (pilih di daftar atau gambar area di peta).</li>
+        <li>Survei drone (simulasi): agen atau verifikator mengusulkan jalur pemetaan 120 m di atas tanah, paling luas 2 km2 dan 80 frame; hanya verifikator yang menyetujui. Pilot simulasi menerbangkannya dengan telemetri dari rencana dan angin insiden; tampilan 3D di atas citra Sentinel-2 dengan konsol data.</li>
+        <li>Memilih laporan WhatsApp yang tampil publik.</li>
+      </ul>
+      <h4>Untuk operator</h4>
+      <ul>
+        <li><strong>Panel admin</strong> dengan lima tab: ringkasan (biaya, jumlah, kesehatan sumber, run terakhir), pengambilan data (interval FIRMS, kuota cuaca dan OSM, jendela pakai ulang Sentinel-2), triase AI (jadwal dan batas), WhatsApp, dan replay demo. Menyimpan perubahan butuh kode eksekusi.</li>
+        <li><strong>Replay demo</strong>: tiga insiden rekaman musim kemarau 2025 (jelas terbakar, positif palsu, butuh info tambahan) dimuat sebagai SIMULASI, tanpa jaringan dan tanpa memanggil model.</li>
+      </ul>
+
+      <h3 id="data">Data dan privasi</h3>
+      <p>Semua data satelit, cuaca, dan peta berasal dari sumber terbuka; daftar lengkap dan lisensinya ada di <a href="/sources/">Sumber data</a>. Foto, suara, dan teks warga hanya terlihat oleh verifikator, metadata foto dihapus, dan nomor WhatsApp hanya disimpan sebagai hash. Rinciannya di <a href="/privacy/">Privasi</a>.</p>
+
+      <h3 id="batasan">Batasan</h3>
+      <ul>
+        <li>Titik panas adalah anomali termal, bukan kebakaran yang pasti.</li>
+        <li>Awan dan asap dapat menutupi lokasi dari satelit. Sentinel-2 lewat sekitar setiap 2 sampai 5 hari, jadi luas bekas terbakar bisa belum ada; saat kabut asap tebal, luas tidak diklaim.</li>
+        <li>OpenStreetMap dan Overture Maps tidak lengkap; "tidak terpetakan" bukan berarti tidak ada di lapangan.</li>
+        <li>Drone disimulasikan; tidak ada drone yang terhubung.</li>
+        <li>AI bisa keliru. Dalam evaluasi atas 30 klaster dari 2025, tanpa bukti independen agen paling sering menjawab butuh info tambahan dan menemukan 2 dari 15 lahan terbakar, tanpa alarm palsu. Ringkasan adalah bahan pertimbangan, bukan keputusan.</li>
         <li>Fight Karhutla tidak memberi saran kesehatan dan tidak menyebut penyebab atau pihak yang bertanggung jawab atas kebakaran.</li>
       </ul>
 
-      <h3>Pembuat dan kontak</h3>
+      <h3 id="kontak">Pembuat dan kontak</h3>
       <p>Dibuat oleh Muh. Thariq Rabbany. Kode sumber terbuka di <a href="https://github.com/thrqsytr/fight-karhutla" rel="noopener">GitHub</a>. Pertanyaan, masukan, dan laporan masalah dikirim lewat <a href="https://github.com/thrqsytr/fight-karhutla/issues" rel="noopener">GitHub Issues</a>. Jangan menulis data pribadi di sana karena isinya publik.</p>
     </article>
     <article class="card doc-body" lang="en" data-title="About" hidden>
       <h2>About Fight Karhutla</h2>
       <p class="doc-meta">Updated 30 October 2026.</p>
-      <p>Fight Karhutla turns satellite hotspots and citizen reports into evidence-backed forest and land fire incidents for human verifiers to check. It was built for the Meta Global AI Developer Hackathon 2026 and is still a prototype.</p>
+      <p>Fight Karhutla turns satellite signals and citizen reports into forest and land fire incidents with evidence and a suppression outlook, for people to decide on. It detects land that is burning and measures land that has just burned. It was built for the Meta Global AI Developer Hackathon 2026 and is still a prototype.</p>
+      <nav class="doc-toc" aria-label="On this page">
+        <a href="#darurat">Not an emergency channel</a><a href="#untuk-siapa">Who it is for</a><a href="#cara-kerja">How it works</a><a href="#meta-ai">What Meta AI does</a><a href="#fitur">Features</a><a href="#data">Data and privacy</a><a href="#batasan">Limits</a><a href="#kontak">Maker</a>
+      </nav>
 
       <h3 id="darurat">Not an official emergency channel</h3>
       <div class="doc-callout"><span data-icon="alert"></span><p>Fight Karhutla is not an official emergency channel and does not replace BPBD, Manggala Agni, or any fire service. If people are in danger, call <a href="tel:112">112</a>, your local BPBD, or the fire service first.</p></div>
 
-      <h3>How it works</h3>
+      <h3 id="untuk-siapa">Who it is for</h3>
+      <ul>
+        <li><strong>Residents</strong> near a fire: report with photos, voice notes, text, and a location through the <a href="/lapor/">Report</a> page or WhatsApp.</li>
+        <li><strong>Verifiers</strong>, for example command post staff: check the evidence, approve or reject the AI recommendation, and plan drone surveys.</li>
+        <li><strong>Decision makers and ground crews</strong>: use verified incidents and the suppression outlook as input, not as orders.</li>
+        <li><strong>The public</strong>: see the incident map, the satellite evidence, and the example reports a verifier chose to show.</li>
+      </ul>
+
+      <h3 id="cara-kerja">How it works</h3>
       <ol>
-        <li><strong>Detection.</strong> Hotspots from NASA FIRMS (VIIRS and MODIS) are fetched on a schedule set in the admin panel, from every 30 minutes to every 2 days. Hotspots within 2 km and 24 hours are grouped into one incident. Citizens can also report through the <a href="/lapor/">Report</a> page or WhatsApp; their reports join the same incident.</li>
-        <li><strong>Evidence.</strong> Each incident gets weather data (Open-Meteo), the nearest roads, water (rivers, lakes, canals, streams), settlements, fire stations, and police, military, and government offices from OpenStreetMap and Overture Maps, Sentinel-2 before and after images (burn scar area counted by code from dNBR), and citizen reports.</li>
-        <li><strong>AI triage, only on request.</strong> An AI model drafts a brief, a status recommendation, the risk, and recommended actions, in Indonesian and English. Triage runs only with the execution code, at most 5 incidents per selection and 30 per day, or on a daily schedule for citizen-reported incidents.</li>
-        <li><strong>Evidence gate.</strong> Every AI claim must cite existing evidence. Numbers, distances, and areas are recomputed by code; claims that do not match are rejected. A second model then reviews the claims.</li>
-        <li><strong>Suppression outlook.</strong> Code computes from the evidence the likely spread and the side to approach from, access, water, the nearest fire station and offices, dryness, and size. Guidance for the people who decide, not an order.</li>
-        <li><strong>A human decides.</strong> Every incident ends waiting for a verifier. Verifiers also approve drone surveys (simulated) and choose which WhatsApp reports are public. No message or order is sent to anyone automatically.</li>
+        <li><strong>Detect.</strong> NASA FIRMS hotspots (VIIRS and MODIS) are fetched on a schedule, every 30 minutes to every 2 days as set in the admin panel. Hotspots within 2 km and 24 hours become one incident. Citizen reports from the Report page and WhatsApp join the same incident.</li>
+        <li><strong>Evidence, collected by code.</strong> Weather from Open-Meteo; the nearest roads, water (rivers, lakes, canals, streams), settlements, fire stations, and police, military, and government offices from OpenStreetMap and Overture Maps; Sentinel-2 before and after images, with the burned area computed by code from dNBR. Each piece of evidence is stored with a number. Incidents with 3 or more hotspots or a fire radiative power of 20 MW or more, and every citizen report, are enriched automatically.</li>
+        <li><strong>Meta AI analyses and drafts.</strong> Meta models read the evidence, photos, and voice, then draft the status, brief, claims, risk, and recommended actions in two languages. Details in the next section.</li>
+        <li><strong>Evidence gate, code checks the AI.</strong> Schema, cited evidence, numbers against the tools, area from real masks, location, and content rules are checked. Unsupported claims are dropped or the status is lowered; hotspots alone never make "likely fire". The suppression outlook is computed by code from the evidence.</li>
+        <li><strong>People decide.</strong> Every incident ends waiting for a verifier. No message or order is sent to anyone automatically.</li>
       </ol>
 
-      <h3>AI models used</h3>
-      <ul>
-        <li>Meta Model API: Muse Spark 1.3 (triage in two languages and photo reading), SAM 3.1 (burned area segmentation), Muse Voice Transcribe (voice notes to text).</li>
-        <li>Modal: Muse Glimmer (open weights) picks which drone frames to send in the drone simulation.</li>
-        <li>Baseten: Muse Spark Open to review claims that use public data only.</li>
-      </ul>
-      <p>All models are used for inference only. No model is trained on user data.</p>
+      <h3 id="meta-ai">What Meta AI does</h3>
+      <div class="doc-table-wrap"><table class="doc-table doc-table-stack">
+        <thead><tr><th>Model</th><th>Task</th><th>What code guards</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Model">Muse Spark 1.3 (Meta Model API)</td><td data-label="Task">Triage agent: calls tools bound to the incident, reads citizen photos, writes the status, brief, claims, risk, and actions in Indonesian and English; reviews claims that rest on citizen evidence</td><td data-label="What code guards">Every claim must cite an evidence number; numbers are matched to the tool results; sentences about causes are removed</td></tr>
+          <tr><td data-label="Model">Muse Voice Transcribe (Meta Model API)</td><td data-label="Task">Turns Indonesian voice notes into text</td><td data-label="What code guards">The agent reads the transcript, not the audio</td></tr>
+          <tr><td data-label="Model">SAM 3.1 (Meta Model API)</td><td data-label="Task">Marks burned ground on photos and drone frames, with concepts chosen by Muse Spark</td><td data-label="What code guards">Hectares are computed by code from the mask and the ground pixel size</td></tr>
+          <tr><td data-label="Model">Muse Spark Open (Baseten)</td><td data-label="Task">A second model that disputes claims the evidence does not carry, on public evidence only</td><td data-label="What code guards">Disputed claims are flagged for the verifier</td></tr>
+          <tr><td data-label="Model">Muse Glimmer (open weights, Modal)</td><td data-label="Task">In the drone simulation, picks which frames are worth sending to the ground station</td><td data-label="What code guards">Frames it holds back are still recorded</td></tr>
+        </tbody>
+      </table></div>
+      <p>All models are used for inference only; none is trained on user data. Triage spends credit and runs only on purpose: a verifier selects incidents (at most 5 at a time) with the execution code, within a daily cap, or a daily or hourly schedule covers citizen reports. A triage costs about $0.15.</p>
 
-      <h3>Limits</h3>
+      <h3 id="fitur">Features</h3>
+      <h4>For everyone</h4>
       <ul>
-        <li>A hotspot is a thermal anomaly, not a confirmed fire. A hotspot alone never yields "likely fire".</li>
-        <li>Thick cloud can hide fire and smoke from satellites.</li>
-        <li>AI can be wrong. A brief is input for a decision, not the decision.</li>
+        <li><strong>Incident map</strong>: hotspots and incidents, filters (3+ hotspots, high confidence, last 6 hours), sorting by heat, count, or newest, NASA GIBS smoke and aerosol layers, a map or world basemap, a legend, and the state of every data source.</li>
+        <li><strong>Incident view</strong>: a progress card (detected, evidence, AI triage, verifier) with what is still missing; the AI brief and claims linked to evidence; the evidence gate in detail; numbered evidence and the hotspot list.</li>
+        <li><strong>Suppression outlook</strong>: likely spread and the side to approach from, ground access, nearest water, fire station, offices to coordinate with, dryness, and size, with the thresholds named; the spread and the nearby places can be drawn on the map.</li>
+        <li><strong>Sentinel-2 burn scar</strong>: before, after, and burn scar images in the incident view and on the map, with the area in hectares.</li>
+        <li><strong>Report</strong>: location, 1 to 3 photos, a voice note, and text; photo metadata is removed.</li>
+        <li><strong>WhatsApp</strong>: photos, voice, text, and a location pin in any order become one report. One way for now: reports come in, and Meta refuses the bot's replies until the account passes business verification.</li>
+        <li><strong><a href="/whatsapp/">WhatsApp reports</a></strong>: for reports a verifier chose to show, what was sent, what Muse Spark and Voice Transcribe found, each processing step, and every bot reply with its delivery result.</li>
+        <li><strong>Share</strong>: an incident link with a WhatsApp and Facebook preview (summary and a map image).</li>
+        <li><strong>Two languages</strong>: Indonesian and English, including the text the AI writes. The "How it works" overview reopens from the footer.</li>
+      </ul>
+      <h4>For verifiers</h4>
+      <ul>
+        <li>Sign in with a verifier token; see citizens' photos, voice, and text; hide personal details in a photo.</li>
+        <li>Approve or reject the AI recommendation, and cancel a decision with a reason; every decision is recorded.</li>
+        <li>Look for a Sentinel-2 pair, collect missing evidence, and run AI triage (select in the list or draw an area on the map).</li>
+        <li>Drone survey (simulated): the agent or a verifier proposes a mapping route 120 m above ground, at most 2 km2 and 80 frames; only a verifier approves it. A simulated pilot flies it with telemetry from the plan and the incident's wind; a 3D view over the Sentinel-2 image with a data console.</li>
+        <li>Choose which WhatsApp reports the public sees.</li>
+      </ul>
+      <h4>For operators</h4>
+      <ul>
+        <li><strong>Admin panel</strong> in five tabs: overview (spend, counts, source health, recent runs), data fetching (FIRMS interval, weather and OSM budgets, Sentinel-2 reuse window), AI triage (schedule and caps), WhatsApp, and demo replay. Saving needs the execution code.</li>
+        <li><strong>Demo replay</strong>: three recorded incidents from the 2025 dry season (clearly burned, false positive, needs more info) load as SIMULASI, with no network and no model call.</li>
+      </ul>
+
+      <h3 id="data">Data and privacy</h3>
+      <p>All satellite, weather, and map data come from open sources; the full list with licenses is on <a href="/sources/">Data sources</a>. Citizens' photos, voice, and text are visible to verifiers only, photo metadata is removed, and WhatsApp numbers are kept only as a hash. Details on <a href="/privacy/">Privacy</a>.</p>
+
+      <h3 id="batasan">Limits</h3>
+      <ul>
+        <li>A hotspot is a thermal anomaly, not a confirmed fire.</li>
+        <li>Clouds and smoke can hide a site from satellites. Sentinel-2 passes about every 2 to 5 days, so the burned area may not be known yet; under heavy haze no area is claimed.</li>
+        <li>OpenStreetMap and Overture Maps are incomplete; "not mapped" does not mean absent on the ground.</li>
+        <li>The drone is simulated; no drone is connected.</li>
+        <li>AI can be wrong. In an evaluation on 30 clusters from 2025, without independent evidence the agent mostly answered needs more info and found 2 of 15 burned sites, with no false alarm. A brief is input for a decision, not the decision.</li>
         <li>Fight Karhutla gives no health advice and does not name causes or parties responsible for a fire.</li>
       </ul>
 
-      <h3>Maker and contact</h3>
+      <h3 id="kontak">Maker and contact</h3>
       <p>Built by Muh. Thariq Rabbany. The source code is open on <a href="https://github.com/thrqsytr/fight-karhutla" rel="noopener">GitHub</a>. Send questions, feedback, and bug reports through <a href="https://github.com/thrqsytr/fight-karhutla/issues" rel="noopener">GitHub Issues</a>. Do not post personal data there; it is public.</p>
     </article>
   </main>

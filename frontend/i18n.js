@@ -284,7 +284,7 @@ export const DASHBOARD_ID = {
   "Nearest roads, water, settlements, fire stations, and offices.": "Jalan, sumber air, permukiman, pos pemadam, dan kantor terdekat.",
   "Before and after images; code computes the burned area from dNBR.": "Citra sebelum dan sesudah; kode menghitung luas bekas terbakar dari dNBR.",
   "Smoke and aerosol layers and the map itself: context, not evidence.": "Lapisan asap dan aerosol serta peta dasar: konteks, bukan bukti.",
-  "3. Meta AI reads it": "3. Meta AI mengolah",
+  "3. Meta AI analyses and drafts": "3. Meta AI menganalisis dan menyusun",
   "Reads every piece of evidence and the citizens' photos, then writes the status, brief, claims, risk, and actions in two languages. Each claim cites an evidence number.": "Membaca semua bukti dan foto warga, lalu menulis status, ringkasan, klaim, risiko, dan tindakan dalam dua bahasa. Setiap klaim menunjuk nomor bukti.",
   "Turns voice notes into text.": "Mengubah pesan suara menjadi teks.",
   "Marks burned ground on photos and drone frames; code turns it into hectares.": "Menandai area terbakar pada foto dan frame drone; kode mengubahnya menjadi hektar.",
