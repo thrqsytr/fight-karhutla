@@ -281,6 +281,7 @@ export const DASHBOARD_ID = {
   "Turns satellite signals and citizen reports into forest and land fire incidents with evidence and a suppression outlook, for people to decide on.": "Mengubah sinyal satelit dan laporan warga menjadi insiden kebakaran hutan dan lahan yang disertai bukti dan rekomendasi pemadaman, untuk diputuskan manusia.",
   "Not an official emergency channel. Emergency: call 112.": "Bukan kanal darurat resmi. Darurat: hubungi 112.",
   "NASA GIBS, basemaps": "NASA GIBS, peta dasar",
+  "Do not show again": "Jangan tampilkan lagi", "How it works": "Cara kerja",
   "How Fight Karhutla works": "Cara kerja Fight Karhutla",
   "More": "Selengkapnya",
   "Start": "Mulai",

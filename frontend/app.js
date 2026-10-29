@@ -547,9 +547,10 @@ function applyPanel(hidden) {
   setTimeout(() => map?.resize(), 220);
 }
 
-/* First visit: how the services become one incident, what Meta AI does, and what people decide (review item 6).
-   Shown once on the map page (not on /lapor), reopened from the footer link "How it works" (/?intro=1). */
-const INTRO_KEY = "karhutla.introSeen";
+/* How the services become one incident, what Meta AI does, and what people decide (review item 6). Shown on every
+   visit to the map page (not on /lapor) until the reader ticks "Do not show again" and closes it, however it is
+   closed. The header button and the footer link (/?intro=1) open it whenever asked, ticked or not. */
+const INTRO_KEY = "karhutla.introHidden";
 const INTRO_STAGES = [
   { icon: "flame", title: "1. Detect", rows: [["NASA FIRMS", "Hotspots: heat anomalies seen by satellite. Hotspots within 2 km and 24 hours become one incident."], ["Lapor, WhatsApp", "Citizens send photos, voice, text, and a location. They join the same incident."]] },
   { icon: "file", title: "2. Evidence, collected by code", rows: [["Open-Meteo", "Wind, humidity, and rain."], ["OpenStreetMap, Overture Maps", "Nearest roads, water, settlements, fire stations, and offices."], ["Sentinel-2", "Before and after images; code computes the burned area from dNBR."], ["NASA GIBS, basemaps", "Smoke and aerosol layers and the map itself: context, not evidence."]] },
@@ -558,7 +559,12 @@ const INTRO_STAGES = [
   { icon: "check", title: "5. People decide", rows: [["", "Verifiers approve or reject the AI recommendation, approve drone surveys, choose which reports are public, and hide personal details in photos. Nothing is sent to anyone automatically."], ["", "Citizens report from the field; their reports are independent evidence."], ["", "Decision makers and ground crews use verified incidents and the outlook as input, not as orders."]] }
 ];
 function showIntro() {
-  localStorage.setItem(INTRO_KEY, "1");
+  let hide = !!localStorage.getItem(INTRO_KEY);
+  const tick = el("button", { class: "checkbox intro-hide", type: "button", role: "checkbox", "aria-checked": String(hide) },
+    el("span", { class: "box" }, svg("check", "icon icon-sm")), el("span", {}, t("Do not show again")));
+  tick.onclick = () => { hide = !hide; tick.setAttribute("aria-checked", String(hide)); };
+  // Saved when the overlay closes (Start, x, Esc, or outside), so a reload before closing never hides it.
+  const remember = () => (hide ? localStorage.setItem(INTRO_KEY, "1") : localStorage.removeItem(INTRO_KEY));
   const body = [
     el("p", { class: "intro-goal" }, t("Turns satellite signals and citizen reports into forest and land fire incidents with evidence and a suppression outlook, for people to decide on.")),
     el("ol", { class: "intro-flow" }, INTRO_STAGES.map((s) => el("li", { class: "intro-stage" },
@@ -568,8 +574,8 @@ function showIntro() {
     el("p", { class: "intro-emergency" }, svg("alert", "icon icon-sm"), t("Not an official emergency channel. Emergency: call 112.")),
   ];
   // The language switch sits in the overlay too, so a reader from abroad can switch before reading; the overlay reopens.
-  const m = modal({ title: t("How Fight Karhutla works"), body, cls: "intro", actions: [
-    el("div", { class: "intro-lang" }, langSwitch(el, `/?intro=1${location.hash}`)),
+  const m = modal({ title: t("How Fight Karhutla works"), body, cls: "intro", onClose: remember, actions: [
+    el("div", { class: "intro-lang" }, langSwitch(el, `/?intro=1${location.hash}`), tick),
     el("a", { class: "btn", href: "/about/" }, t("More")),
     el("button", { class: "btn btn-primary", type: "button", onclick: () => m.close() }, t("Start")),
   ] });
@@ -2375,6 +2381,7 @@ async function main() {
   if ((wanted && !inc.error) || params.has("intro")) history.replaceState(null, "", location.pathname + location.hash);
   if (wanted && !inc.error) openIncident(wanted);
   if (params.has("intro") || !localStorage.getItem(INTRO_KEY)) showIntro();
+  $("#intro-btn")?.addEventListener("click", showIntro);
 
   const [hs] = await Promise.all([hsP, mapP]);
   state.hotspots = hs.items;

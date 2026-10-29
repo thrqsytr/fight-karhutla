@@ -495,7 +495,10 @@ a.btn-primary, a.btn-report { color: #fff; }
 .intro-stage ul { margin: 0; padding-left: 16px; display: grid; gap: 6px; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
 .intro-stage b { color: var(--ink); }
 .modal-card.intro .modal-actions { align-items: center; }
-.intro-lang { margin-right: auto; }
+.intro-lang { margin-right: auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.intro-hide { align-items: center; font-size: 12.5px; color: var(--ink-2); }
+/* Header button that reopens the overlay; icon only where the header is tight. */
+@media (max-width: 1280px) { .intro-btn .btn-label { display: none; } .intro-btn { width: 34px; padding: 0; justify-content: center; } }
 .intro-emergency { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--warn); }
 @media (max-width: 900px) { .intro-flow { grid-template-columns: minmax(0, 1fr); } }
 .btn-icon { width: 32px; height: 32px; padding: 0; }
