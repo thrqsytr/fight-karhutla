@@ -87,12 +87,13 @@ def test_cloudy_after_image_is_unknown(tmp_path):
     reader, search_fn = scenes(post_scl=9)  # cloud, high probability
     r = sentinel.satellite_pair(POINTS, FIRST_SEEN, now=NOW, cache_dir=tmp_path, reader=reader, search_fn=search_fn)
     assert r["status"] == "no_post_image" and r["pixel_count"] is None
+    assert r["scenes_checked"] == 1  # the interface says how many passes were looked at
 
 
 def test_no_scene_since_first_detection(tmp_path):
     reader, search_fn = scenes()
     r = sentinel.satellite_pair(POINTS, datetime(2026, 10, 25, tzinfo=timezone.utc), now=NOW, cache_dir=tmp_path, reader=reader, search_fn=search_fn)
-    assert r["status"] == "no_post_image"
+    assert r["status"] == "no_post_image" and r["scenes_checked"] == 0
 
 
 def test_collect_stores_evidence_images_and_gate_recomputes_area(settings):
@@ -107,7 +108,8 @@ def test_collect_stores_evidence_images_and_gate_recomputes_area(settings):
             conn.execute("UPDATE incidents SET first_seen=? WHERE id=?", (FIRST_SEEN.isoformat(), inc_id))
         r = satellite.collect(settings, inc_id, now=NOW, reader=reader, search_fn=search_fn)
         assert r["reused"] is False
-        assert satellite.collect(settings, inc_id, now=NOW, reader=reader, search_fn=search_fn)["reused"] is True
+        reused = satellite.collect(settings, inc_id, now=NOW, reader=reader, search_fn=search_fn)
+        assert reused["reused"] is True and reused["fresh_hours"] == 24
         # A pair stored before the dark-pixel guard is measured again rather than reused.
         with db.session(settings.db_path) as conn:
             row = conn.execute("SELECT id, payload_json FROM evidence WHERE id=?", (f"{inc_id}/{r['evidence_id']}",)).fetchone()
@@ -138,3 +140,16 @@ def test_collect_stores_evidence_images_and_gate_recomputes_area(settings):
     }
     out = gate.run(raw, evs, inc_id).output
     assert out["burn_area_ha"] == {"value": ev["payload"]["burned_area_ha"], "method": "dnbr", "evidence_id": ev["id"]}
+
+
+def test_collect_says_which_image_is_missing(settings):
+    from backend.main import app
+
+    reader, search_fn = scenes(post_scl=9)
+    with TestClient(app) as c:
+        inc_id = c.get("/api/incidents").json()["items"][0]["id"]
+        settings.fixture_mode = False
+        with db.session(settings.db_path) as conn:
+            conn.execute("UPDATE incidents SET first_seen=? WHERE id=?", (FIRST_SEEN.isoformat(), inc_id))
+        r = satellite.collect(settings, inc_id, now=NOW, reader=reader, search_fn=search_fn)
+    assert r["status"] == "unknown" and r["pair_status"] == "no_post_image" and r["scenes_checked"] == 1

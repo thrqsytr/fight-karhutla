@@ -177,17 +177,17 @@ def satellite_pair(points: list[tuple[float, float]], first_seen: datetime, *, n
             "first_seen": first_seen.isoformat(), "pixel_count": None, "burned_area_ha": None}
     post_items = [i for i in search_fn(bbox, first_seen, now, cache_dir=cache_dir) if i["properties"]["datetime"] > first_seen.isoformat()[:19]]
     if not post_items:
-        return {**base, "status": "no_post_image", "reason": "no Sentinel-2 scene of this area since the first detection yet (revisit is about 5 days)"}
+        return {**base, "status": "no_post_image", "scenes_checked": 0, "reason": "no Sentinel-2 scene of this area since the first detection yet (revisit is about 5 days)"}
     epsg = _epsg(post_items[0])
     bounds, shape = grid(bbox, epsg)
     post = _choose([i for i in post_items if _epsg(i) == epsg], bounds, shape, reader)
     if post is None:
-        return {**base, "status": "no_post_image", "reason": f"{min(len(post_items), MAX_CANDIDATES)} scene(s) since the first detection, none at least {int(MIN_CLEAR * 100)}% clear over the area"}
+        return {**base, "status": "no_post_image", "scenes_checked": min(len(post_items), MAX_CANDIDATES), "reason": f"{min(len(post_items), MAX_CANDIDATES)} scene(s) since the first detection, none at least {int(MIN_CLEAR * 100)}% clear over the area"}
     pre_end = first_seen - timedelta(days=PRE_GAP_DAYS)
     pre_items = [i for i in search_fn(bbox, pre_end - timedelta(days=PRE_WINDOW_DAYS), pre_end, cache_dir=cache_dir) if _epsg(i) == epsg]
     pre = _choose(pre_items, bounds, shape, reader)
     if pre is None:
-        return {**base, "status": "no_pre_image", "post": _summary(post[0], post[1], post[2]),
+        return {**base, "status": "no_pre_image", "scenes_checked": min(len(pre_items), MAX_CANDIDATES), "post": _summary(post[0], post[1], post[2]),
                 "reason": f"no clear Sentinel-2 scene in the {PRE_WINDOW_DAYS} days before the first detection"}
 
     pre_nbr, pre_ok = _nbr(pre[0], bounds, shape, reader)

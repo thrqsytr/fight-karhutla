@@ -55,7 +55,7 @@ def collect(settings: Settings, incident_id: str, *, now: datetime | None = None
     # A pair measured before the dark-pixel guard (2026-10-28) is measured again: its hectares can be wrong.
     current = prev is not None and prev["payload"].get("min_nbr_sum") == sentinel.MIN_NBR_SUM
     if prev and current and not force and datetime.fromisoformat(prev["retrieved_at"]) > now - fresh_for:
-        return {"evidence_id": prev["id"], "reused": True}
+        return {"evidence_id": prev["id"], "reused": True, "fresh_hours": fresh_for.total_seconds() / 3600}
     if settings.fixture_mode:
         return {"status": "unknown", "reason": "Sentinel-2 has no fixture; fixture mode makes no network call"}
 
@@ -78,7 +78,8 @@ def collect(settings: Settings, incident_id: str, *, now: datetime | None = None
     # The archive answered, even when no clear pair exists yet.
     source_status.record(settings, "sentinel2", True, f"{pair['status']} for {incident_id}")
     if pair["status"] not in ("ok", "hazy"):
-        return {"status": "unknown", "reason": pair["reason"]}
+        # pair_status and scenes_checked let the interface say which image is missing in the reader's language.
+        return {"status": "unknown", "pair_status": pair["status"], "scenes_checked": pair.get("scenes_checked"), "reason": pair["reason"]}
 
     render = pair.pop("_render")
     stamp = now.strftime("%Y%m%dT%H%M%S")
