@@ -1,4 +1,4 @@
-import { $, el, hydrateIcons, info, modal, section, siteFooter, svg, tabs, toast } from "/ui.js";
+import { $, aiBadge, el, hydrateIcons, info, modal, section, siteFooter, svg, tabs, toast } from "/ui.js";
 import { applyStatic, lang, langSwitch, locale, makeT } from "/i18n.js";
 import { authHeaders, openSignIn, token, verifierControl, VERIFIER_ID } from "/verifier.js";
 
@@ -203,7 +203,7 @@ function triageCard(d) {
         el("div", { class: "segmented admin-seg", role: "group" }, tr.modes.map((m) => el("button", { type: "button", "aria-pressed": String(m === tr.mode), onclick: () => m !== tr.mode && changeMode(m) }, t(MODE_LABEL[m]))))),
       el("dl", { class: "kv" }, kvRow(t("Today"), t("{runs} of {cap} runs, ${cost}", { runs: tr.today.runs, cap: tr.daily_cap, cost: tr.today.cost_usd.toFixed(2) })))),
     el("div", { class: "admin-grid" }, d.settings.filter((s) => s.group === "triage").map(settingControl)),
-    el("h3", { class: "admin-sub" }, t("Recent triage runs")),
+    el("h3", { class: "admin-sub" }, t("Recent triage runs"), " ", aiBadge("Muse Spark 1.3")),
     d.recent_runs.length ? el("div", { class: "doc-table-wrap" }, el("table", { class: "hs-table" },
       el("tr", {}, ["Incident", "Started", "Outcome", "Seconds", "Cost"].map((h) => el("th", {}, t(h)))),
       d.recent_runs.map((r) => el("tr", {}, el("td", { class: "mono" }, el("a", { href: `/?incident=${encodeURIComponent(r.incident_id)}` }, r.incident_id)), el("td", {}, fmtTime(r.started_at)),
@@ -230,7 +230,7 @@ function whatsappCard(w, log) {
       stat(w.last_inbound ? fmtTime(w.last_inbound) : t("never"), "Last inbound message")),
     el("h3", { class: "admin-sub" }, t("Latest reports")),
     reports.length ? el("div", { class: "doc-table-wrap" }, el("table", { class: "hs-table" },
-      el("tr", {}, ["Received", "Incident", "Sent", "Meta models", "Status"].map((h) => el("th", {}, t(h)))),
+      el("tr", {}, ["Received", "Incident", "Sent", "Meta models", "Status"].map((h) => el("th", {}, t(h), h === "Meta models" ? [" ", aiBadge("Muse Spark, Muse Voice Transcribe")] : null))),
       reports.slice(0, 8).map((r) => el("tr", {},
         el("td", {}, fmtTime(r.items.reduce((a, b) => (a.at < b.at ? a : b)).at)),
         el("td", { class: "mono" }, el("a", { href: `/?incident=${encodeURIComponent(r.incident_id)}` }, r.incident_id)),

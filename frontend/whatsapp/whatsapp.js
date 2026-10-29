@@ -1,4 +1,4 @@
-import { $, el, hydrateIcons, info, siteFooter, svg, toast } from "/ui.js";
+import { $, aiBadge, el, hydrateIcons, info, siteFooter, svg, toast } from "/ui.js";
 import { applyStatic, lang, langSwitch, locale, makeT } from "/i18n.js";
 import { authHeaders, verifierControl, VERIFIER_ID } from "/verifier.js";
 
@@ -93,12 +93,12 @@ function modelResults(r) {
     if (it.type === "voice") {
       const ok = it.asr_status === "ok";
       rows.push(el("div", { class: "wa-result" },
-        el("div", { class: "wa-msg-head" }, svg("mic", "icon icon-sm"), el("strong", {}, t("Transcript")), el("span", { class: "ev-chip" }, it.id), el("span", { class: "pill" }, it.asr_provider || "Muse Voice Transcribe")),
+        el("div", { class: "wa-msg-head" }, svg("mic", "icon icon-sm"), el("strong", {}, t("Transcript")), el("span", { class: "ev-chip" }, it.id), aiBadge(it.asr_provider || "Muse Voice Transcribe")),
         ok ? el("p", { class: "wa-bubble" }, it.transcript) : el("p", { class: "empty" }, it.asr_status === "pending" ? t("pending") : `${t("failed")}: ${it.asr_status}`)));
     } else if (it.type === "image") {
       const rd = it.reading;
       rows.push(el("div", { class: "wa-result" },
-        el("div", { class: "wa-msg-head" }, svg("image", "icon icon-sm"), el("strong", {}, t("Photo reading")), el("span", { class: "ev-chip" }, it.id), el("span", { class: "pill" }, it.reading_model || "Muse Spark")),
+        el("div", { class: "wa-msg-head" }, svg("image", "icon icon-sm"), el("strong", {}, t("Photo reading")), el("span", { class: "ev-chip" }, it.id), aiBadge(it.reading_model || "Muse Spark")),
         rd ? [el("div", { class: "wa-flags" }, flag(rd.smoke_visible, "Smoke"), flag(rd.flames_visible, "Flames"), flag(rd.burned_ground_visible, "Burned ground")),
           el("p", { class: "wa-bubble", lang: "en" }, rd.description)]
           : el("p", { class: "empty" }, it.reading_status ? `${t("failed")}: ${it.reading_status}` : t("pending"))));
@@ -177,7 +177,7 @@ function reportCard(r, verifier) {
       el("dt", {}, el("span", { class: "wa-dt" }, t("Reporter"), info(t("Only the first characters of a salted hash of the number. The number itself is never stored with the report.")))), el("dd", { class: "mono" }, `#${r.reporter || "?"}`),
       el("dt", {}, el("span", { class: "wa-dt" }, t("Location"), verifier ? null : info(t("Rounded to about 100 m for the public.")))), el("dd", { class: "mono" }, `${r.lat}, ${r.lon}`)),
     block("file", t("What the resident sent"), null, sentItems(r)),
-    block("activity", t("What the Meta models found"), t("Voice notes are transcribed and photos are read on Meta Model API in Standard mode, so citizen content is not used for training. The agent works from the transcript and the reading, never from raw audio."), modelResults(r)),
+    block("sparkle", t("What the Meta models found"), t("Voice notes are transcribed and photos are read on Meta Model API in Standard mode, so citizen content is not used for training. The agent works from the transcript and the reading, never from raw audio."), modelResults(r)),
     block("list", t("How the system processed it"), null, processing(r)),
     block("send", t("What the bot answered"), t("Accepted means WhatsApp took the message; the delivery result arrives later from Meta and is shown next to it."), replies(r)),
     verifier ? el("div", { class: "actions" }, showcaseButton(r), el("a", { class: "btn", href: `/?incident=${encodeURIComponent(r.incident_id)}` }, svg("layers", "icon icon-sm"), t("Open on map"))) : null);

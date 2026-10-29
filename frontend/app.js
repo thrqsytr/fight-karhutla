@@ -1,4 +1,4 @@
-import { $, el, fold, hydrateIcons, info, modal, section, siteFooter, svg, toast } from "/ui.js";
+import { $, aiBadge, el, fold, hydrateIcons, info, modal, section, siteFooter, svg, toast } from "/ui.js";
 import { applyStatic, DASHBOARD_ID, langSwitch, lang, locale, makeT } from "/i18n.js";
 import { authHeaders, openSignIn, token, verifierControl, VERIFIER_ID } from "/verifier.js";
 
@@ -823,7 +823,7 @@ function evidenceRows(inc) {
     const extra = [];
     if (e.type === "report") extra.push(fold(el("p", { class: "brief", style: "margin-top:4px" }, e.payload.text), { lines: 3 }));
     if (e.type === "voice") extra.push(el("div", { style: "margin-top:6px" }, voiceButton(e.payload.media_id)),
-      fold(el("p", { class: "muted", style: "margin:4px 0 0;font-size:12px" }, e.payload.transcript ? t("Transcript: {t}", { t: e.payload.transcript }) : t("Transcript pending"))));
+      fold(el("p", { class: "muted", style: "margin:4px 0 0;font-size:12px" }, e.payload.transcript ? [aiBadge("Muse Voice Transcribe"), " ", t("Transcript: {t}", { t: e.payload.transcript })] : t("Transcript pending"))));
     // The report summary repeats the citizen's text, so show the full text once instead.
     const head = e.type === "report" ? `${t(EV_TYPE[e.type])} · ${evidenceSource(e)}`
       : el("span", {}, `${t(EV_TYPE[e.type] || e.type)} · ${evidenceSource(e)}: `, evidenceText(e));
@@ -1464,7 +1464,7 @@ async function droneSection(inc) {
   if (!list?.count) return null;
   const m = await api(`/api/drone/missions/${encodeURIComponent(list.items[0].mission_id)}`).catch(() => null);
   if (!m) return null;
-  return section({ icon: "target", title: t("Drone survey (simulation)"), open: false,
+  return section({ icon: "target", title: [t("Drone survey (simulation)"), aiBadge("Muse Glimmer + SAM 3.1")], open: false,
     tip: t("A simulated mapping flight: Muse Glimmer at the ground station picks which frames to send, SAM 3.1 segments them, and code turns masks into hectares from the telemetry."),
     content: droneContent(m) });
 }
@@ -1838,7 +1838,7 @@ function progressCard(inc) {
   else if (verdict?.decision === "reject") headline = el("div", { class: "phead bad" }, svg("x", "icon"), el("div", {}, el("strong", {}, t("Rejected")), el("span", {}, t("A human verifier rejected this incident on {when}.", { when: fmtTime(verdict.created_at) }))));
   else if (!tri) headline = el("div", { class: "phead" }, svg("info", "icon"), el("div", {}, el("strong", {}, t("Not triaged yet")),
     fold(el("span", {}, t("What you see is raw detection: hotspots and the evidence collected so far. No AI or human has judged it. The status will change after AI triage, and only a verifier can mark it verified.")))));
-  else headline = el("div", { class: "phead warn" }, svg("activity", "icon"), el("div", {}, el("strong", {}, t("AI recommendation: {s}", { s: statusLabel(inc.status) })),
+  else headline = el("div", { class: "phead warn" }, svg("activity", "icon"), el("div", {}, el("strong", {}, t("AI recommendation: {s}", { s: statusLabel(inc.status) }), " ", aiBadge("Muse Spark 1.3")),
     el("span", {}, tri.hidden ? t("Built on citizen evidence; details are shown after a verifier approves.")
       : t("Confidence {c}%, judged on {when}. Waiting for a human verifier to approve or reject.", { c: Math.round((tri.confidence ?? 0) * 100), when: triagedAt ? fmtTime(triagedAt) : "" }))));
 
@@ -1859,7 +1859,7 @@ function progressCard(inc) {
     if (!has.weather) missing.push({ title: "Weather", why: "Wind and rain decide how fast a fire spreads and which way smoke goes.",
       actions: [token() ? act("Collect missing evidence", "activity", () => collectNow(inc.id), false, "collect") : null] });
     if (!has.osm) missing.push({ title: "Nearby settlements and water", why: "Distance to villages, roads, and water points from OpenStreetMap. The public OSM servers are often down; collection retries automatically.", actions: [] });
-    if (tri?.status === "needs_more_info" || tri?.uncertainties?.length) missing.push({ title: "What the AI asked for", why: null,
+    if (tri?.status === "needs_more_info" || tri?.uncertainties?.length) missing.push({ title: "What the AI asked for", ai: true, why: null,
       list: modelList(tri.uncertainties || [], tri.uncertainties_id), actions: [] });
   }
   const nextStep = verdict ? null
@@ -1875,7 +1875,7 @@ function progressCard(inc) {
       step(triDone, t("AI triage"), tri ? statusLabel(inc.status) : t("not yet"), stage === 3),
       step(!!verdict, t("Human verifier"), verdict ? t(verdict.decision === "approve" ? "approved" : "rejected") : t("waiting"), stage === 4)),
     missing.length ? el("div", { class: "pmissing" }, el("div", { class: "legend-label" }, t("Still missing")),
-      missing.map((m) => el("div", { class: "pmiss" }, el("strong", {}, t(m.title)), m.why ? fold(el("p", {}, t(m.why))) : null,
+      missing.map((m) => el("div", { class: "pmiss" }, el("strong", {}, t(m.title), m.ai ? [" ", aiBadge("Muse Spark 1.3")] : null), m.why ? fold(el("p", {}, t(m.why))) : null,
         m.list?.length ? el("ul", {}, m.list.map((u) => el("li", {}, u))) : null,
         m.actions.filter(Boolean).length ? el("div", { class: "actions" }, m.actions) : null))) : null,
     nextStep,
@@ -1954,7 +1954,7 @@ function suppressionContent(inc) {
     el("div", { class: "sup-body" }, el("div", { class: "sup-head" }, el("span", { class: "sup-title" }, r.title), el("strong", { class: "sup-value" }, r.value)),
       r.note ? fold(el("p", { class: "sup-note" }, r.note)) : null))));
   const ai = tri ? el("div", { class: "sup-ai" },
-    el("div", { class: "legend-label" }, t("From the AI triage"), info(t("Written by Muse Spark 1.3 from the stored evidence and checked by the evidence gate. A human verifier decides."))),
+    el("div", { class: "legend-label" }, t("From the AI triage"), aiBadge("Muse Spark 1.3"), info(t("Written by Muse Spark 1.3 from the stored evidence and checked by the evidence gate. A human verifier decides."))),
     el("div", { class: "sup-risk" }, el("span", {}, t("Risk")), el("div", { class: "sup-bar" }, el("span", { style: `width:${Math.max(0, Math.min(100, tri.risk?.score ?? 0))}%` })),
       el("strong", { class: "num" }, `${Math.round(tri.risk?.score ?? 0)}/100`)),
     tri.risk?.drivers?.length ? el("div", { class: "chips" }, modelList(tri.risk.drivers, tri.risk.drivers_id).map((d) => el("span", { class: "pill" }, d))) : null,
@@ -1966,7 +1966,7 @@ function suppressionContent(inc) {
     const mine = (m.items || []).filter((x) => x.incident_id === inc.id);
     if (!mine.length) return;
     fill(drone, mine.map((x) => el("div", { class: "sup-row" }, el("span", { class: "sup-icon" }, svg("target", "icon icon-sm")),
-      el("div", { class: "sup-body" }, el("div", { class: "sup-head" }, el("span", { class: "sup-title" }, t("Drone survey")), el("span", { class: "pill pill-sim" }, "SIMULASI")),
+      el("div", { class: "sup-body" }, el("div", { class: "sup-head" }, el("span", { class: "sup-title" }, t("Drone survey"), " ", el("span", { class: "pill pill-sim" }, "SIMULASI"), " ", aiBadge("Muse Glimmer + SAM 3.1"))),
         el("p", { class: "sup-note" }, t("{u} of {n} frames sent by the onboard filter; SAM 3.1 measured {ha} ha burned on the frames it could mask. Use it to check the burn extent before sending a crew.", {
           u: x.uplinked, n: x.frames, ha: x.sam_burned_ha == null ? t("n/a") : fmtNum(x.sam_burned_ha) }))))));
   }).catch(() => {});
@@ -2129,7 +2129,7 @@ async function openIncident(id) {
       el("dt", {}, t("First seen")), el("dd", {}, fmtTime(inc.first_seen)),
       el("dt", {}, t("Last seen")), el("dd", {}, fmtTime(inc.last_seen)),
     ) }),
-    section({ icon: "file", title: t("Dispatch brief"), open: true, live: inc.status === "triaging",
+    section({ icon: "file", title: [t("Dispatch brief"), aiBadge("Muse Spark 1.3")], open: true, live: inc.status === "triaging",
       tip: t("Written by Muse Spark 1.3 from the claims below, then checked by the evidence gate and a second model. Nothing is sent to anyone automatically."),
       content: [
         triage?.hidden ? el("p", { class: "empty" }, t("Built on citizen evidence: shown after a verifier approves."))
@@ -2140,7 +2140,7 @@ async function openIncident(id) {
         // Before the first run the button lives in the progress card, with the reason to press it.
         triage || inc.status === "triaging" ? triageButton(inc) : null,
       ] }),
-    section({ icon: "check", title: t("Claims"), count: triage?.claims?.length ?? 0, open: !!triage?.claims?.length,
+    section({ icon: "check", title: [t("Claims"), aiBadge("Muse Spark 1.3")], count: triage?.claims?.length ?? 0, open: !!triage?.claims?.length,
       tip: t("Each claim cites stored evidence. Click an ID to see it. A disputed claim was flagged by the critique model as not supported by its evidence. Claims are written in English by the model."),
       content: claimRows(triage) }),
     section({ icon: "shield", title: t("Evidence gate"), tip: t("Deterministic checks between the model and the verifier: schema, evidence existence, numbers against tool results, area from real masks, location, and content rules. Every change is listed."),

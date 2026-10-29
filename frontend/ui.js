@@ -37,6 +37,7 @@ export const ICONS = {
   chat: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8"/><path d="M8 12h5"/>',
   expand: '<path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/>',
   collapse: '<path d="M8 5l4 4 4-4"/><path d="M8 19l4-4 4 4"/>',
+  sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
   image: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>',
 };
 export const svg = (name, cls = "icon") => {
@@ -124,6 +125,14 @@ export function section({ icon, title, count, tip, open = false, live = false, c
     head.setAttribute("aria-expanded", String(next));
   });
   return s;
+}
+
+/* AI badge: marks a result written or measured by an AI model, so a reader always tells it apart from code
+   and from people. The model name is in the tooltip. The same component on every page. */
+export function aiBadge(model = "") {
+  const id = document.documentElement.lang === "id";
+  const label = model ? (id ? `Dihasilkan AI: ${model}` : `AI result: ${model}`) : (id ? "Dihasilkan AI" : "AI result");
+  return el("span", { class: "ai-badge", title: label, "aria-label": label }, svg("sparkle", "icon icon-xs"), "AI");
 }
 
 /* Fold: long text shows its first lines; a vertical expand icon opens the rest. The button appears only when
