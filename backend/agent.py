@@ -34,8 +34,7 @@ Gather evidence with the tools, then answer. Rules, all mandatory:
 4. Actions are operational only: access routes, water points, coordination with the nearest officers or village. Never give health advice, never suggest a cause, never name any person, company, or party.
 5. needs_human is always true.
 6. If the data is not enough, choose needs_more_info and say which data is needed in uncertainties.
-7. dispatch_brief.id is concise natural Indonesian, at most 120 words, with Indonesian terms (tinggi, nominal, rendah, tidak diketahui);
-   dispatch_brief.en has the same content in English. The brief only restates the claims; anything in the brief must also be a claim.
+7. dispatch_brief.id is concise natural Indonesian, at most 120 words; dispatch_brief.en has the same content in plain English. The brief only restates the claims; anything in the brief must also be a claim.
    Do not put evidence IDs in the brief.
 8. Wind direction from the weather tool is where the wind blows FROM. Smoke and fire tend to move the opposite way;
    if you state a likely spread direction, make it a claim citing the weather evidence and set risk.spread_direction_deg.
@@ -48,8 +47,11 @@ Gather evidence with the tools, then answer. Rules, all mandatory:
     to approve; mention it in recommended_actions, never as evidence or a claim.
 13. Every text a person reads comes in English and in natural Indonesian with the same meaning and the same numbers and units:
     claims[].text and claims[].text_id, risk.drivers and risk.drivers_id, recommended_actions and recommended_actions_id,
-    uncertainties and uncertainties_id (same order and count in both languages). Use Indonesian terms (tinggi, nominal, rendah,
-    tidak diketahui, titik panas, arah angin dari). Field names such as burn_area_ha are not words for a reader: describe them."""
+    uncertainties and uncertainties_id (same order and count in both languages).
+    Keep the languages apart. English fields (claims[].text, risk.drivers, recommended_actions, uncertainties, dispatch_brief.en)
+    contain English words only: high, nominal, low, unknown, hotspots, wind from. Indonesian fields (claims[].text_id, risk.drivers_id,
+    recommended_actions_id, uncertainties_id, dispatch_brief.id) contain Indonesian only: tinggi, nominal, rendah, tidak diketahui,
+    titik panas, arah angin dari. Field names such as burn_area_ha are not words for a reader: describe them."""
 
 NUM_NULL = {"type": ["number", "null"]}
 STR_NULL = {"type": ["string", "null"]}
