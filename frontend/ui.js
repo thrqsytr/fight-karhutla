@@ -97,8 +97,8 @@ export const info = (text, cls = "") => el("span", { class: `info ${cls}`, tabin
 
 export function hydrateIcons(root = document) {
   root.querySelectorAll("[data-icon]").forEach((n) => {
-    const cls = n.classList.contains("icon-sm") ? "icon icon-sm" : "icon";
-    n.replaceWith(svg(n.dataset.icon, cls));
+    // Keep the placeholder's own classes (crumb-sep rotates the chevron).
+    n.replaceWith(svg(n.dataset.icon, ["icon", ...n.classList].join(" ")));
   });
 }
 
