@@ -57,6 +57,9 @@ def snapshot(settings: Settings) -> dict:
         firms["newest_acquisition"] = newest
         out = {"firms": firms, "weather": _from_enrichment(conn, "weather"), "osm": _from_enrichment(conn, "osm"),
                "sentinel2": _recorded(conn, "sentinel2")}
+        media = _recorded(conn, "whatsapp_media")
+        if media["state"] != "unknown":  # only once a WhatsApp photo or voice note has been downloaded or failed
+            out["whatsapp_media"] = media
     if settings.fixture_mode:
         # Fixture answers are not the live service, so they never read as "on".
         for k in ("weather", "osm"):

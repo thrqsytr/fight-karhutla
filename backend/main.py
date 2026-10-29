@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin_settings, agent, db, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control, wa_reports, whatsapp
+from . import admin_panel, admin_settings, agent, db, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control, wa_reports, whatsapp
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -868,7 +868,37 @@ def admin_overview(settings: Settings = Depends(get_settings)) -> dict:
             "whatsapp": whatsapp.status(settings),
             "build": {"git_sha": settings.git_sha, "fixture_mode": settings.fixture_mode, "scheduler_enabled": settings.scheduler_enabled,
                       "model_configured": bool(settings.model_api_key), "baseten_configured": bool(settings.baseten_api_key)},
+            **admin_panel.overview_extra(settings, conn),
         }
+
+
+@app.get("/api/admin/queue", dependencies=[Depends(require_verifier)])
+def admin_queue(settings: Settings = Depends(get_settings)) -> dict:
+    """What waits for a person: AI recommendations without a decision, citizen reports, drone plans, WhatsApp reports."""
+    with db.session(settings.db_path) as conn:
+        return admin_panel.queue(conn)
+
+
+class JobIn(CodeIn):
+    limit: int = Field(default=5, ge=1, le=admin_panel.SENTINEL_SWEEP_MAX)
+
+
+@app.post("/api/admin/jobs/{name}", status_code=202, dependencies=[Depends(require_verifier)])
+def admin_job(name: Literal["fetch", "enrich", "sentinel"], body: JobIn, request: Request, settings: Settings = Depends(get_settings)) -> dict:
+    """Run an operator job now in the background: fetch FIRMS, collect pending evidence, or look for Sentinel-2 pairs.
+    None calls a model; they load shared services, so they need the execution code like the settings do."""
+    _control(lambda: triage_control.check_code(settings, body.code, _client(request)))
+    if settings.fixture_mode and name != "enrich":
+        raise HTTPException(status_code=409, detail="fixture mode makes no network call")
+    return admin_panel.start_job(settings, name, body.limit)
+
+
+@app.get("/api/admin/export/{name}.csv", dependencies=[Depends(require_verifier)])
+def admin_export(name: Literal["incidents", "verdicts"], settings: Settings = Depends(get_settings)) -> Response:
+    with db.session(settings.db_path) as conn:
+        body = admin_panel.export_csv(conn, name)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+    return Response(body, media_type="text/csv; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="fight-karhutla-{name}-{stamp}.csv"'})
 
 
 class SettingsIn(CodeIn):

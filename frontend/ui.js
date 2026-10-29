@@ -38,6 +38,7 @@ export const ICONS = {
   expand: '<path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/>',
   collapse: '<path d="M8 5l4 4 4-4"/><path d="M8 19l4-4 4 4"/>',
   sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  download: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
   image: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>',
 };
 export const svg = (name, cls = "icon") => {

@@ -68,6 +68,18 @@ function openAccount(t) {
 }
 
 /** Header control: a sign in button, or a "verifier mode" badge with the admin link once a token is saved. */
+/* The admin panel link carries how many things wait for a verifier in real incidents (review round 2). */
+function adminLink(t) {
+  const a = el("a", { class: "btn btn-icon admin-link", href: "/admin/#tab=queue", title: t("Admin panel"), "aria-label": t("Admin panel") }, svg("gear", "icon icon-sm"));
+  fetch("/api/admin/queue", { headers: authHeaders() }).then((r) => (r.ok ? r.json() : null)).then((q) => {
+    if (!q?.count) return;
+    a.append(el("span", { class: "admin-link-count num" }, String(q.count)));
+    a.title = `${t("Admin panel")}: ${t("{n} waiting for a verifier", { n: q.count })}`;
+    a.setAttribute("aria-label", a.title);
+  }).catch(() => {});
+  return a;
+}
+
 export function verifierControl(t) {
   if (!token()) {
     return el("button", { class: "btn verifier-btn", type: "button", onclick: () => openSignIn(t), title: t("Verifier sign in") },
@@ -77,11 +89,12 @@ export function verifierControl(t) {
     // An icon only: whether AI triage is ready is shown in the status bar above the footer.
     el("button", { class: "btn btn-icon verifier-btn is-on", type: "button", onclick: () => openAccount(t), title: t("Verifier mode is on"), "aria-label": t("Verifier mode is on") },
       svg("shield", "icon icon-sm")),
-    el("a", { class: "btn btn-icon", href: "/admin/", title: t("Admin panel"), "aria-label": t("Admin panel") }, svg("gear", "icon icon-sm")),
+    adminLink(t),
     el("button", { class: "btn btn-icon", type: "button", title: t("Sign out of verifier mode"), "aria-label": t("Sign out of verifier mode"), onclick: () => confirmSignOut(t) }, svg("logout", "icon icon-sm")));
 }
 
 export const VERIFIER_ID = {
+  "{n} waiting for a verifier": "{n} menunggu verifikator",
   "Verifier token": "Token verifikator", "Save and sign in": "Simpan dan masuk", "Verifier sign in": "Masuk verifikator",
   "The token unlocks AI triage, verdicts, citizen media, and the admin panel. It is checked with the server and kept in this browser only.":
     "Token membuka triase AI, keputusan verifikator, media warga, dan panel admin. Token dicek ke server lalu disimpan di browser ini saja.",

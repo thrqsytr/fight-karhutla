@@ -93,11 +93,15 @@ def update(settings: Settings, conn, changes: dict) -> list[str]:
     if unknown:
         raise SettingError(f"unknown settings: {', '.join(unknown)}")
     clean = {k: validate(BY_KEY[k], v) for k, v in changes.items()}
+    old = {k: get(settings, conn, k) for k in clean}
     for k, v in clean.items():
         conn.execute(
             "INSERT INTO app_state (key, value, updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at",
             (KEY_PREFIX + k, json.dumps(v), db.utcnow()),
         )
+    from . import admin_panel  # imported here: admin_panel imports this module
+
+    admin_panel.log_settings(conn, old, clean)
     return sorted(clean)
 
 

@@ -27,7 +27,7 @@ from pathlib import Path
 
 import httpx
 
-from . import db, reports
+from . import db, reports, source_status
 from .config import Settings
 from .geo import in_indonesia
 
@@ -289,7 +289,10 @@ def handle(settings: Settings, m: Inbound, now: datetime | None = None) -> list[
             data, mime = download_media(settings, m.media_id)
         except GraphError as exc:
             log.warning("whatsapp media %s failed: %s", m.msg_id, exc)
+            # The admin panel shows it: an expired access token makes every download fail.
+            source_status.record(settings, "whatsapp_media", False, str(exc))
             return [("reply", TEXT["media_failed"])]
+        source_status.record(settings, "whatsapp_media", True, f"{m.kind} downloaded")
         if m.kind == "audio" and mime not in reports.AUDIO_TYPES:
             return [("reply", TEXT["unsupported"])]
         path = _pending_dir(settings) / f"{uuid.uuid4().hex}.bin"

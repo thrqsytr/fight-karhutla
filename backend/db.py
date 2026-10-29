@@ -118,6 +118,8 @@ CREATE TABLE IF NOT EXISTS wa_outbox (
 
 -- WhatsApp reports a verifier chose to show on the public report log.
 CREATE TABLE IF NOT EXISTS wa_showcase (incident_id TEXT PRIMARY KEY, marked_at TEXT NOT NULL, marked_by TEXT NOT NULL);
+-- Operator settings changes, for the admin panel: what changed, from what, to what, when.
+CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, key TEXT NOT NULL, old TEXT, new TEXT);
 
 CREATE TABLE IF NOT EXISTS verdicts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
