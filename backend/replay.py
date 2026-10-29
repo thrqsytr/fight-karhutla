@@ -42,7 +42,7 @@ def status(settings: Settings) -> dict:
 
 
 def summaries(replay_dir: Path) -> list[dict]:
-    return [{"slug": c["slug"], "role": c["role"], "title": c["title"], "note": c.get("note"), "recorded_with": c.get("recorded_with")}
+    return [{"slug": c["slug"], "role": c["role"], "title": c["title"], "note": c.get("note"), "recorded_with": c.get("recorded_with"), "translated_with": c.get("translated_with")}
             for c in cases(replay_dir)]
 
 
@@ -81,6 +81,25 @@ def start(settings: Settings) -> dict:
             ids.append(inc_id)
         conn.execute("INSERT OR REPLACE INTO app_state (key, value, updated_at) VALUES (?,?,?)", (STATE_KEY, json.dumps(ids), db.utcnow()))
     return {"started": True, "incidents": ids}
+
+
+def sync_text(settings: Settings) -> list[str]:
+    """Bring the triage text of loaded replay incidents up to date with the case files (for example the Indonesian
+    translation added later). Only triage_json of simulation incidents this module loaded changes: verdicts, drone
+    plans, and flights given on them stay. Returns the incidents that changed."""
+    found = cases(settings.replay_dir)
+    changed = []
+    with db.session(settings.db_path) as conn:
+        ids = _loaded(conn)
+        for case, inc_id in zip(found, ids):
+            recorded = case["incident"].get("triage_json")
+            if recorded is None:
+                continue
+            text = (recorded if isinstance(recorded, str) else json.dumps(recorded, ensure_ascii=False)).replace(TOKEN, inc_id)
+            cur = conn.execute("UPDATE incidents SET triage_json=? WHERE id=? AND simulation=1 AND COALESCE(triage_json,'') != ?", (text, inc_id, text))
+            if cur.rowcount:
+                changed.append(inc_id)
+    return changed
 
 
 def stop(settings: Settings) -> dict:

@@ -1,4 +1,4 @@
-import { $, el, fold, hydrateIcons, info, modal, siteFooter, svg, tabs, toast } from "/ui.js";
+import { $, el, hydrateIcons, info, modal, section, siteFooter, svg, tabs, toast } from "/ui.js";
 import { applyStatic, lang, langSwitch, locale, makeT } from "/i18n.js";
 import { authHeaders, openSignIn, token, verifierControl, VERIFIER_ID } from "/verifier.js";
 
@@ -47,13 +47,20 @@ const ADMIN_ID = {
   "Replay loaded.": "Replay dimuat.", "Replay was already loaded.": "Replay sudah dimuat.", "Replay removed.": "Replay dihapus.", "Failed: {e}": "Gagal: {e}",
   "Remove the replayed incidents, their evidence, and any verdicts given on them? Real incidents are not touched, and the replay can be loaded again.":
     "Hapus insiden replay, buktinya, dan keputusan yang sudah diberikan padanya? Insiden nyata tidak tersentuh, dan replay bisa dimuat lagi.",
-  "Open on map": "Buka di peta", "Recorded with {m}.": "Direkam dengan {m}.",
+  "Open on map": "Buka di peta", "Recorded with {m}.": "Direkam dengan {m}.", "Indonesian text translated from the recording by {m}; the recording is unchanged.": "Teks Indonesia diterjemahkan dari rekaman oleh {m}; rekamannya tidak berubah.",
   "Overview": "Ringkasan", "WhatsApp": "WhatsApp", "Cloud API": "Cloud API", "Last inbound message": "Pesan masuk terakhir", "Verifier numbers": "Nomor verifikator",
   "Meta refuses outgoing messages from this business account until it passes business verification. Incoming reports work; every reply is still attempted and its refusal recorded.":
     "Meta menolak pesan keluar dari akun bisnis ini sampai lolos verifikasi bisnis. Laporan masuk berjalan; setiap balasan tetap dicoba dan penolakannya dicatat.",
   "Recent outgoing messages": "Pesan keluar terakhir", "Numbers are shown as the first characters of a salted hash.": "Nomor ditampilkan sebagai karakter awal dari hash bergaram.",
   "Sent": "Dikirim", "Purpose": "Tujuan", "To": "Ke", "Result": "Hasil", "reply": "balasan", "verifier": "verifikator", "verdict": "keputusan",
   "failed": "gagal", "sent": "terkirim", "No outgoing messages yet.": "Belum ada pesan keluar.", "Open the WhatsApp report log": "Buka log laporan WhatsApp",
+  "Reports received": "Laporan masuk", "Items processed": "Isi diproses", "Photos read by Muse Spark": "Foto dibaca Muse Spark", "Voice notes transcribed": "Suara ditranskripsi",
+  "Latest reports": "Laporan terbaru", "Received": "Diterima", "Meta models": "Model Meta", "Status": "Status", "text": "teks", "photo": "foto", "voice": "suara",
+  "transcribed": "ditranskripsi", "photo read": "foto dibaca", "Pending triage": "Menunggu triase", "Triage running": "Triase berjalan", "Likely fire": "Kemungkinan besar kebakaran", "Possible fire": "Mungkin kebakaran", "Unlikely": "Kecil kemungkinan", "Needs more info": "Butuh info tambahan", "No WhatsApp reports yet.": "Belum ada laporan WhatsApp.",
+  "Outgoing replies and alerts": "Balasan dan notifikasi keluar", "{n} attempted, {r} refused by Meta (account not verified).": "{n} dicoba, {r} ditolak Meta (akun belum terverifikasi).",
+  "Meta refuses outgoing messages from this business account until it passes business verification. Incoming reports work; every reply is still attempted and its refusal recorded. Numbers are shown as the first characters of a salted hash.":
+    "Meta menolak pesan keluar dari akun bisnis ini sampai lolos verifikasi bisnis. Laporan masuk berjalan; setiap balasan tetap dicoba dan penolakannya dicatat. Nomor ditampilkan sebagai karakter awal dari hash bergaram.",
+  "refused by Meta": "ditolak Meta", "accepted": "diterima",
 };
 const t = makeT({ ...ADMIN_ID, ...VERIFIER_ID }, "en");
 const INTERVAL_LABEL = { 30: "30 min", 60: "1 h", 180: "3 h", 360: "6 h", 720: "12 h", 1440: "1 day", 2880: "2 days" };
@@ -204,22 +211,47 @@ function triageCard(d) {
       : el("p", { class: "empty" }, t("No triage runs yet.")));
 }
 
-function whatsappCard(w) {
-  const failed = (x) => x.status !== "sent" || String(x.delivery || "").startsWith("failed");
+const STATUS_LABEL = { pending_triage: "Pending triage", triaging: "Triage running", likely_fire: "Likely fire", possible_fire: "Possible fire", unlikely: "Unlikely", needs_more_info: "Needs more info" };
+
+function whatsappCard(w, log) {
+  const reports = log?.items || [];
+  const items = reports.flatMap((r) => r.items);
+  const photos = items.filter((i) => i.type === "image"), voices = items.filter((i) => i.type === "voice");
+  const stat = (v, l) => el("div", { class: "stat" }, el("div", { class: "stat-v num" }, String(v)), el("div", { class: "stat-l" }, t(l)));
+  const kind = { report: "text", image: "photo", voice: "voice" };
+  const ok = (good, label) => el("span", { class: `wa-flag ${good ? "on" : ""}` }, svg(good ? "check" : "clock", "icon icon-sm"), t(label));
+  const out = w.recent_outbound;
+  const refused = out.filter((x) => x.status !== "sent" || String(x.delivery || "").startsWith("failed")).length;
   return card("chat", t("WhatsApp"),
-    el("dl", { class: "kv" },
-      kvRow(t("Cloud API"), t(w.configured ? "configured" : "missing")),
-      kvRow(t("Last inbound message"), w.last_inbound ? fmtTime(w.last_inbound) : t("never")),
-      kvRow(t("Verifier numbers"), String(w.verifier_numbers))),
-    el("p", { class: "wa-limit" }, svg("alert", "icon icon-sm"), t("Meta refuses outgoing messages from this business account until it passes business verification. Incoming reports work; every reply is still attempted and its refusal recorded.")),
-    el("h3", { class: "admin-sub" }, t("Recent outgoing messages"), info(t("Numbers are shown as the first characters of a salted hash."))),
-    w.recent_outbound.length ? el("div", { class: "doc-table-wrap" }, el("table", { class: "hs-table" },
-      el("tr", {}, ["Sent", "Purpose", "To", "Result", "Incident"].map((h) => el("th", {}, t(h)))),
-      w.recent_outbound.map((x) => el("tr", {}, el("td", {}, fmtTime(x.created_at)), el("td", {}, t(x.purpose)), el("td", { class: "mono" }, `#${x.to_hash.slice(0, 6)}`),
-        el("td", {}, el("span", { class: `wa-flag ${failed(x) ? "bad" : "on"}` }, t(failed(x) ? "failed" : "sent")), x.delivery ? fold(el("span", { class: "muted", lang: "en" }, x.delivery), { lines: 1 }) : null),
-        el("td", { class: "mono" }, x.incident_id ? el("a", { href: `/?incident=${encodeURIComponent(x.incident_id)}` }, x.incident_id) : "")))))
-      : el("p", { class: "empty" }, t("No outgoing messages yet.")),
-    el("div", { class: "actions" }, el("a", { class: "btn", href: "/whatsapp/" }, svg("chat", "icon icon-sm"), t("Open the WhatsApp report log"))));
+    el("div", { class: "stats-grid admin-stats" },
+      stat(reports.length, "Reports received"), stat(items.length, "Items processed"),
+      stat(photos.filter((p) => p.reading_status === "ok").length + "/" + photos.length, "Photos read by Muse Spark"),
+      stat(voices.filter((v) => v.asr_status === "ok").length + "/" + voices.length, "Voice notes transcribed"),
+      stat(w.last_inbound ? fmtTime(w.last_inbound) : t("never"), "Last inbound message")),
+    el("h3", { class: "admin-sub" }, t("Latest reports")),
+    reports.length ? el("div", { class: "doc-table-wrap" }, el("table", { class: "hs-table" },
+      el("tr", {}, ["Received", "Incident", "Sent", "Meta models", "Status"].map((h) => el("th", {}, t(h)))),
+      reports.slice(0, 8).map((r) => el("tr", {},
+        el("td", {}, fmtTime(r.items.reduce((a, b) => (a.at < b.at ? a : b)).at)),
+        el("td", { class: "mono" }, el("a", { href: `/?incident=${encodeURIComponent(r.incident_id)}` }, r.incident_id)),
+        el("td", {}, [...new Set(r.items.map((i) => t(kind[i.type])))].join(", ")),
+        el("td", {}, el("div", { class: "wa-flags" },
+          r.items.some((i) => i.type === "voice") ? ok(r.items.filter((i) => i.type === "voice").every((i) => i.asr_status === "ok"), "transcribed") : null,
+          r.items.some((i) => i.type === "image") ? ok(r.items.filter((i) => i.type === "image").every((i) => i.reading_status === "ok"), "photo read") : null)),
+        el("td", {}, t(STATUS_LABEL[r.status] || r.status))))))
+      : el("p", { class: "empty" }, t("No WhatsApp reports yet.")),
+    el("div", { class: "actions" }, el("a", { class: "btn btn-primary", href: "/whatsapp/" }, svg("chat", "icon icon-sm"), t("Open the WhatsApp report log"))),
+    // Replies are secondary: one folded line says what happens to them and why; the rows are inside.
+    section({ icon: "send", title: t("Outgoing replies and alerts"), count: out.length, open: false,
+      tip: t("Meta refuses outgoing messages from this business account until it passes business verification. Incoming reports work; every reply is still attempted and its refusal recorded. Numbers are shown as the first characters of a salted hash."),
+      content: [
+        el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("{n} attempted, {r} refused by Meta (account not verified).", { n: out.length, r: refused })),
+        out.length ? el("div", { class: "doc-table-wrap" }, el("table", { class: "hs-table" },
+          el("tr", {}, ["Sent", "Purpose", "To", "Result", "Incident"].map((h) => el("th", {}, t(h)))),
+          out.map((x) => el("tr", {}, el("td", {}, fmtTime(x.created_at)), el("td", {}, t(x.purpose)), el("td", { class: "mono" }, `#${x.to_hash.slice(0, 6)}`),
+            el("td", {}, el("span", { class: "pill" }, t(x.status !== "sent" || String(x.delivery || "").startsWith("failed") ? "refused by Meta" : "accepted"))),
+            el("td", { class: "mono" }, x.incident_id ? el("a", { href: `/?incident=${encodeURIComponent(x.incident_id)}` }, x.incident_id) : "")))))
+          : null] }));
 }
 
 // Which tab a setting belongs to, so the tab can show how many unsaved changes it holds.
@@ -232,7 +264,7 @@ function render() {
     { key: "system", label: t("Overview"), icon: "activity", render: () => systemCard(d) },
     { key: "data", label: t("Data fetching"), icon: "satellite", count: pendingIn("data"), render: () => fetchCard(d) },
     { key: "triage", label: t("AI triage"), icon: "shield", count: pendingIn("triage"), render: () => triageCard(d) },
-    d.whatsapp ? { key: "whatsapp", label: t("WhatsApp"), icon: "chat", render: () => whatsappCard(d.whatsapp) } : null,
+    d.whatsapp ? { key: "whatsapp", label: t("WhatsApp"), icon: "chat", render: () => whatsappCard(d.whatsapp, state.waLog) } : null,
     { key: "replay", label: t("Demo replay"), icon: "play", render: () => replayCard(d.replay) },
   ].filter(Boolean));
   fill($("#admin-body"),
@@ -276,12 +308,12 @@ function replayCard(r) {
         el("p", { class: "muted" }, (c.note && (c.note[lang()] || c.note.en)) || ""));
     })),
     r.cases.length ? el("div", { class: "actions" }, r.loaded.length ? removeBtn : loadBtn) : el("p", { class: "empty" }, t("No recorded cases in this build.")),
-    r.cases.length ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("Recorded with {m}.", { m: r.cases[0].recorded_with })) : null);
+    r.cases.length ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("Recorded with {m}.", { m: r.cases[0].recorded_with }), r.cases[0].translated_with ? ` ${t("Indonesian text translated from the recording by {m}; the recording is unchanged.", { m: r.cases[0].translated_with })}` : "") : null);
 }
 
 async function load() {
   try {
-    state.data = await api("/api/admin/overview");
+    [state.data, state.waLog] = await Promise.all([api("/api/admin/overview"), api("/api/wa/reports").catch(() => null)]);
     render();
   } catch (e) {
     fill($("#admin-body"), el("p", { class: "empty" }, t("Could not load the admin panel: {e}", { e: e.message })));

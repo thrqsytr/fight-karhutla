@@ -81,6 +81,12 @@ async def lifespan(app: FastAPI):
             log.info("fixture mode with empty database: loading fixture hotspots")
             ingest.run_once(settings)
             evidence.run_enrichment(settings)
+    try:
+        synced = replay.sync_text(settings)
+        if synced:
+            log.info("replay text refreshed from the case files: %s", synced)
+    except Exception:
+        log.exception("replay text refresh failed")
     if settings.osm_fallback_url and not settings.osm_fallback_path.exists():
         # About 100 MB once; in a thread so the app answers while it downloads.
         import threading

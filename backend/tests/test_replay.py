@@ -110,3 +110,27 @@ def test_recorded_cases_in_the_repo_load(settings, monkeypatch):
         for i in ids:
             row = conn.execute("SELECT simulation, triage_json, gate_json FROM incidents WHERE id=?", (i,)).fetchone()
             assert row["simulation"] == 1 and json.loads(row["triage_json"])["incident_id"] == i and row["gate_json"]
+
+
+def test_sync_refreshes_replay_text_and_keeps_what_verifiers_added(replayed, tmp_path):
+    from backend.main import app
+
+    with TestClient(app) as c:
+        ids = c.post("/api/replay/start", headers=AUTH).json()["incidents"]
+        with db.session(replayed.db_path) as conn:
+            conn.execute("INSERT INTO verdicts (incident_id, verifier_hash, decision, note, channel, created_at) VALUES (?,?,?,?,?,?)",
+                         (ids[0], "v", "approve", None, "dashboard", "2026-10-29T00:00:00+00:00"))
+    # The case file gains an Indonesian twin after the replay was loaded.
+    path = tmp_path / "replay-src" / "incidents" / "burned" / "case.json"
+    case = json.loads(path.read_text(encoding="utf-8"))
+    tri = json.loads(case["incident"]["triage_json"])
+    tri["claims"][0]["text_id"] = "satu titik panas di {INC}"
+    case["incident"]["triage_json"] = json.dumps(tri)
+    path.write_text(json.dumps(case), encoding="utf-8")
+
+    assert replay.sync_text(replayed) == [ids[0]]
+    assert replay.sync_text(replayed) == []  # nothing left to change
+    with db.session(replayed.db_path) as conn:
+        stored = json.loads(conn.execute("SELECT triage_json FROM incidents WHERE id=?", (ids[0],)).fetchone()[0])
+        verdicts = conn.execute("SELECT COUNT(*) FROM verdicts WHERE incident_id=?", (ids[0],)).fetchone()[0]
+    assert stored["claims"][0]["text_id"] == f"satu titik panas di {ids[0]}" and verdicts == 1
