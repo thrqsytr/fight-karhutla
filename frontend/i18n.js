@@ -1,19 +1,27 @@
-/* Two languages, Indonesian by default. Each page writes its text in one source language and keeps a
-   dictionary for the other, so a missing translation shows the source text instead of a blank. */
+/* Two languages. Until the reader picks one, the browser's first language decides: Indonesian for an Indonesian
+   browser, English for any other (judges and visitors from abroad). Each page writes its text in one source
+   language and keeps a dictionary for the other, so a missing translation shows the source text instead of a blank. */
 
 const KEY = "karhutla.lang";
 export const LANGS = ["id", "en"];
 
+const browserLang = () => {
+  const first = (navigator.languages?.[0] || navigator.language || "id").toLowerCase();
+  return first.startsWith("id") || first.startsWith("in") ? "id" : "en";  // "in" is the old code for Indonesian
+};
+
 export function lang() {
   const v = localStorage.getItem(KEY);
-  return LANGS.includes(v) ? v : "id";
+  return LANGS.includes(v) ? v : browserLang();
 }
 
-export function setLang(l) {
+/** Pick a language and re-render. `to` reloads at another address instead (the intro reopens itself there). */
+export function setLang(l, to = null) {
   if (!LANGS.includes(l) || l === lang()) return;
   localStorage.setItem(KEY, l);
   // A reload re-renders every component in the new language; map position survives in the URL hash.
-  location.reload();
+  if (to) location.assign(to);
+  else location.reload();
 }
 
 export const locale = () => (lang() === "id" ? "id-ID" : "en-GB");
@@ -36,9 +44,9 @@ export function applyStatic(t, root = document) {
 }
 
 /** ID | EN switch, the same component on every page. */
-export function langSwitch(el) {
+export function langSwitch(el, to = null) {
   return el("div", { class: "segmented lang-switch", role: "group", "aria-label": "Language / Bahasa" },
-    ...LANGS.map((l) => el("button", { type: "button", "aria-pressed": String(l === lang()), onclick: () => setLang(l) }, l.toUpperCase())));
+    ...LANGS.map((l) => el("button", { type: "button", "aria-pressed": String(l === lang()), onclick: () => setLang(l, to) }, l.toUpperCase())));
 }
 
 /* Dashboard: written in English, Indonesian here. Server-generated text (evidence summaries, gate

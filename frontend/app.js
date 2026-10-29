@@ -567,7 +567,9 @@ function showIntro() {
       el("ul", {}, s.rows.map(([svc, text]) => el("li", {}, svc ? el("b", {}, t(svc), " ") : null, t(text))))))),
     el("p", { class: "intro-emergency" }, svg("alert", "icon icon-sm"), t("Not an official emergency channel. Emergency: call 112.")),
   ];
+  // The language switch sits in the overlay too, so a reader from abroad can switch before reading; the overlay reopens.
   const m = modal({ title: t("How Fight Karhutla works"), body, cls: "intro", actions: [
+    el("div", { class: "intro-lang" }, langSwitch(el, `/?intro=1${location.hash}`)),
     el("a", { class: "btn", href: "/about/" }, t("More")),
     el("button", { class: "btn btn-primary", type: "button", onclick: () => m.close() }, t("Start")),
   ] });
