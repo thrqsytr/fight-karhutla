@@ -274,5 +274,11 @@ def test_report_log_is_public_only_after_a_verifier_marks_it(wa):
         assert got.status_code == 200 and got.headers["content-type"] == "image/jpeg"
         assert c.get(f"/api/wa/reports/{inc_id}/media/MED-0000000000000000.jpg").status_code == 404  # not this report's file
 
+        # Marked public, the incident also opens on the public map, without its citizen evidence.
+        inc = c.get(f"/api/incidents/{inc_id}")
+        assert inc.status_code == 200 and not [e for e in inc.json()["evidence"] if e["type"] in ("report", "image", "voice")]
+        assert inc_id in [i["id"] for i in c.get("/api/incidents").json()["items"]]
+
         assert c.put(f"/api/wa/reports/{inc_id}/showcase", json={"public": False}, headers=AUTH).json()["public"] is False
         assert c.get("/api/wa/reports").json()["count"] == 0
+        assert c.get(f"/api/incidents/{inc_id}").status_code == 404

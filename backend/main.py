@@ -140,8 +140,11 @@ PRIVATE_EVIDENCE = {"image", "voice", "report"}
 
 def _visible_to_public(conn, inc: dict) -> bool:
     """Incidents with satellite hotspots are open data (citizen evidence inside stays private).
-    Incidents built only from citizen reports become public after a human approves."""
+    Incidents built only from citizen reports become public after a human approves, or when a verifier marks
+    the WhatsApp report as a public example (the citizen evidence inside still stays private here)."""
     if inc["trigger"] in PUBLIC_TRIGGERS:
+        return True
+    if conn.execute("SELECT 1 FROM wa_showcase WHERE incident_id=?", (inc["id"],)).fetchone():
         return True
     row = conn.execute(
         "SELECT decision FROM verdicts WHERE incident_id=? ORDER BY id DESC LIMIT 1", (inc["id"],)
@@ -185,8 +188,8 @@ LATEST_VERDICT_SUBQUERY = """
 
 @app.get("/api/incidents")
 def list_incidents(request: Request, verifier: bool = Depends(is_verifier), settings: Settings = Depends(get_settings)) -> Response:
-    # Must match _visible_to_public: satellite clusters are public, citizen reports only after approval.
-    public_filter = "" if verifier else f"WHERE i.trigger IN {PUBLIC_TRIGGERS!r} OR lv.decision = 'approve'"
+    # Must match _visible_to_public: satellite clusters are public, citizen reports after approval or when marked a public example.
+    public_filter = "" if verifier else f"WHERE i.trigger IN {PUBLIC_TRIGGERS!r} OR lv.decision = 'approve' OR i.id IN (SELECT incident_id FROM wa_showcase)"
     with db.session(settings.db_path) as conn:
         rows = conn.execute(
             f"""SELECT i.*, {SEVERITY_COLUMNS}, CASE WHEN lv.decision IN ('approve', 'reject') THEN lv.decision END AS latest_verdict FROM incidents i
