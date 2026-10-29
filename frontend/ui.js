@@ -188,17 +188,18 @@ export function tabs(items, { onChange } = {}) {
 }
 
 /* Modal: the one dialog component (native alert, confirm, and prompt are not used). Esc or the backdrop closes it. */
-export function modal({ title, body, actions = [], onClose }) {
+export function modal({ title, body, actions = [], onClose, cls = "" }) {
   const close = () => { back.remove(); document.removeEventListener("keydown", onKey); onClose?.(); };
   const onKey = (e) => { if (e.key === "Escape") close(); };
-  const card = el("div", { class: "modal-card card", role: "dialog", "aria-modal": "true", "aria-label": title },
+  const card = el("div", { class: `modal-card card ${cls}`, role: "dialog", "aria-modal": "true", "aria-label": title },
     el("div", { class: "modal-head" }, el("h3", {}, title), el("button", { class: "btn btn-icon", type: "button", "aria-label": "Close", onclick: close }, svg("x", "icon icon-sm"))),
     el("div", { class: "modal-body" }, body),
     el("div", { class: "modal-actions" }, actions));
-  const back = el("div", { class: "modal-backdrop", onclick: (e) => { if (e.target === back) close(); } }, card);
+  const back = el("div", { class: `modal-backdrop ${cls ? `${cls}-backdrop` : ""}`, onclick: (e) => { if (e.target === back) close(); } }, card);
   document.body.append(back);
   document.addEventListener("keydown", onKey);
-  setTimeout(() => card.querySelector("input, button.btn-primary")?.focus(), 30);
+  // preventScroll: a long card (the intro on a phone) opens at its top, not scrolled to its button.
+  setTimeout(() => card.querySelector("input, button.btn-primary")?.focus({ preventScroll: true }), 30);
   return { close, card };
 }
 
@@ -220,6 +221,6 @@ export function siteFooter(node, lang) {
   node.replaceChildren(
     el("a", { class: "footer-emergency", href: "tel:112" }, svg("alert", "icon icon-sm"), lang === "id" ? "Darurat: hubungi 112" : "Emergency: call 112"),
     el("nav", { class: "footer-links", "aria-label": lang === "id" ? "Halaman informasi" : "Information pages" },
-      SITE_PAGES.map(link), el("a", { href: REPO_URL, rel: "noopener" }, "GitHub")),
+      el("a", { href: "/?intro=1" }, lang === "id" ? "Cara kerja" : "How it works"), SITE_PAGES.map(link), el("a", { href: REPO_URL, rel: "noopener" }, "GitHub")),
   );
 }

@@ -28,7 +28,7 @@
     <nav class="doc-tabs" id="doc-tabs" aria-label="Pages"></nav>
     <article class="card doc-body" lang="id" data-title="Tentang">
       <h2>Tentang Fight Karhutla</h2>
-      <p class="doc-meta">Diperbarui 28 Oktober 2026.</p>
+      <p class="doc-meta">Diperbarui 30 Oktober 2026.</p>
       <p>Fight Karhutla mengubah titik panas satelit dan laporan warga menjadi insiden kebakaran hutan dan lahan yang disertai bukti, untuk diperiksa verifikator manusia. Proyek ini dibuat untuk Meta Global AI Developer Hackathon 2026 dan masih berupa prototipe.</p>
 
       <h3 id="darurat">Bukan kanal darurat resmi</h3>
@@ -36,16 +36,18 @@
 
       <h3>Cara kerja</h3>
       <ol>
-        <li><strong>Deteksi.</strong> Titik panas dari NASA FIRMS (VIIRS dan MODIS) diambil setiap 30 menit. Titik panas dalam radius 2 km dan 24 jam digabung menjadi satu insiden.</li>
-        <li><strong>Bukti.</strong> Setiap insiden dilengkapi data cuaca (Open-Meteo), aset terdekat dari OpenStreetMap, citra Sentinel-2 sebelum dan sesudah (luas bekas terbakar dihitung kode dari dNBR), dan laporan warga dari halaman <a href="/lapor/">Lapor</a>.</li>
-        <li><strong>Triase AI, hanya bila diminta.</strong> Model AI menyusun ringkasan dan rekomendasi status. Triase hanya berjalan dengan kode eksekusi, maksimal 5 insiden per pilihan dan 30 per hari, atau lewat jadwal harian untuk insiden yang dilaporkan warga.</li>
+        <li><strong>Deteksi.</strong> Titik panas dari NASA FIRMS (VIIRS dan MODIS) diambil terjadwal; intervalnya diatur di panel admin, dari 30 menit sampai 2 hari. Titik panas dalam radius 2 km dan 24 jam digabung menjadi satu insiden. Warga juga bisa melapor lewat halaman <a href="/lapor/">Lapor</a> atau WhatsApp; laporannya masuk ke insiden yang sama.</li>
+        <li><strong>Bukti.</strong> Setiap insiden dilengkapi data cuaca (Open-Meteo), jalan, sumber air (sungai, danau, kanal, anak sungai), permukiman, pos pemadam, dan kantor polisi, tentara, serta pemerintahan terdekat dari OpenStreetMap dan Overture Maps, citra Sentinel-2 sebelum dan sesudah (luas bekas terbakar dihitung kode dari dNBR), dan laporan warga.</li>
+        <li><strong>Triase AI, hanya bila diminta.</strong> Model AI menyusun ringkasan, rekomendasi status, risiko, dan tindakan yang disarankan, dalam bahasa Indonesia dan Inggris. Triase hanya berjalan dengan kode eksekusi, maksimal 5 insiden per pilihan dan 30 per hari, atau lewat jadwal harian untuk insiden yang dilaporkan warga.</li>
         <li><strong>Gerbang bukti.</strong> Setiap klaim AI harus menunjuk bukti yang ada. Angka, jarak, dan luas dihitung ulang oleh kode; klaim yang tidak cocok ditolak. Klaim lalu diperiksa ulang oleh model kedua.</li>
-        <li><strong>Manusia memutuskan.</strong> Setiap insiden berakhir menunggu verifikator. Tidak ada pesan atau perintah yang dikirim otomatis ke siapa pun.</li>
+        <li><strong>Rekomendasi pemadaman.</strong> Kode menghitung dari bukti arah sebaran dan sisi pendekatan, akses, sumber air, pos pemadam dan kantor terdekat, tingkat kekeringan, dan ukuran api. Panduan bagi pengambil keputusan, bukan perintah.</li>
+        <li><strong>Manusia memutuskan.</strong> Setiap insiden berakhir menunggu verifikator. Verifikator juga menyetujui survei drone (simulasi) dan memilih laporan WhatsApp yang tampil publik. Tidak ada pesan atau perintah yang dikirim otomatis ke siapa pun.</li>
       </ol>
 
       <h3>Model AI yang dipakai</h3>
       <ul>
-        <li>Meta Model API: Muse Spark 1.3 (triase dan membaca foto), SAM 3.1 (segmentasi area terbakar), Muse Voice Transcribe (pesan suara ke teks).</li>
+        <li>Meta Model API: Muse Spark 1.3 (triase dalam dua bahasa dan membaca foto), SAM 3.1 (segmentasi area terbakar), Muse Voice Transcribe (pesan suara ke teks).</li>
+        <li>Modal: Muse Glimmer (bobot terbuka) memilih frame drone yang dikirim dalam simulasi drone.</li>
         <li>Baseten: Muse Spark Open untuk memeriksa ulang klaim yang hanya memakai data publik.</li>
       </ul>
       <p>Semua model hanya dipakai untuk inferensi. Tidak ada model yang dilatih dengan data pengguna.</p>
@@ -63,7 +65,7 @@
     </article>
     <article class="card doc-body" lang="en" data-title="About" hidden>
       <h2>About Fight Karhutla</h2>
-      <p class="doc-meta">Updated 28 October 2026.</p>
+      <p class="doc-meta">Updated 30 October 2026.</p>
       <p>Fight Karhutla turns satellite hotspots and citizen reports into evidence-backed forest and land fire incidents for human verifiers to check. It was built for the Meta Global AI Developer Hackathon 2026 and is still a prototype.</p>
 
       <h3 id="darurat">Not an official emergency channel</h3>
@@ -71,16 +73,18 @@
 
       <h3>How it works</h3>
       <ol>
-        <li><strong>Detection.</strong> Hotspots from NASA FIRMS (VIIRS and MODIS) are fetched every 30 minutes. Hotspots within 2 km and 24 hours are grouped into one incident.</li>
-        <li><strong>Evidence.</strong> Each incident gets weather data (Open-Meteo), nearby assets from OpenStreetMap, Sentinel-2 before and after images (burn scar area counted by code from dNBR), and citizen reports from the <a href="/lapor/">Report</a> page.</li>
-        <li><strong>AI triage, only on request.</strong> An AI model drafts a brief and a status recommendation. Triage runs only with the execution code, at most 5 incidents per selection and 30 per day, or on a daily schedule for citizen-reported incidents.</li>
+        <li><strong>Detection.</strong> Hotspots from NASA FIRMS (VIIRS and MODIS) are fetched on a schedule set in the admin panel, from every 30 minutes to every 2 days. Hotspots within 2 km and 24 hours are grouped into one incident. Citizens can also report through the <a href="/lapor/">Report</a> page or WhatsApp; their reports join the same incident.</li>
+        <li><strong>Evidence.</strong> Each incident gets weather data (Open-Meteo), the nearest roads, water (rivers, lakes, canals, streams), settlements, fire stations, and police, military, and government offices from OpenStreetMap and Overture Maps, Sentinel-2 before and after images (burn scar area counted by code from dNBR), and citizen reports.</li>
+        <li><strong>AI triage, only on request.</strong> An AI model drafts a brief, a status recommendation, the risk, and recommended actions, in Indonesian and English. Triage runs only with the execution code, at most 5 incidents per selection and 30 per day, or on a daily schedule for citizen-reported incidents.</li>
         <li><strong>Evidence gate.</strong> Every AI claim must cite existing evidence. Numbers, distances, and areas are recomputed by code; claims that do not match are rejected. A second model then reviews the claims.</li>
-        <li><strong>A human decides.</strong> Every incident ends waiting for a verifier. No message or order is sent to anyone automatically.</li>
+        <li><strong>Suppression outlook.</strong> Code computes from the evidence the likely spread and the side to approach from, access, water, the nearest fire station and offices, dryness, and size. Guidance for the people who decide, not an order.</li>
+        <li><strong>A human decides.</strong> Every incident ends waiting for a verifier. Verifiers also approve drone surveys (simulated) and choose which WhatsApp reports are public. No message or order is sent to anyone automatically.</li>
       </ol>
 
       <h3>AI models used</h3>
       <ul>
-        <li>Meta Model API: Muse Spark 1.3 (triage and photo reading), SAM 3.1 (burned area segmentation), Muse Voice Transcribe (voice notes to text).</li>
+        <li>Meta Model API: Muse Spark 1.3 (triage in two languages and photo reading), SAM 3.1 (burned area segmentation), Muse Voice Transcribe (voice notes to text).</li>
+        <li>Modal: Muse Glimmer (open weights) picks which drone frames to send in the drone simulation.</li>
         <li>Baseten: Muse Spark Open to review claims that use public data only.</li>
       </ul>
       <p>All models are used for inference only. No model is trained on user data.</p>

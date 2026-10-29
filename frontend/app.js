@@ -547,6 +547,32 @@ function applyPanel(hidden) {
   setTimeout(() => map?.resize(), 220);
 }
 
+/* First visit: how the services become one incident, what Meta AI does, and what people decide (review item 6).
+   Shown once on the map page (not on /lapor), reopened from the footer link "How it works" (/?intro=1). */
+const INTRO_KEY = "karhutla.introSeen";
+const INTRO_STAGES = [
+  { icon: "flame", title: "1. Detect", rows: [["NASA FIRMS", "Hotspots: heat anomalies seen by satellite. Hotspots within 2 km and 24 hours become one incident."], ["Lapor, WhatsApp", "Citizens send photos, voice, text, and a location. They join the same incident."]] },
+  { icon: "file", title: "2. Evidence, collected by code", rows: [["Open-Meteo", "Wind, humidity, and rain."], ["OpenStreetMap, Overture Maps", "Nearest roads, water, settlements, fire stations, and offices."], ["Sentinel-2", "Before and after images; code computes the burned area from dNBR."], ["NASA GIBS, basemaps", "Smoke and aerosol layers and the map itself: context, not evidence."]] },
+  { icon: "activity", title: "3. Meta AI reads it", rows: [["Muse Spark 1.3", "Reads every piece of evidence and the citizens' photos, then writes the status, brief, claims, risk, and actions in two languages. Each claim cites an evidence number."], ["Muse Voice Transcribe", "Turns voice notes into text."], ["SAM 3.1", "Marks burned ground on photos and drone frames; code turns it into hectares."], ["Muse Spark Open", "A second model that disputes claims the evidence does not carry."], ["Muse Glimmer", "Picks which drone frames are worth sending (drone simulated)."]] },
+  { icon: "shield", title: "4. Evidence gate, code checks the AI", rows: [["", "Schema, cited evidence, numbers against the tools, area from real masks. Unsupported claims are dropped or the status is lowered. Hotspots alone never make likely fire."], ["", "The suppression outlook is computed from the evidence: spread, approach side, access, water, dryness, size."]] },
+  { icon: "check", title: "5. People decide", rows: [["", "Verifiers approve or reject the AI recommendation, approve drone surveys, choose which reports are public, and hide personal details in photos. Nothing is sent to anyone automatically."], ["", "Citizens report from the field; their reports are independent evidence."], ["", "Decision makers and ground crews use verified incidents and the outlook as input, not as orders."]] }
+];
+function showIntro() {
+  localStorage.setItem(INTRO_KEY, "1");
+  const body = [
+    el("p", { class: "intro-goal" }, t("Turns satellite signals and citizen reports into forest and land fire incidents with evidence and a suppression outlook, for people to decide on.")),
+    el("ol", { class: "intro-flow" }, INTRO_STAGES.map((s) => el("li", { class: "intro-stage" },
+      el("div", { class: "intro-stage-head" }, el("span", { class: "section-icon" }, svg(s.icon, "icon icon-sm")), el("strong", {}, t(s.title)),
+        s.icon === "activity" ? aiBadge("Meta AI") : null),
+      el("ul", {}, s.rows.map(([svc, text]) => el("li", {}, svc ? el("b", {}, t(svc), " ") : null, t(text))))))),
+    el("p", { class: "intro-emergency" }, svg("alert", "icon icon-sm"), t("Not an official emergency channel. Emergency: call 112.")),
+  ];
+  const m = modal({ title: t("How Fight Karhutla works"), body, cls: "intro", actions: [
+    el("a", { class: "btn", href: "/about/" }, t("More")),
+    el("button", { class: "btn btn-primary", type: "button", onclick: () => m.close() }, t("Start")),
+  ] });
+}
+
 /* Breadcrumb */
 function crumbs(parts) {
   $("#crumbs").hidden = parts.length < 2;
@@ -779,7 +805,7 @@ function modelList(en = [], id = []) {
    the fallback for anything this code does not know. */
 const EV_TYPE = { hotspot: "Hotspots", weather: "Weather", osm: "Nearby places", satellite: "Sentinel-2", report: "Citizen report", image: "Citizen photo", voice: "Voice note" };
 const CONF_WORD = { h: "high", n: "nominal", l: "low" };
-const OSM_KIND = { settlement: "settlement", road: "road", river: "river", lake: "lake or pond", fire_station: "fire station" };
+const OSM_KIND = { settlement: "settlement", road: "road", river: "river", lake: "lake or pond", canal: "canal", stream: "stream", fire_station: "fire station", police: "police station", military: "military post", government: "government office" };
 const km = (m) => `${fmtNum(Math.round(m / 100) / 10)} km`;
 const day = (iso) => (iso ? String(iso).slice(0, 10) : "?");
 
@@ -795,10 +821,11 @@ function evidenceText(e) {
     }
     if (e.type === "osm" && p.nearest && typeof p.nearest === "object") {
       const r = p.search_radius_m || 10000;
-      const parts = Object.entries(OSM_KIND).map(([k, label]) => {
+      // Categories added later (canal, offices) are absent from older evidence and left out, not shown as none.
+      const parts = Object.entries(OSM_KIND).filter(([k]) => k in p.nearest).map(([k, label]) => {
         const x = p.nearest[k];
-        const within = k === "fire_station" ? (p.fire_station_search_radius_m || 30000) : r;
-        return x ? `${t(label)} ${km(x.distance_m)}${x.name ? ` (${x.name})` : ""}` : t("no {what} within {d}", { what: t(label), d: km(within) });
+        const within = ["fire_station", "police", "military", "government"].includes(k) ? (p.fire_station_search_radius_m || 30000) : r;
+        return x ? `${t(label)} ${km(x.distance_m)}${x.name ? ` (${x.name})` : ""}` : t("no {what} mapped within {d}", { what: t(label), d: km(within) });
       });
       return `${t("Nearest")}: ${parts.join(", ")}`;
     }
@@ -819,7 +846,7 @@ function evidenceText(e) {
 function evidenceSource(e) {
   const p = e.payload || {};
   if (["report", "image", "voice"].includes(e.type)) return p.channel === "whatsapp" ? "WhatsApp" : t("web form");
-  if (e.type === "osm") return p.offline_source ? `OpenStreetMap, ${t("offline copy {src}", { src: p.offline_source })}` : "OpenStreetMap";
+  if (e.type === "osm") return (p.offline_source ? `OpenStreetMap, ${t("offline copy {src}", { src: p.offline_source })}` : "OpenStreetMap") + (p.overture_release ? `, Overture Maps ${p.overture_release}` : "");
   return e.source;
 }
 
@@ -890,7 +917,7 @@ function satelliteContent(inc) {
   const fetchBtn = token() ? (() => {
     const b = el("button", { class: "btn", type: "button", dataset: { busy: "satellite" } }, svg("satellite", "icon icon-sm"), t(ev ? "Check for a newer pair" : "Find Sentinel-2 images"));
     b.onclick = () => fetchSatellite(inc.id);
-    return el("div", { class: "actions" }, b);
+    return el("div", { class: "actions" }, withTip(b, "satellite"));
   })() : null;
   if (!ev) return [el("p", { class: "empty" }, t("No Sentinel-2 pair yet. Clouds often cover the area; a pass comes about every 5 days.")), fetchBtn];
   const p = ev.payload;
@@ -1403,6 +1430,15 @@ function proposalCard(inc, p) {
   );
 }
 
+/* Why an action button can come back without a result, shown in an (i) beside it before anyone presses it. */
+const BTN_TIPS = {
+  satellite: "Needs an after image since the first detection that is at least 60% clear over the area, and a clear before image from the 120 days before. Clouds often cover the area, and Sentinel-2 passes about every 2 to 5 days, so the answer can be no pair yet. Under heavy haze the pair is stored without hectares.",
+  collect: "Collects weather from Open-Meteo and nearby roads, water, settlements, and offices from OpenStreetMap. A source can fail for a while; the public OpenStreetMap servers are often down, and then the answer comes from an offline copy. A failed source is retried automatically.",
+  drone: "The plan is refused when the hotspot area is above 2 km2 or would need more than 80 frames. Planning is free; only a verifier can approve the flight.",
+  triage: "Uses about $0.15 of Meta credit and needs the execution code. Without independent evidence the answer is often needs more info. A run that fails the schema still costs and replaces the earlier triage. Runs per day are capped in the admin panel.",
+};
+const withTip = (b, key) => el("span", { class: "btn-tip" }, b, info(t(BTN_TIPS[key])));
+
 async function proposalSection(inc) {
   if (!token()) return null;
   const r = await api(`/api/incidents/${encodeURIComponent(inc.id)}/drone-proposals`).catch(() => null);
@@ -1418,7 +1454,7 @@ async function proposalSection(inc) {
     tip: t("A mapping flight planned over the hotspots: lawnmower lines at 120 m above ground. The AI agent may propose one when independent evidence is missing; only a verifier can approve it. Planning is free."),
     content: [r.items.length ? r.items.map((p) => proposalCard(inc, p)) : el("p", { class: "empty" }, t("No drone survey planned.")),
       open ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, t("One active plan per incident. Cancel the approved plan to make a new one."))
-        : el("div", { class: "actions" }, btn)] });
+        : el("div", { class: "actions" }, withTip(btn, "drone"))] });
   node.dataset.activePlan = String(open);
   return node;
 }
@@ -1494,13 +1530,22 @@ async function droneSection(inc) {
     content: droneContent(m) });
 }
 
+/* Why no pair, in the reader's language: which image is missing and how many passes were looked at. */
+function noPairText(r) {
+  const n = r.scenes_checked ?? 0;
+  if (r.pair_status === "no_post_image" && !n) return t("No pair yet: Sentinel-2 has not passed over this area since the first detection. It passes about every 2 to 5 days; try again after the next pass.");
+  if (r.pair_status === "no_post_image") return t("No pair yet: the after image is missing. {n} pass(es) since the first detection, none at least 60% clear over the area (clouds or smoke). Try again after the next pass, about every 2 to 5 days.", { n });
+  if (r.pair_status === "no_pre_image") return t("No pair: the before image is missing. No pass in the 120 days before the first detection is at least 60% clear over the area ({n} checked).", { n });
+  return t("No pair: {why}", { why: r.reason || t("unknown") });
+}
+
 async function fetchSatellite(id) {
   let reload = false;
   await track(id, "satellite", t("Searching Sentinel-2"), async () => {
     try {
       const r = await api(`/api/incidents/${id}/satellite`, { method: "POST" });
-      if (r.evidence_id) { toast(t(r.reused ? "Pair checked in the last 24 hours; showing it." : "Sentinel-2 pair stored as {id}.", { id: r.evidence_id }), "check"); reload = true; return; }
-      toast(t("No pair: {why}", { why: r.reason || "unknown" }), "alert");
+      if (r.evidence_id) { toast(t(r.reused ? "Pair checked in the last {h} hours; showing it." : "Sentinel-2 pair stored as {id}.", { id: r.evidence_id, h: Math.round(r.fresh_hours ?? 24) }), "check"); reload = true; return; }
+      toast(noPairText(r), "alert");
     } catch (e) {
       toast(t("Sentinel-2 failed: {e}", { e: e.message }), "alert");
     }
@@ -1817,7 +1862,7 @@ function triageButton(inc) {
   const b = el("button", { class: "btn btn-primary", type: "button" }, svg("activity", "icon icon-sm"), t(running ? "Triage running..." : inc.triage ? "Run triage again" : "Run triage"));
   b.disabled = running;
   b.onclick = () => openTriageDialog([inc.id]);
-  return el("div", { class: "actions" }, b);
+  return el("div", { class: "actions" }, withTip(b, "triage"));
 }
 
 let pollTimer;
@@ -1871,7 +1916,10 @@ function progressCard(inc) {
 
   // What is missing, each with what fills it.
   const missing = [];
-  const act = (label, icon, onclick, primary, busyKey) => el("button", { class: `btn ${primary ? "btn-primary" : ""}`, type: "button", onclick, dataset: busyKey ? { busy: busyKey } : {} }, svg(icon, "icon icon-sm"), t(label));
+  const act = (label, icon, onclick, primary, busyKey) => {
+    const b = el("button", { class: `btn ${primary ? "btn-primary" : ""}`, type: "button", onclick, dataset: busyKey ? { busy: busyKey } : {} }, svg(icon, "icon icon-sm"), t(label));
+    return BTN_TIPS[busyKey] ? withTip(b, busyKey) : b;
+  };
   if (!verdict) {
     if (!has.citizen && !has.satellite) missing.push({
       title: "Independent evidence", why: "A satellite hotspot is a heat signal, not a confirmed fire. To reach \"likely fire\" the AI needs a second, independent source: a photo, voice note, or report from the ground, or a burn scar in Sentinel-2 images.",
@@ -1917,6 +1965,19 @@ const COMPASS = ["north", "northeast", "east", "southeast", "south", "southwest"
 const compass = (deg) => t(COMPASS[Math.round((((deg % 360) + 360) % 360) / 45) % 8]);
 const latest = (inc, type) => [...inc.evidence].reverse().find((e) => e.type === type);
 const WATER_NEAR_M = 1000, WATER_RELAY_M = 3000, ROAD_FAR_M = 10000, SETTLEMENT_NEAR_M = 5000;
+const WATER_CATS = ["river", "lake", "canal", "stream"];
+const NAMED_WATER_SLACK_M = 300;  // an unnamed water body this much nearer than a named one is usually the same river
+const KIND_LABEL = { river: "river", lake: "lake or pond", canal: "canal", stream: "stream", fire_station: "fire station", police: "police station", military: "military post", government: "government office", settlement: "settlement", road: "road" };
+const OFFICE_LABEL = { police: "Police", military: "Military", government: "Government" };
+const srcName = (f) => (f.source === "overture" ? "Overture Maps" : "OpenStreetMap");
+const placeName = (f) => f.name || t(KIND_LABEL[f.cat] || "place");
+/** Nearest water, but a named one when an unnamed one is only a little nearer. */
+function waterSource(osm) {
+  const all = WATER_CATS.filter((c) => osm[c]).map((c) => ({ ...osm[c], cat: c })).sort((a, b) => a.distance_m - b.distance_m);
+  const near = all[0];
+  if (!near || near.name) return near;
+  return all.find((w) => w.name && w.distance_m - near.distance_m <= NAMED_WATER_SLACK_M) || near;
+}
 
 function suppressionFacts(inc) {
   const rows = [];
@@ -1945,24 +2006,33 @@ function suppressionFacts(inc) {
   }
   if (osm) {
     const road = osm.road;
-    add("pin", t("Ground access"), road ? `${road.name || t("unnamed road")} · ${km(road.distance_m)}` : t("no road within {d}", { d: km(ROAD_FAR_M) }),
+    add("pin", t("Ground access"), road ? `${road.name || t("unnamed road")} · ${km(road.distance_m)}` : t("no mapped road within {d}", { d: km(ROAD_FAR_M) }),
       road ? t("Nearest mapped road from OpenStreetMap; the last stretch may be a track or on foot.") : t("Plan access by river, on foot, or by air; OpenStreetMap shows no road nearby."),
       road && road.distance_m <= ROAD_FAR_M ? "" : "warn");
-    const water = [osm.river, osm.lake].filter(Boolean).sort((a, b) => a.distance_m - b.distance_m)[0];
-    add("target", t("Water source"), water ? `${water.name || t(water.kind === "river" ? "river" : "lake or pond")} · ${km(water.distance_m)}` : t("none within {d}", { d: km(ROAD_FAR_M) }),
-      !water ? t("Bring water tanks, or request aerial water support.")
+    const water = waterSource(osm);
+    add("target", t("Water source"), water ? `${placeName(water)} · ${km(water.distance_m)}` : t("none mapped within {d}", { d: km(ROAD_FAR_M) }),
+      (!water ? t("Bring water tanks, or request aerial water support.")
         : water.distance_m <= WATER_NEAR_M ? t("Close enough for a portable pump and hose lines.")
-        : water.distance_m <= WATER_RELAY_M ? t("Reachable with a relay of pumps or water tanks.") : t("Far: water tanks or aerial support are more practical."),
+        : water.distance_m <= WATER_RELAY_M ? t("Reachable with a relay of pumps or water tanks.") : t("Far: water tanks or aerial support are more practical."))
+        + (water && (water.cat === "canal" || water.cat === "stream") ? " " + t("A canal or stream can run low in the dry season; check it on site.") : ""),
       !water || water.distance_m > WATER_RELAY_M ? "warn" : "");
     const fs = osm.fire_station;
-    add("shield", t("Nearest fire station"), fs ? `${fs.name || t("fire station")} · ${km(fs.distance_m)}` : t("none within {d}", { d: "30 km" }),
-      fs ? t("From OpenStreetMap; confirm the post is staffed.") : t("Coordinate with the nearest officers and village; the response may take long."), fs ? "" : "warn");
+    add("shield", t("Nearest fire station"), fs ? `${placeName({ ...fs, cat: "fire_station" })} · ${km(fs.distance_m)}` : t("none mapped within {d}", { d: "30 km" }),
+      fs ? t("From {src}; confirm the post is staffed.", { src: srcName(fs) }) : t("None in OpenStreetMap or Overture Maps; coordinate with the nearest officers and village, the response may take long."), fs ? "" : "warn");
+    // Police, military, and government offices: who to coordinate with. Older evidence has no such keys.
+    const offices = ["police", "military", "government"].filter((c) => c in osm);
+    if (offices.length) {
+      const found = offices.filter((c) => osm[c]);
+      add("shield", t("Offices to coordinate with"), found.length ? found.map((c) => `${t(OFFICE_LABEL[c])}: ${placeName({ ...osm[c], cat: c })} · ${km(osm[c].distance_m)}`).join("; ") : t("none mapped within {d}", { d: "30 km" }),
+        found.length ? offices.filter((c) => !osm[c]).map((c) => t("No {what} mapped within 30 km.", { what: t(KIND_LABEL[c]) })).concat([t("From OpenStreetMap and Overture Maps; a mapped office may have moved or closed.")]).join(" ")
+          : t("No police, military, or government office in OpenStreetMap or Overture Maps within 30 km; ask the village head or the district office."), found.length ? "" : "warn");
+    }
     const set = osm.settlement;
     if (set) add("pin", t("Nearest settlement"), `${set.name || t("settlement")} · ${km(set.distance_m)}`,
       set.distance_m <= SETTLEMENT_NEAR_M ? t("Within {d}: prepare to inform residents and keep their access open.", { d: km(SETTLEMENT_NEAR_M) }) : t("Outside {d}.", { d: km(SETTLEMENT_NEAR_M) }),
       set.distance_m <= SETTLEMENT_NEAR_M ? "warn" : "");
   } else {
-    add("pin", t("Access, water, and fire station"), t("unknown"), t("No OpenStreetMap evidence yet: collect it to see roads, rivers, and fire stations."), "warn");
+    add("pin", t("Access, water, and offices"), t("unknown"), t("No OpenStreetMap evidence yet: collect it to see roads, water, fire stations, and offices."), "warn");
   }
   const scale = [t("{n} hotspot(s), max FRP {frp} MW", { n: inc.hotspot_count, frp: fmtNum(inc.max_frp) })];
   if (sat?.status === "ok" && sat.burned_area_ha != null) scale.push(t("{ha} ha burned (Sentinel-2)", { ha: fmtNum(sat.burned_area_ha) }));
@@ -1997,12 +2067,55 @@ function suppressionContent(inc) {
         el("p", { class: "sup-note" }, t("{u} of {n} frames sent by the onboard filter; SAM 3.1 measured {ha} ha burned on the frames it could mask. Use it to check the burn extent before sending a crew.", {
           u: x.uplinked, n: x.frames, ha: x.sam_burned_ha == null ? t("n/a") : fmtNum(x.sam_burned_ha) }))))));
   }).catch(() => {});
+  // Without weather or OSM evidence most rows say unknown: say how it fills, and let a verifier fill it here.
+  const lacking = !latest(inc, "weather") || !latest(inc, "osm");
+  const fillIt = lacking ? (token()
+    ? el("div", { class: "actions" }, withTip(el("button", { class: "btn", type: "button", dataset: { busy: "collect" }, onclick: () => collectNow(inc.id) }, svg("activity", "icon icon-sm"), t("Collect missing evidence")), "collect"))
+    : el("p", { class: "sup-note" }, t("Weather and nearby places are collected automatically for incidents with 3 or more hotspots or a fire radiative power of 20 MW or more, and for every citizen report."))) : null;
+  const toggles = [
+    spread != null ? mapToggle("spread", "Show spread on map", () => showSpread(inc, spread), () => showSpread(null)) : null,
+    nearbyPoints(inc).length ? mapToggle("nearby", "Show nearby places on map", () => showNearby(inc), () => showNearby(null)) : null,
+  ].filter(Boolean);
   return [
-    facts, drone,
-    spread != null ? el("div", { class: "actions" }, mapToggle("spread", "Show spread on map", () => showSpread(inc, spread), () => showSpread(null))) : null,
+    facts, drone, fillIt,
+    toggles.length ? el("div", { class: "actions" }, toggles) : null,
     ai,
   ];
 }
+
+/* Nearby places on the map: a line from the incident to the closest point of the road, water, settlement, and
+   each office, with its name and distance. Evidence from before 2026-10-30 has no points and shows no lines. */
+let nearbyMarkers = [];
+function nearbyPoints(inc) {
+  const osm = latest(inc, "osm")?.payload?.nearest;
+  if (!osm) return [];
+  const water = waterSource(osm);
+  const pick = [["road", osm.road], ["water", water], ["settlement", osm.settlement], ...OFFICES_ON_MAP.map((c) => [c, osm[c] ? { ...osm[c], cat: c } : null])];
+  return pick.filter(([, f]) => f?.at).map(([key, f]) => ({ key, f: { cat: key === "water" ? f.cat : key, ...f } }));
+}
+const OFFICES_ON_MAP = ["fire_station", "police", "military", "government"];
+function showNearby(inc) {
+  nearbyMarkers.forEach((m) => m.remove());
+  nearbyMarkers = [];
+  state.mapReady?.then(() => {
+    if (!map) return;
+    ["nearby-line"].forEach((id) => map.getLayer(id) && map.removeLayer(id));
+    if (map.getSource("nearby")) map.removeSource("nearby");
+    if (!inc) return;
+    const pts = nearbyPoints(inc);
+    map.addSource("nearby", { type: "geojson", data: { type: "FeatureCollection", features: pts.map(({ f }) => (
+      { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [[inc.lon, inc.lat], [f.at[1], f.at[0]]] } })) } });
+    map.addLayer({ id: "nearby-line", type: "line", source: "nearby", paint: { "line-color": "#0064e0", "line-width": 2, "line-dasharray": [1, 1.5] } });
+    pts.forEach(({ f }) => {
+      const chip = el("div", { class: "nearby-chip" }, svg(f.cat === "road" ? "pin" : WATER_CATS.includes(f.cat) ? "target" : f.cat === "settlement" ? "pin" : "shield", "icon icon-sm"),
+        el("span", {}, `${placeName(f)} · ${km(f.distance_m)}`));
+      nearbyMarkers.push(new maplibregl.Marker({ element: chip, anchor: "bottom" }).setLngLat([f.at[1], f.at[0]]).addTo(map));
+    });
+    const lons = [inc.lon, ...pts.map(({ f }) => f.at[1])], lats = [inc.lat, ...pts.map(({ f }) => f.at[0])];
+    map.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: 80, duration: 800, maxZoom: 13 });
+  });
+}
+
 
 /* Likely spread on the map: an arrow from the incident centre, 3 km long, downwind. */
 function showSpread(inc, deg) {
@@ -2107,6 +2220,7 @@ async function openIncident(id) {
     showFootprints(null);
     showFlightPlan(null);
     showSpread(null);
+    showNearby(null);
   }
   if (map?.getLayer("incident-selected")) map.setFilter("incident-selected", ["==", ["get", "id"], id]);
   let inc;
@@ -2149,7 +2263,7 @@ async function openIncident(id) {
   const progress = progressCard(inc);
   const sections = [
     section({ icon: "flame", title: t("Suppression outlook"), open: true, extraClass: "sup-section",
-      tip: t("What the stored evidence means for a ground crew: likely spread and the side to approach from, access, water, the nearest fire station, how dry it is, and the size. Computed by code with the thresholds named here: within 1 km of water a portable pump reaches, within 3 km a relay of pumps or tanks; no road within 10 km means another way in; dry is humidity under 50% with under 1 mm of rain in 24 h, humid is 80% or more or 5 mm of rain. Guidance for the people who decide, not an order."),
+      tip: t("What the stored evidence means for a ground crew: likely spread and the side to approach from, access, water, the nearest fire station and offices, how dry it is, and the size. There is no button to run it: code computes it from the stored weather (Open-Meteo), nearby places (OpenStreetMap and Overture Maps), hotspots, and Sentinel-2 as soon as they are there; the AI part appears after an AI triage. Computed with the thresholds named here: within 1 km of water a portable pump reaches, within 3 km a relay of pumps or tanks; no road within 10 km means another way in; dry is humidity under 50% with under 1 mm of rain in 24 h, humid is 80% or more or 5 mm of rain. Guidance for the people who decide, not an order."),
       content: suppressionContent(inc) }),
     section({ icon: "pin", title: t("Overview"), open: true, content: el("dl", { class: "kv" },
       el("dt", {}, t("Location")), el("dd", { class: "num" }, `${inc.lat.toFixed(3)}, ${inc.lon.toFixed(3)}`),
@@ -2177,7 +2291,7 @@ async function openIncident(id) {
       content: satelliteContent(inc) }),
     section({ icon: "activity", title: t("Evidence"), count: inc.evidence.length, tip: t("Every tool result is stored with a numbered ID. Claims link to these IDs. Citizen photos, voice, and text are shown to verifiers only."),
       content: [evidenceRows(inc), token() && missingSources(inc).length
-        ? el("div", { class: "actions" }, el("button", { class: "btn", type: "button", dataset: { busy: "collect" }, onclick: () => collectNow(inc.id) }, svg("activity", "icon icon-sm"), t("Collect missing evidence")))
+        ? el("div", { class: "actions" }, withTip(el("button", { class: "btn", type: "button", dataset: { busy: "collect" }, onclick: () => collectNow(inc.id) }, svg("activity", "icon icon-sm"), t("Collect missing evidence")), "collect"))
         : null] }),
     section({ icon: "flame", title: t("Hotspots"), count: inc.hotspots.length, live: recent, tip: t("NASA FIRMS detections. Confidence l, n, h means low, nominal, high."),
       content: [
@@ -2206,7 +2320,7 @@ async function openIncident(id) {
     if (plan) after(sat, plan);
     if (sim) after(plan || sat, sim);
     if (plan?.dataset.activePlan === "true") {
-      document.querySelectorAll('#detail-view .progress-card [data-busy="drone"]').forEach((b) => b.replaceWith(
+      document.querySelectorAll('#detail-view .progress-card [data-busy="drone"]').forEach((b) => (b.closest(".btn-tip") || b).replaceWith(
         el("button", { class: "btn", type: "button", onclick: () => plan.scrollIntoView({ behavior: "smooth", block: "start" }) }, svg("target", "icon icon-sm"), t("See the drone survey plan"))));
     }
     restoreDetailView(saved);  // again: these sections sit above much of the view and shift it
@@ -2254,11 +2368,11 @@ async function main() {
   performance.mark("list-rendered");
 
   // A shared link (/i/<id>) lands here with ?incident=<id>: open it once the list is in.
-  const wanted = new URLSearchParams(location.search).get("incident");
-  if (wanted && !inc.error) {
-    history.replaceState(null, "", location.pathname + location.hash);
-    openIncident(wanted);
-  }
+  const params = new URLSearchParams(location.search);
+  const wanted = params.get("incident");
+  if ((wanted && !inc.error) || params.has("intro")) history.replaceState(null, "", location.pathname + location.hash);
+  if (wanted && !inc.error) openIncident(wanted);
+  if (params.has("intro") || !localStorage.getItem(INTRO_KEY)) showIntro();
 
   const [hs] = await Promise.all([hsP, mapP]);
   state.hotspots = hs.items;
