@@ -131,7 +131,7 @@ def nearest_assets(payload: dict, lat: float, lon: float) -> dict:
         if best[cat] is None or d < best[cat]["distance_m"]:
             overture = el["type"] == "overture"
             best[cat] = {
-                "name": tags.get("name"),
+                "name": " ".join(tags["name"].split()) if tags.get("name") else None,  # Overture names can carry double spaces
                 "kind": _kind(tags),
                 "distance_m": round(d),
                 # The closest point, so the map can draw a line to it.
