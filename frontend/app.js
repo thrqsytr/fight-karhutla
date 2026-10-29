@@ -1848,7 +1848,8 @@ function progressCard(inc) {
   const verdict = activeVerdict(inc);
   const triagedAt = inc.gate?.triaged_at;
   const has = {
-    hotspot: types.has("hotspot"), weather: types.has("weather"), osm: types.has("osm"), satellite: types.has("satellite"),
+    // The FIRMS detections themselves are evidence, even before enrichment writes their summary (EV) row.
+    hotspot: types.has("hotspot") || inc.hotspots.length > 0, weather: types.has("weather"), osm: types.has("osm"), satellite: types.has("satellite"),
     citizen: inc.reporter_count > 0 || CITIZEN_TRIGGERS.has(inc.trigger) || ["report", "voice", "image"].some((x) => types.has(x)),
   };
   const newerEvidence = triagedAt && inc.evidence.some((e) => e.retrieved_at > triagedAt && e.type !== "hotspot");
