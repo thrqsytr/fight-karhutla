@@ -74,8 +74,9 @@ export function verifierControl(t) {
       svg("shield", "icon icon-sm"), el("span", { class: "btn-label" }, t("Verifier")));
   }
   return el("div", { class: "verifier-on" },
-    el("button", { class: "btn verifier-btn is-on", type: "button", onclick: () => openAccount(t), title: t("Verifier mode is on") },
-      el("span", { class: "pulse" }), el("span", { class: "btn-label" }, t("AI triage ready"))),
+    // An icon only: whether AI triage is ready is shown in the status bar above the footer.
+    el("button", { class: "btn btn-icon verifier-btn is-on", type: "button", onclick: () => openAccount(t), title: t("Verifier mode is on"), "aria-label": t("Verifier mode is on") },
+      svg("shield", "icon icon-sm")),
     el("a", { class: "btn btn-icon", href: "/admin/", title: t("Admin panel"), "aria-label": t("Admin panel") }, svg("gear", "icon icon-sm")),
     el("button", { class: "btn btn-icon", type: "button", title: t("Sign out of verifier mode"), "aria-label": t("Sign out of verifier mode"), onclick: () => confirmSignOut(t) }, svg("logout", "icon icon-sm")));
 }

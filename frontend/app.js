@@ -84,11 +84,23 @@ const picked = new Set();
 const isRecent = (iso) => state.recentSince && iso > state.recentSince;
 
 /* KPIs */
+/* The header shares its width with the language switch, verifier controls, and the report group, whose widths
+   change with language and mode. Show as many whole KPI tiles as fit, dropping from the right; never a cut tile. */
+let kpiObserver;
+function fitKpis() {
+  const box = $("#kpis");
+  if (!box) return;
+  const tiles = [...box.children];
+  tiles.forEach((k) => { k.hidden = false; });
+  for (let i = tiles.length - 1; i > 0 && box.scrollWidth > box.clientWidth + 1; i--) tiles[i].hidden = true;
+}
+
 function renderKpis() {
   const s = state.stats;
   const tile = (icon, value, label, tip, heat = false) =>
     el("div", { class: "kpi" }, el("span", { class: `kpi-icon ${heat ? "heat" : ""}` }, svg(icon, "icon icon-sm")),
       el("div", {}, s ? el("div", { class: "kpi-value num" }, value) : el("span", { class: "sk" }), el("div", { class: "kpi-label" }, t(label), info(t(tip)))));
+  if (!kpiObserver) { kpiObserver = new ResizeObserver(fitKpis); kpiObserver.observe($("#kpis")); }
   fill($("#kpis"),
     tile("list", s && fmtNum(s.incidents), "Incidents", "Hotspot clusters currently stored. Most are a single hotspot; filter for 3+ to focus."),
     tile("dots", s && fmtNum(s.incidents_multi_hotspot), "With 3+ hotspots", "Clusters with at least three detections, a stronger thermal signal."),
@@ -96,6 +108,7 @@ function renderKpis() {
     tile("target", s && fmtNum(s.high_conf_last_24h), "High confidence", "VIIRS high confidence (h) or MODIS 80 and above in the same window.", true),
     tile("clock", s && s.newest_acquisition ? fmtTime(s.newest_acquisition) : t("n/a"), "Newest pass", "Acquisition time of the newest satellite detection."),
   );
+  fitKpis();  // reading scrollWidth lays the row out now; no frame callback needed
 }
 
 /* Map */
@@ -209,7 +222,19 @@ function renderSources() {
       el("span", { class: "src-name" }, s.name),
       el("span", { class: "src-state" }, el("span", { class: "src-dot" }), el("span", { class: "src-word" }, t(SRC_STATE[v.state] || SRC_STATE.unknown))),
       el("span", { class: "tip", role: "tooltip" }, lines.join(" ")));
-  }));
+  }), triageStatus());
+}
+
+/* AI triage in the same status bar: ready in verifier mode, otherwise only a verifier can run it. */
+function triageStatus() {
+  const ready = !!token();
+  const mode = state.control?.mode;
+  const lines = [t("AI triage runs only on purpose: a verifier selects incidents and confirms with an execution code, within a daily cap.")];
+  if (ready && mode) lines.push(t("Scheduled triage: {m}.", { m: t(mode === "off" ? "off" : mode) }));
+  return el("span", { class: "info src-item", tabindex: "0", dataset: { state: ready ? "ok" : "unknown" } },
+    el("span", { class: "src-name" }, t("AI triage")),
+    el("span", { class: "src-state" }, el("span", { class: "src-dot" }), el("span", { class: "src-word" }, t(ready ? "Ready" : "Verifier only"))),
+    el("span", { class: "tip", role: "tooltip" }, lines.join(" ")));
 }
 
 async function loadSources() {
@@ -1725,6 +1750,7 @@ async function loadControl() {
   if (!token()) return fill(box);
   try {
     state.control = await api("/api/triage/control");
+    renderSources();
   } catch {
     return fill(box);
   }
