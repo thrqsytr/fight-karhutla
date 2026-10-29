@@ -2168,7 +2168,7 @@ async function openIncident(id) {
         triage || inc.status === "triaging" ? triageButton(inc) : null,
       ] }),
     section({ icon: "check", title: [t("Claims"), aiBadge("Muse Spark 1.3")], count: triage?.claims?.length ?? 0, open: !!triage?.claims?.length,
-      tip: t("Each claim cites stored evidence. Click an ID to see it. A disputed claim was flagged by the critique model as not supported by its evidence. Claims are written in English by the model."),
+      tip: t("Each claim cites stored evidence. Click an ID to see it. A disputed claim was flagged by the critique model as not supported by its evidence. The model writes each claim in English and Indonesian; a triage from before 2026-10-29 has English only, marked EN."),
       content: claimRows(triage) }),
     section({ icon: "shield", title: t("Evidence gate"), tip: t("Deterministic checks between the model and the verifier: schema, evidence existence, numbers against tool results, area from real masks, location, and content rules. Every change is listed."),
       content: gateRows(gate) }),

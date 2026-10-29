@@ -8,7 +8,7 @@ import { authHeaders, verifierControl, VERIFIER_ID } from "/verifier.js";
 const WA_ID = {
   "WhatsApp reports": "Laporan WhatsApp", "Map": "Peta", "Incident map": "Peta insiden",
   "Citizen reports via WhatsApp": "Laporan warga lewat WhatsApp",
-  "Real data from the production system": "Data nyata dari sistem production",
+  "Real data from the production system": "Data nyata dari sistem produksi",
   "Every report on this page was sent by WhatsApp to the Meta test number and processed by the system that runs karhutla.thariq.xyz. It is not a simulation and not a replay. Only reports a verifier marked as public examples are shown to everyone.":
     "Setiap laporan di halaman ini dikirim lewat WhatsApp ke nomor uji Meta dan diproses oleh sistem yang berjalan di karhutla.thariq.xyz. Ini bukan simulasi dan bukan replay. Hanya laporan yang ditandai verifikator sebagai contoh publik yang tampil untuk semua orang.",
   "Replies do not reach WhatsApp yet: Meta refuses messages from this business account until it passes business verification. Each reply is still sent and its refusal recorded below.":

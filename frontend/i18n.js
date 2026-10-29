@@ -343,8 +343,8 @@ export const DASHBOARD_ID = {
   "Built on citizen evidence: shown after a verifier approves.": "Disusun dari bukti warga: ditampilkan setelah verifikator menyetujui.",
   "Brief disputed: ": "Ringkasan disanggah: ", "Uncertainties": "Ketidakpastian", "Triage is running...": "Triase sedang berjalan...", "Not triaged yet.": "Belum ditriase.",
   "Claims": "Klaim",
-  "Each claim cites stored evidence. Click an ID to see it. A disputed claim was flagged by the critique model as not supported by its evidence. Claims are written in English by the model.":
-    "Setiap klaim merujuk bukti tersimpan. Klik ID untuk melihatnya. Klaim yang disanggah ditandai model penyanggah karena tidak didukung buktinya. Klaim ditulis model dalam bahasa Inggris.",
+  "Each claim cites stored evidence. Click an ID to see it. A disputed claim was flagged by the critique model as not supported by its evidence. The model writes each claim in English and Indonesian; a triage from before 2026-10-29 has English only, marked EN.":
+    "Setiap klaim merujuk bukti tersimpan. Klik ID untuk melihatnya. Klaim yang disanggah ditandai model penyanggah karena tidak didukung buktinya. Model menulis setiap klaim dalam bahasa Inggris dan Indonesia; triase dari sebelum 29 Oktober 2026 hanya berbahasa Inggris, ditandai EN.",
   "Evidence gate": "Gerbang bukti",
   "Deterministic checks between the model and the verifier: schema, evidence existence, numbers against tool results, area from real masks, location, and content rules. Every change is listed.":
     "Pemeriksaan deterministik antara model dan verifikator: skema, keberadaan bukti, angka terhadap hasil alat, luas dari masker nyata, lokasi, dan aturan isi. Setiap perubahan dicantumkan.",
