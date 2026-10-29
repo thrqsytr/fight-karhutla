@@ -650,6 +650,25 @@ a.btn-wa-log { color: var(--ink); text-decoration: none; }
 .tabbar-btn[aria-selected="true"] .tabbar-count { background: #fff; color: var(--blue); }
 .tabpanel { display: grid; gap: 12px; }
 /* Fold (ui.js fold): long text clamped to a few lines with a vertical expand toggle */
+/* EN mark on model text written in English, shown in Indonesian mode */
+.lang-mark { display: inline-block; font-size: 10px; font-weight: 700; padding: 0 5px; border-radius: 4px; background: var(--line-soft); color: var(--ink-2); vertical-align: 1px; cursor: help; }
+/* Suppression outlook */
+.sup-list { display: grid; gap: 6px; }
+.sup-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: var(--r-sm); background: var(--bg); }
+.sup-row.warn { background: var(--warn-soft); }
+.sup-row.warn .sup-icon { background: #fde4c4; color: #b54708; }
+.sup-icon { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex: none; background: var(--blue-soft); color: var(--blue); }
+.sup-body { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.sup-head { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; justify-content: space-between; }
+.sup-title { font-size: 12px; color: var(--ink-2); }
+.sup-value { font-size: 13px; }
+.sup-note { margin: 0; font-size: 12px; color: var(--ink-2); line-height: 1.45; }
+.sup-drone:empty { display: none; }
+.sup-ai { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.sup-risk { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.sup-bar { flex: 1; height: 8px; border-radius: 999px; background: var(--line-soft); overflow: hidden; }
+.sup-bar span { display: block; height: 100%; background: linear-gradient(90deg, #fdb022, #f04438); }
+.sup-actions { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
 .fold { display: grid; gap: 2px; justify-items: start; min-width: 0; }
 .fold-body { min-width: 0; width: 100%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--fold-lines, 2); line-clamp: var(--fold-lines, 2); overflow: hidden; }
 .fold[data-open="true"] .fold-body { display: block; -webkit-line-clamp: unset; line-clamp: unset; overflow: visible; }

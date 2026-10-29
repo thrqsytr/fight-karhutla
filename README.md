@@ -29,6 +29,7 @@ Work in progress for the Meta AI Hackathon (kickoff 2026-10-26). Built so far:
 - Admin panel at `/admin/` (verifier token to view, execution code to save): FIRMS fetch interval from 30 minutes to 2 days, enrichment budgets, Sentinel-2 reuse window, triage caps and schedule, spend, recent runs, and source health
 - Metered cost per triage from the usage of each call (first production run: $0.055, 8 of 8 claims grounded)
 - Dashboard with map, incident list, evidence panel, claims linked to evidence, gate details, and verifier approve or reject
+- Suppression outlook per incident: likely spread and the side to approach from, ground access, water source, nearest fire station, dryness, size, and the drone survey, computed by code from the evidence with stated thresholds; plus the AI's risk score, drivers, and recommended actions. Everything a reader sees comes in Indonesian or English, the agent writing both
 - Map basemap switch under the zoom controls: world satellite imagery by default, or the light map, with the same boundaries and labels (display only, never evidence)
 - Replay mode: three recorded incidents from the 2025 dry season (clearly burned, false positive, needs more info) load as SIMULASI from the admin panel, with no network and no model call
 - Evaluation on 30 historical clusters labelled with Sentinel-2 dNBR, three baselines, results below

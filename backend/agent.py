@@ -45,7 +45,11 @@ Gather evidence with the tools, then answer. Rules, all mandatory:
     burned_area_ha; then use that value, method "dnbr", and its evidence_id. A dNBR burn scar shows burned ground, not active fire.
 11. risk.score is a number from 0 to 100 (0 no concern, 100 most urgent), with short drivers.
 12. When independent evidence is missing, you may call plan_drone_survey once. It only proposes a flight for a human
-    to approve; mention it in recommended_actions, never as evidence or a claim."""
+    to approve; mention it in recommended_actions, never as evidence or a claim.
+13. Every text a person reads comes in English and in natural Indonesian with the same meaning and the same numbers and units:
+    claims[].text and claims[].text_id, risk.drivers and risk.drivers_id, recommended_actions and recommended_actions_id,
+    uncertainties and uncertainties_id (same order and count in both languages). Use Indonesian terms (tinggi, nominal, rendah,
+    tidak diketahui, titik panas, arah angin dari). Field names such as burn_area_ha are not words for a reader: describe them."""
 
 NUM_NULL = {"type": ["number", "null"]}
 STR_NULL = {"type": ["string", "null"]}
@@ -53,7 +57,7 @@ OUTPUT_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
     "required": ["incident_id", "location", "status", "confidence", "evidence", "claims", "risk", "burn_area_ha",
-                 "recommended_actions", "dispatch_brief", "uncertainties", "needs_human"],
+                 "recommended_actions", "recommended_actions_id", "dispatch_brief", "uncertainties", "uncertainties_id", "needs_human"],
     "properties": {
         "incident_id": {"type": "string"},
         "location": {"type": "object", "additionalProperties": False, "required": ["lat", "lon", "admin", "accuracy_m"],
@@ -63,15 +67,18 @@ OUTPUT_SCHEMA = {
         "evidence": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["id", "type", "source", "retrieved_at", "summary"],
                                                 "properties": {"id": {"type": "string"}, "type": {"type": "string", "enum": list(EVIDENCE_TYPES)}, "source": {"type": "string"},
                                                                "retrieved_at": {"type": "string"}, "summary": {"type": "string"}}}},
-        "claims": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["text", "evidence_ids"],
-                                              "properties": {"text": {"type": "string"}, "evidence_ids": {"type": "array", "items": {"type": "string"}}}}},
-        "risk": {"type": "object", "additionalProperties": False, "required": ["score", "drivers", "spread_direction_deg"],
-                 "properties": {"score": {"type": "number"}, "drivers": {"type": "array", "items": {"type": "string"}}, "spread_direction_deg": NUM_NULL}},
+        "claims": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["text", "text_id", "evidence_ids"],
+                                              "properties": {"text": {"type": "string"}, "text_id": {"type": "string"}, "evidence_ids": {"type": "array", "items": {"type": "string"}}}}},
+        "risk": {"type": "object", "additionalProperties": False, "required": ["score", "drivers", "drivers_id", "spread_direction_deg"],
+                 "properties": {"score": {"type": "number"}, "drivers": {"type": "array", "items": {"type": "string"}},
+                                "drivers_id": {"type": "array", "items": {"type": "string"}}, "spread_direction_deg": NUM_NULL}},
         "burn_area_ha": {"type": "object", "additionalProperties": False, "required": ["value", "method", "evidence_id"],
                          "properties": {"value": NUM_NULL, "method": {"type": ["string", "null"], "enum": ["sam_mask", "dnbr", None]}, "evidence_id": STR_NULL}},
         "recommended_actions": {"type": "array", "items": {"type": "string"}},
+        "recommended_actions_id": {"type": "array", "items": {"type": "string"}},
         "dispatch_brief": {"type": "object", "additionalProperties": False, "required": ["id", "en"], "properties": {"id": {"type": "string"}, "en": {"type": "string"}}},
         "uncertainties": {"type": "array", "items": {"type": "string"}},
+        "uncertainties_id": {"type": "array", "items": {"type": "string"}},
         "needs_human": {"type": "boolean"},
     },
 }

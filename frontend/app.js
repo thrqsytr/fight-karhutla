@@ -737,6 +737,87 @@ function burnedGist(inc) {
   return ev.payload.burned_area_ha == null ? t("not claimed") : `${fmtNum(ev.payload.burned_area_ha)} ha`;
 }
 
+/* Text written by the model comes in English and, since 2026-10-29, with an Indonesian twin (field_id).
+   In Indonesian mode the twin is shown; an older triage has none, so its English is shown with an EN mark. */
+const enMark = () => el("span", { class: "lang-mark", title: t("Written by the model in English (triage from before Indonesian output)") }, "EN");
+function modelText(en, id) {
+  if (lang() === "id" && id) return el("span", {}, id);
+  return lang() === "id" && en ? el("span", { lang: "en" }, enMark(), " ", en) : el("span", {}, en || "");
+}
+/** A model list (drivers, actions, uncertainties) in the reader's language: the twin list when it has the same length. */
+function modelList(en = [], id = []) {
+  const twin = lang() === "id" && id?.length === en.length;
+  return en.map((x, i) => (twin ? el("span", {}, id[i]) : modelText(x, null)));
+}
+
+/* Evidence lines are rebuilt from the measured payload in the reader's language. The stored English summary is
+   the fallback for anything this code does not know. */
+const EV_TYPE = { hotspot: "Hotspots", weather: "Weather", osm: "Nearby places", satellite: "Sentinel-2", report: "Citizen report", image: "Citizen photo", voice: "Voice note" };
+const CONF_WORD = { h: "high", n: "nominal", l: "low" };
+const OSM_KIND = { settlement: "settlement", road: "road", river: "river", lake: "lake or pond", fire_station: "fire station" };
+const km = (m) => `${fmtNum(Math.round(m / 100) / 10)} km`;
+const day = (iso) => (iso ? String(iso).slice(0, 10) : "?");
+
+function evidenceText(e) {
+  const p = e.payload || {};
+  try {
+    if (e.type === "hotspot" && p.count != null) {
+      const conf = Object.entries(p.confidence_counts || {}).map(([k, n]) => `${n} ${t(CONF_WORD[k] || k)}`).join(", ");
+      return t("{n} FIRMS hotspot(s), max FRP {frp} MW, confidence: {conf}", { n: p.count, frp: fmtNum(p.max_frp_mw), conf: conf || t("n/a") });
+    }
+    if (e.type === "weather" && p.wind_speed_ms != null) {
+      return t("Wind {v} m/s from {d} deg, humidity {h}%, rain 24 h {r} mm", { v: fmtNum(p.wind_speed_ms), d: p.wind_direction_deg ?? "?", h: p.relative_humidity_pct ?? "?", r: fmtNum(p.rain_24h_mm) });
+    }
+    if (e.type === "osm" && p.nearest && typeof p.nearest === "object") {
+      const r = p.search_radius_m || 10000;
+      const parts = Object.entries(OSM_KIND).map(([k, label]) => {
+        const x = p.nearest[k];
+        const within = k === "fire_station" ? (p.fire_station_search_radius_m || 30000) : r;
+        return x ? `${t(label)} ${km(x.distance_m)}${x.name ? ` (${x.name})` : ""}` : t("no {what} within {d}", { what: t(label), d: km(within) });
+      });
+      return `${t("Nearest")}: ${parts.join(", ")}`;
+    }
+    if (e.type === "satellite" && p.pre && p.post) {
+      const when = t("before {a} and after {b}", { a: day(p.pre.datetime), b: day(p.post.datetime) });
+      if (p.status === "hazy") return t("Sentinel-2 dNBR, {when}: heavy haze (aerosol optical thickness {aot}); smoke lowers NIR, so dNBR may overstate the burn and no hectares are claimed", { when, aot: fmtNum(p.post.aot_median) });
+      if (p.status === "ok") return t("Sentinel-2 dNBR, {when}: {ha} ha at dNBR of {thr} or more within {clear} ha of clear ground; {low} ha more at low severity", {
+        when, ha: fmtNum(p.burned_area_ha), thr: fmtNum(p.dnbr_threshold), clear: fmtNum(p.clear_area_ha), low: fmtNum(p.low_severity_area_ha) });
+    }
+    if (e.type === "satellite" && p.status === "no_post_image") return t("Sentinel-2: no clear scene of this area since the first detection yet (a pass comes about every 5 days)");
+    if (e.type === "satellite" && p.status === "no_pre_image") return t("Sentinel-2: no clear scene from before the first detection to compare with");
+    if (e.type === "image" && p.width) return t("photo {w} x {h} px, metadata removed", { w: p.width, h: p.height });
+    if (e.type === "voice") return t("voice note");
+  } catch { /* fall back to the stored summary */ }
+  return lang() === "id" ? [enMark(), " ", e.summary] : e.summary;
+}
+
+function evidenceSource(e) {
+  const p = e.payload || {};
+  if (["report", "image", "voice"].includes(e.type)) return p.channel === "whatsapp" ? "WhatsApp" : t("web form");
+  if (e.type === "osm") return p.offline_source ? `OpenStreetMap, ${t("offline copy {src}", { src: p.offline_source })}` : "OpenStreetMap";
+  return e.source;
+}
+
+/* The gate's reasons are fixed sentences written by code, so they can be shown in either language. */
+const GATE_REASON = {
+  "no evidence": "no evidence", "content rule": "content rule", "no matching tool value": "no matching tool value", "no real mask cited": "no real mask cited",
+  "claims without valid evidence were removed": "claims without valid evidence were removed",
+  "location outside Indonesia or more than 5 km from cited hotspot or report": "location outside Indonesia or more than 5 km from cited hotspot or report",
+};
+const RULE_LABEL = { medical: "health advice", cause: "naming a cause", party: "naming a person or party" };
+const gateReason = (r) => {
+  const s = String(r || "");
+  if (GATE_REASON[s]) return t(GATE_REASON[s]);
+  if (s.startsWith("unknown evidence")) return t("unknown evidence {ids}", { ids: s.replace("unknown evidence", "").trim() });
+  const m = s.match(/^likely_fire needs independent evidence.*?([\d.]+) ha\)$/);
+  if (m) return t("likely fire needs independent evidence (photo, voice, or a satellite burn of at least {ha} ha)", { ha: m[1] });
+  return s;
+};
+function statusChange(d) {
+  const m = String(d).match(/^(\w+) -> (\w+): (.*)$/);
+  return m ? `${statusLabel(m[1])} → ${statusLabel(m[2])}: ${gateReason(m[3])}` : d;
+}
+
 function evidenceRows(inc) {
   const rows = inc.evidence.map((e) => {
     const extra = [];
@@ -744,7 +825,8 @@ function evidenceRows(inc) {
     if (e.type === "voice") extra.push(el("div", { style: "margin-top:6px" }, voiceButton(e.payload.media_id)),
       fold(el("p", { class: "muted", style: "margin:4px 0 0;font-size:12px" }, e.payload.transcript ? t("Transcript: {t}", { t: e.payload.transcript }) : t("Transcript pending"))));
     // The report summary repeats the citizen's text, so show the full text once instead.
-    const head = e.type === "report" ? `${e.type} · ${e.source}` : `${e.type} · ${e.source}: ${e.summary}`;
+    const head = e.type === "report" ? `${t(EV_TYPE[e.type])} · ${evidenceSource(e)}`
+      : el("span", {}, `${t(EV_TYPE[e.type] || e.type)} · ${evidenceSource(e)}: `, evidenceText(e));
     return el("div", { class: "ev", dataset: { ev: e.id } }, el("span", { class: "ev-id" }, e.id), el("div", { style: "flex:1;min-width:0" }, fold(head), extra));
   });
   const photos = inc.evidence.filter((e) => e.type === "image" && e.payload.media_id);
@@ -1444,9 +1526,9 @@ function claimRows(triage) {
   if (!triage?.claims?.length) return [el("p", { class: "empty" }, t("No claims passed the evidence gate."))];
   return triage.claims.map((c) =>
     el("div", { class: `claim ${c.disputed ? "is-disputed" : ""}` },
-      el("p", { class: "claim-text" }, c.text),
+      el("p", { class: "claim-text" }, modelText(c.text, c.text_id)),
       el("div", { class: "claim-meta" }, c.evidence_ids.map(evidenceChip),
-        c.disputed ? el("span", { class: "dispute" }, svg("alert", "icon icon-sm"), t("Disputed: "), c.disputed) : null)));
+        c.disputed ? el("span", { class: "dispute" }, svg("alert", "icon icon-sm"), t("Disputed: "), modelText(c.disputed, null)) : null)));
 }
 
 function gateRows(gate) {
@@ -1457,11 +1539,11 @@ function gateRows(gate) {
     el("div", { class: "stat" }, el("div", { class: "stat-v num" }, `${gate.claims_passed}/${gate.claims_total}`), el("div", { class: "stat-l" }, t("Claims passed"))),
     el("div", { class: "stat" }, el("div", { class: "stat-v num" }, String(gate.critique?.disputed?.length ?? 0)), el("div", { class: "stat-l" }, t("Disputed"))))];
   const list = (label, items, fmt) => items?.length ? rows.push(el("div", { class: "gate-list" }, el("div", { class: "legend-label" }, t(label)), items.map((x) => el("div", { class: "ev" }, fmt(x))))) : null;
-  list("Removed claims", gate.claims_dropped, (d) => `${d.text} (${d.reason})`);
-  list("Corrections", gate.corrections, (c) => t("{where}: {claimed} replaced with {corrected}", { where: c.where, claimed: c.claimed, corrected: c.corrected ?? t("nothing") }) + (c.note ? ` (${c.note})` : ""));
-  list("Content rule removals", gate.violations, (v) => `${v.where}, ${v.rule}: ${v.removed}`);
-  list("Status changes", gate.downgrades, (d) => d);
-  list("Not reviewed", gate.critique?.errors, (e) => e);
+  list("Removed claims", gate.claims_dropped, (d) => el("span", {}, modelText(d.text, null), ` (${gateReason(d.reason)})`));
+  list("Corrections", gate.corrections, (c) => t("{where}: {claimed} replaced with {corrected}", { where: c.where, claimed: c.claimed, corrected: c.corrected ?? t("nothing") }) + (c.note ? ` (${gateReason(c.note)})` : ""));
+  list("Content rule removals", gate.violations, (v) => el("span", {}, `${v.where}, ${t(RULE_LABEL[v.rule] || v.rule)}: `, modelText(v.removed, null)));
+  list("Status changes", gate.downgrades, statusChange);
+  list("Not reviewed", gate.critique?.errors, (e) => el("span", { lang: "en" }, fold(e, { lines: 1 })));
   rows.push(el("p", { class: "muted", style: "margin:0;font-size:12px" },
     t("Triaged {when} in {s} s, metered cost ${cost}. Critique: {who}.", {
       when: gate.triaged_at ? fmtTime(gate.triaged_at) : "", s: gate.seconds ?? "?", cost: (gate.cost_usd ?? 0).toFixed(4),
@@ -1778,7 +1860,7 @@ function progressCard(inc) {
       actions: [token() ? act("Collect missing evidence", "activity", () => collectNow(inc.id), false, "collect") : null] });
     if (!has.osm) missing.push({ title: "Nearby settlements and water", why: "Distance to villages, roads, and water points from OpenStreetMap. The public OSM servers are often down; collection retries automatically.", actions: [] });
     if (tri?.status === "needs_more_info" || tri?.uncertainties?.length) missing.push({ title: "What the AI asked for", why: null,
-      list: tri.uncertainties || [], actions: [] });
+      list: modelList(tri.uncertainties || [], tri.uncertainties_id), actions: [] });
   }
   const nextStep = verdict ? null
     : !tri ? (token() ? el("div", { class: "pnext" }, el("span", {}, t("Next: run AI triage on the evidence above.")), triageButton(inc)) : el("p", { class: "pnext muted" }, t("Next: a verifier runs AI triage.")))
@@ -1798,6 +1880,128 @@ function progressCard(inc) {
         m.actions.filter(Boolean).length ? el("div", { class: "actions" }, m.actions) : null))) : null,
     nextStep,
   );
+}
+
+/* Suppression outlook. Code reads the stored evidence and states what it means for a ground crew: where the
+   fire is likely to move, which side to approach from, access, water, the nearest fire station, how dry it is,
+   and how big. Thresholds are written in the (i). It is guidance for the people who decide, not an order.
+   The AI part (risk, drivers, spread, actions) appears once a triage has run. */
+const COMPASS = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
+const compass = (deg) => t(COMPASS[Math.round((((deg % 360) + 360) % 360) / 45) % 8]);
+const latest = (inc, type) => [...inc.evidence].reverse().find((e) => e.type === type);
+const WATER_NEAR_M = 1000, WATER_RELAY_M = 3000, ROAD_FAR_M = 10000, SETTLEMENT_NEAR_M = 5000;
+
+function suppressionFacts(inc) {
+  const rows = [];
+  const add = (icon, title, value, note, tone = "") => rows.push({ icon, title, value, note, tone });
+  const w = latest(inc, "weather")?.payload;
+  const osm = latest(inc, "osm")?.payload?.nearest;
+  const sat = latest(inc, "satellite")?.payload;
+  let spread = null;
+  if (w?.wind_direction_deg != null && w.wind_speed_ms != null) {
+    if (w.wind_speed_ms < 1) {
+      add("activity", t("Spread"), t("weak wind ({v} m/s)", { v: fmtNum(w.wind_speed_ms) }), t("Spread is slow and its direction uncertain; watch the smoke on site."));
+    } else {
+      spread = (w.wind_direction_deg + 180) % 360;
+      add("arrow", t("Likely spread"), t("toward the {dir} ({deg} deg)", { dir: compass(spread), deg: Math.round(spread) }),
+        t("Wind {v} m/s from the {from} ({deg} deg). Approach from the {from} side or the flanks, upwind of the fire; do not stand in front of its spread.", { v: fmtNum(w.wind_speed_ms), from: compass(w.wind_direction_deg), deg: w.wind_direction_deg }),
+        w.wind_speed_ms >= 5 ? "warn" : "");
+    }
+    const dry = w.relative_humidity_pct != null && w.relative_humidity_pct < 50 && (w.rain_24h_mm ?? 0) < 1;
+    const wet = (w.relative_humidity_pct ?? 0) >= 80 || (w.rain_24h_mm ?? 0) >= 5;
+    add("clock", t("Fuel and weather"), t(dry ? "dry" : wet ? "humid" : "moderate"),
+      t("Humidity {h}%, rain in the last 24 h {r} mm.", { h: w.relative_humidity_pct ?? "?", r: fmtNum(w.rain_24h_mm) }) + " " +
+      t(dry ? "Dry fuel: fire spreads fast; peat can keep burning underground." : wet ? "Moist conditions slow the spread, but peat can smoulder underground." : "Watch for drying through the day."),
+      dry ? "warn" : "");
+  } else {
+    add("clock", t("Wind and weather"), t("unknown"), t("No weather evidence yet: collect it before planning the approach."), "warn");
+  }
+  if (osm) {
+    const road = osm.road;
+    add("pin", t("Ground access"), road ? `${road.name || t("unnamed road")} · ${km(road.distance_m)}` : t("no road within {d}", { d: km(ROAD_FAR_M) }),
+      road ? t("Nearest mapped road from OpenStreetMap; the last stretch may be a track or on foot.") : t("Plan access by river, on foot, or by air; OpenStreetMap shows no road nearby."),
+      road && road.distance_m <= ROAD_FAR_M ? "" : "warn");
+    const water = [osm.river, osm.lake].filter(Boolean).sort((a, b) => a.distance_m - b.distance_m)[0];
+    add("target", t("Water source"), water ? `${water.name || t(water.kind === "river" ? "river" : "lake or pond")} · ${km(water.distance_m)}` : t("none within {d}", { d: km(ROAD_FAR_M) }),
+      !water ? t("Bring water tanks, or request aerial water support.")
+        : water.distance_m <= WATER_NEAR_M ? t("Close enough for a portable pump and hose lines.")
+        : water.distance_m <= WATER_RELAY_M ? t("Reachable with a relay of pumps or water tanks.") : t("Far: water tanks or aerial support are more practical."),
+      !water || water.distance_m > WATER_RELAY_M ? "warn" : "");
+    const fs = osm.fire_station;
+    add("shield", t("Nearest fire station"), fs ? `${fs.name || t("fire station")} · ${km(fs.distance_m)}` : t("none within {d}", { d: "30 km" }),
+      fs ? t("From OpenStreetMap; confirm the post is staffed.") : t("Coordinate with the nearest officers and village; the response may take long."), fs ? "" : "warn");
+    const set = osm.settlement;
+    if (set) add("pin", t("Nearest settlement"), `${set.name || t("settlement")} · ${km(set.distance_m)}`,
+      set.distance_m <= SETTLEMENT_NEAR_M ? t("Within {d}: prepare to inform residents and keep their access open.", { d: km(SETTLEMENT_NEAR_M) }) : t("Outside {d}.", { d: km(SETTLEMENT_NEAR_M) }),
+      set.distance_m <= SETTLEMENT_NEAR_M ? "warn" : "");
+  } else {
+    add("pin", t("Access, water, and fire station"), t("unknown"), t("No OpenStreetMap evidence yet: collect it to see roads, rivers, and fire stations."), "warn");
+  }
+  const scale = [t("{n} hotspot(s), max FRP {frp} MW", { n: inc.hotspot_count, frp: fmtNum(inc.max_frp) })];
+  if (sat?.status === "ok" && sat.burned_area_ha != null) scale.push(t("{ha} ha burned (Sentinel-2)", { ha: fmtNum(sat.burned_area_ha) }));
+  else if (sat?.status === "hazy") scale.push(t("burned area not claimed (haze)"));
+  add("flame", t("Size and intensity"), scale.join(" · "),
+    isRecent(inc.last_seen) ? t("Detected again in the last 6 h: the fire is likely still active.") : t("No detection in the last 6 h; check on site whether it still burns."),
+    isRecent(inc.last_seen) || (inc.max_frp ?? 0) >= 40 ? "warn" : "");
+  return { rows, spread };
+}
+
+function suppressionContent(inc) {
+  const { rows, spread } = suppressionFacts(inc);
+  const tri = inc.triage && !inc.triage.hidden ? inc.triage : null;
+  const facts = el("div", { class: "sup-list" }, rows.map((r) => el("div", { class: `sup-row ${r.tone}` },
+    el("span", { class: "sup-icon" }, svg(r.icon, "icon icon-sm")),
+    el("div", { class: "sup-body" }, el("div", { class: "sup-head" }, el("span", { class: "sup-title" }, r.title), el("strong", { class: "sup-value" }, r.value)),
+      r.note ? fold(el("p", { class: "sup-note" }, r.note)) : null))));
+  const ai = tri ? el("div", { class: "sup-ai" },
+    el("div", { class: "legend-label" }, t("From the AI triage"), info(t("Written by Muse Spark 1.3 from the stored evidence and checked by the evidence gate. A human verifier decides."))),
+    el("div", { class: "sup-risk" }, el("span", {}, t("Risk")), el("div", { class: "sup-bar" }, el("span", { style: `width:${Math.max(0, Math.min(100, tri.risk?.score ?? 0))}%` })),
+      el("strong", { class: "num" }, `${Math.round(tri.risk?.score ?? 0)}/100`)),
+    tri.risk?.drivers?.length ? el("div", { class: "chips" }, modelList(tri.risk.drivers, tri.risk.drivers_id).map((d) => el("span", { class: "pill" }, d))) : null,
+    tri.risk?.spread_direction_deg != null ? el("p", { class: "sup-note" }, t("AI spread direction: toward the {dir} ({deg} deg)", { dir: compass(tri.risk.spread_direction_deg), deg: Math.round(tri.risk.spread_direction_deg) })) : null,
+    tri.recommended_actions?.length ? el("ol", { class: "sup-actions" }, modelList(tri.recommended_actions, tri.recommended_actions_id).map((a) => el("li", {}, a))) : null)
+    : el("p", { class: "empty" }, t("The AI's risk score and recommended actions appear here after AI triage."));
+  const drone = el("div", { class: "sup-drone" });
+  api(`/api/drone/missions?incident_id=${encodeURIComponent(inc.id)}`).then((m) => {
+    const mine = (m.items || []).filter((x) => x.incident_id === inc.id);
+    if (!mine.length) return;
+    fill(drone, mine.map((x) => el("div", { class: "sup-row" }, el("span", { class: "sup-icon" }, svg("target", "icon icon-sm")),
+      el("div", { class: "sup-body" }, el("div", { class: "sup-head" }, el("span", { class: "sup-title" }, t("Drone survey")), el("span", { class: "pill pill-sim" }, "SIMULASI")),
+        el("p", { class: "sup-note" }, t("{u} of {n} frames sent by the onboard filter; SAM 3.1 measured {ha} ha burned on the frames it could mask. Use it to check the burn extent before sending a crew.", {
+          u: x.uplinked, n: x.frames, ha: x.sam_burned_ha == null ? t("n/a") : fmtNum(x.sam_burned_ha) }))))));
+  }).catch(() => {});
+  return [
+    facts, drone,
+    spread != null ? el("div", { class: "actions" }, mapToggle("spread", "Show spread on map", () => showSpread(inc, spread), () => showSpread(null))) : null,
+    ai,
+  ];
+}
+
+/* Likely spread on the map: an arrow from the incident centre, 3 km long, downwind. */
+function showSpread(inc, deg) {
+  state.mapReady?.then(() => {
+    if (!map) return;
+    ["spread-line", "spread-head"].forEach((id) => map.getLayer(id) && map.removeLayer(id));
+    if (map.getSource("spread")) map.removeSource("spread");
+    if (!inc) return;
+    const R = 6371000, d = 3000, b = (deg * Math.PI) / 180, lat1 = (inc.lat * Math.PI) / 180, lon1 = (inc.lon * Math.PI) / 180;
+    const dest = (dist, brg) => {
+      const lat2 = Math.asin(Math.sin(lat1) * Math.cos(dist / R) + Math.cos(lat1) * Math.sin(dist / R) * Math.cos(brg));
+      const lon2 = lon1 + Math.atan2(Math.sin(brg) * Math.sin(dist / R) * Math.cos(lat1), Math.cos(dist / R) - Math.sin(lat1) * Math.sin(lat2));
+      return [(lon2 * 180) / Math.PI, (lat2 * 180) / Math.PI];
+    };
+    const tip = dest(d, b);
+    const back = (side) => {
+      const [x, y] = dest(d - 450, b + side * 0.12);
+      return [x, y];
+    };
+    map.addSource("spread", { type: "geojson", data: { type: "FeatureCollection", features: [
+      { type: "Feature", properties: { k: "line" }, geometry: { type: "LineString", coordinates: [[inc.lon, inc.lat], tip] } },
+      { type: "Feature", properties: { k: "head" }, geometry: { type: "Polygon", coordinates: [[tip, back(1), back(-1), tip]] } }] } });
+    map.addLayer({ id: "spread-line", type: "line", source: "spread", filter: ["==", ["get", "k"], "line"], paint: { "line-color": "#f04438", "line-width": 4, "line-dasharray": [2, 1] } });
+    map.addLayer({ id: "spread-head", type: "fill", source: "spread", filter: ["==", ["get", "k"], "head"], paint: { "fill-color": "#f04438" } });
+    map.fitBounds([[Math.min(inc.lon, tip[0]), Math.min(inc.lat, tip[1])], [Math.max(inc.lon, tip[0]), Math.max(inc.lat, tip[1])]], { padding: 120, duration: 800, maxZoom: 13 });
+  });
 }
 
 /* Share: a public link whose preview (title, summary, static map image) WhatsApp and Facebook show. */
@@ -1835,8 +2039,8 @@ async function openShare(inc) {
 
 /* The brief shows the reader's language first and the other one below it. */
 function briefParts(triage) {
-  const [first, second] = lang() === "id" ? ["id", "en"] : ["en", "id"];
-  return [el("p", { class: "brief" }, triage.dispatch_brief[first]), el("p", { class: "brief-en" }, triage.dispatch_brief[second])];
+  // The model writes both; the reader sees the language they chose.
+  return [el("p", { class: "brief" }, triage.dispatch_brief[lang()] || triage.dispatch_brief.en)];
 }
 
 /* An action inside the detail view (propose a drone flight, check Sentinel-2, decide) reloads the same incident.
@@ -1875,6 +2079,7 @@ async function openIncident(id) {
     showBurnMask(null);
     showFootprints(null);
     showFlightPlan(null);
+    showSpread(null);
   }
   if (map?.getLayer("incident-selected")) map.setFilter("incident-selected", ["==", ["get", "id"], id]);
   let inc;
@@ -1916,6 +2121,9 @@ async function openIncident(id) {
   const gate = inc.gate;
   const progress = progressCard(inc);
   const sections = [
+    section({ icon: "flame", title: t("Suppression outlook"), open: true, extraClass: "sup-section",
+      tip: t("What the stored evidence means for a ground crew: likely spread and the side to approach from, access, water, the nearest fire station, how dry it is, and the size. Computed by code with the thresholds named here: within 1 km of water a portable pump reaches, within 3 km a relay of pumps or tanks; no road within 10 km means another way in; dry is humidity under 50% with under 1 mm of rain in 24 h, humid is 80% or more or 5 mm of rain. Guidance for the people who decide, not an order."),
+      content: suppressionContent(inc) }),
     section({ icon: "pin", title: t("Overview"), open: true, content: el("dl", { class: "kv" },
       el("dt", {}, t("Location")), el("dd", { class: "num" }, `${inc.lat.toFixed(3)}, ${inc.lon.toFixed(3)}`),
       el("dt", {}, t("First seen")), el("dd", {}, fmtTime(inc.first_seen)),
@@ -1927,7 +2135,7 @@ async function openIncident(id) {
         triage?.hidden ? el("p", { class: "empty" }, t("Built on citizen evidence: shown after a verifier approves."))
           : triage ? [briefParts(triage),
                       triage.dispatch_brief.disputed ? el("span", { class: "dispute" }, svg("alert", "icon icon-sm"), t("Brief disputed: "), triage.dispatch_brief.disputed.join(" ")) : null,
-                      triage.uncertainties?.length ? el("div", { class: "gate-list" }, el("div", { class: "legend-label" }, t("Uncertainties")), triage.uncertainties.map((u) => el("div", { class: "ev" }, u))) : null]
+                      triage.uncertainties?.length ? el("div", { class: "gate-list" }, el("div", { class: "legend-label" }, t("Uncertainties")), modelList(triage.uncertainties, triage.uncertainties_id).map((u) => el("div", { class: "ev" }, u))) : null]
           : el("p", { class: "empty" }, t(inc.status === "triaging" ? "Triage is running..." : "Not triaged yet.")),
         // Before the first run the button lives in the progress card, with the reason to press it.
         triage || inc.status === "triaging" ? triageButton(inc) : null,

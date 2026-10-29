@@ -192,7 +192,11 @@ def run(raw: dict, evidence: list[dict], incident_id: str) -> GateResult:
             res.claims_dropped.append({"text": claim["text"], "reason": "content rule"})
             dropped_any = True
             continue
-        kept_claims.append({"text": text, "evidence_ids": claim["evidence_ids"]})
+        # The Indonesian twin gets the same number and content checks; if nothing survives, the reader sees the English.
+        text_id = claim.get("text_id")
+        if text_id:
+            text_id = _content_filter(_check_numbers(text_id, cited, res, f"claims[{i}].id"), res, f"claims[{i}].id") or None
+        kept_claims.append({"text": text, "text_id": text_id, "evidence_ids": claim["evidence_ids"]})
     out["claims"] = kept_claims
     res.claims_passed = len(kept_claims)
     if dropped_any:
@@ -241,12 +245,15 @@ def run(raw: dict, evidence: list[dict], incident_id: str) -> GateResult:
         _set_status(out, res, "needs_more_info", "location outside Indonesia or more than 5 km from cited hotspot or report")
 
     # Text rules on everything a human reads.
-    actions = [_content_filter(a, res, f"recommended_actions[{i}]") for i, a in enumerate(out["recommended_actions"])]
-    out["recommended_actions"] = [a for a in actions if a]
+    for key in ("recommended_actions", "recommended_actions_id"):
+        actions = [_content_filter(a, res, f"{key}[{i}]") for i, a in enumerate(out[key])]
+        out[key] = [a for a in actions if a]
     for lang in ("id", "en"):
         out["dispatch_brief"][lang] = _content_filter(out["dispatch_brief"][lang], res, f"dispatch_brief.{lang}")
-    out["uncertainties"] = [DASHES.sub(", ", u) for u in out["uncertainties"]]
-    out["risk"]["drivers"] = [DASHES.sub(", ", d) for d in out["risk"]["drivers"]]
+    for key in ("uncertainties", "uncertainties_id"):
+        out[key] = [DASHES.sub(", ", u) for u in out[key]]
+    for key in ("drivers", "drivers_id"):
+        out["risk"][key] = [DASHES.sub(", ", d) for d in out["risk"][key]]
 
     out["needs_human"] = True
     return res

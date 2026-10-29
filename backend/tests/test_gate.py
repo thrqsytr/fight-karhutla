@@ -164,3 +164,17 @@ def test_evidence_list_comes_from_database_not_model():
     d = make(evidence=[{"id": "EV-777", "type": "image", "source": "made up", "retrieved_at": "x", "summary": "fake"}])
     r = gate.run(d, EVIDENCE, INC)
     assert [e["id"] for e in r.output["evidence"]] == ["EV-001", "EV-002", "EV-003", "EV-004"]
+
+
+def test_indonesian_twin_gets_the_same_number_check_and_old_outputs_still_pass():
+    claims = [{"text": "Wind 9.9 m/s with 0 mm rain in 24 h.", "text_id": "Angin 9,9 m/s tanpa hujan 0 mm dalam 24 jam.", "evidence_ids": ["EV-002"]}]
+    r = gate.run(make(claims=claims, recommended_actions_id=["Koordinasi dengan desa."], uncertainties_id=["Nama desa tidak diketahui."],
+                      risk={"score": 70, "drivers": ["dry wind"], "drivers_id": ["angin kering"], "spread_direction_deg": 45}), EVIDENCE, INC)
+    assert r.accepted
+    c = r.output["claims"][0]
+    assert "3.4 m/s" in c["text"] and "3.4 m/s" in c["text_id"]  # both corrected to the tool value
+    assert [x["where"] for x in r.corrections if x["claimed"] in ("9.9 m/s", "9,9 m/s")] == ["claims[0]", "claims[0].id"]
+    assert r.output["recommended_actions_id"] == ["Koordinasi dengan desa."] and r.output["risk"]["drivers_id"] == ["angin kering"]
+    # A triage written before the Indonesian fields existed is still valid; the twins come back empty.
+    old = gate.run(make(), EVIDENCE, INC)
+    assert old.accepted and old.output["claims"][0]["text_id"] is None and old.output["uncertainties_id"] == []

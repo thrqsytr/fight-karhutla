@@ -32,13 +32,15 @@ class EvidenceRef(Strict):
 
 
 class Claim(Strict):
-    text: str
+    text: str  # English
+    text_id: str | None = None  # the same claim in Indonesian; absent in triages from before 2026-10-29
     evidence_ids: list[str]
 
 
 class Risk(Strict):
     score: float = Field(ge=0, le=100)
     drivers: list[str]
+    drivers_id: list[str] = Field(default_factory=list)
     spread_direction_deg: float | None = Field(default=None, ge=0, lt=360)
 
 
@@ -63,6 +65,8 @@ class TriageOutput(Strict):
     risk: Risk
     burn_area_ha: BurnArea
     recommended_actions: list[str]
+    recommended_actions_id: list[str] = Field(default_factory=list)
     dispatch_brief: DispatchBrief
     uncertainties: list[str]
+    uncertainties_id: list[str] = Field(default_factory=list)
     needs_human: Literal[True]
