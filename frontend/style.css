@@ -213,7 +213,8 @@ a.btn-primary, a.btn-report { color: #fff; }
 .section-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .2s ease; }
 .section[data-open="true"] .section-body { grid-template-rows: 1fr; }
 .section-inner { min-height: 0; overflow: hidden; }
-.section-content { padding: 0 14px 14px; display: grid; gap: 8px; }
+/* One column as wide as the card: a long unbreakable child (a pill, a code) can never widen the card. */
+.section-content { padding: 0 14px 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .section .pulse { color: var(--ok); }
 
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; margin: 0; }
@@ -671,6 +672,8 @@ a.btn-wa-log { color: var(--ink); text-decoration: none; }
 .sup-note { margin: 0; font-size: 12px; color: var(--ink-2); line-height: 1.45; overflow-wrap: anywhere; }
 .sup-drone:empty { display: none; }
 .sup-ai { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+/* AI risk drivers are sentences, not tags: let them wrap. */
+.sup-ai .pill { white-space: normal; text-align: left; border-radius: 12px; line-height: 1.35; max-width: 100%; }
 .sup-risk { display: flex; align-items: center; gap: 8px; font-size: 12px; }
 .sup-bar { flex: 1; height: 8px; border-radius: 999px; background: var(--line-soft); overflow: hidden; }
 .sup-bar span { display: block; height: 100%; background: linear-gradient(90deg, #fdb022, #f04438); }
