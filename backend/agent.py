@@ -42,7 +42,8 @@ Gather evidence with the tools, then answer. Rules, all mandatory:
    Do not invent place names; location.admin is the nearest settlement from get_nearby_assets, or "unknown".
 10. Leave the evidence list empty; the system fills it from storage. burn_area_ha is null unless get_satellite_pair returned
     burned_area_ha; then use that value, method "dnbr", and its evidence_id. A dNBR burn scar shows burned ground, not active fire.
-11. risk.score is a number from 0 to 100 (0 no concern, 100 most urgent), with short drivers.
+11. risk.score is a number from 0 to 100 (0 no concern, 100 most urgent), with short drivers. confidence is different:
+    a fraction from 0 to 1 (0.55 means 55 percent), never above 1.
 12. When independent evidence is missing, you may call plan_drone_survey once. It only proposes a flight for a human
     to approve; mention it in recommended_actions, never as evidence or a claim.
 13. Every text a person reads comes in English and in natural Indonesian with the same meaning and the same numbers and units:
@@ -65,7 +66,7 @@ OUTPUT_SCHEMA = {
         "location": {"type": "object", "additionalProperties": False, "required": ["lat", "lon", "admin", "accuracy_m"],
                      "properties": {"lat": {"type": "number"}, "lon": {"type": "number"}, "admin": {"type": "string"}, "accuracy_m": {"type": "number"}}},
         "status": {"type": "string", "enum": ["likely_fire", "possible_fire", "unlikely", "needs_more_info"]},
-        "confidence": {"type": "number"},
+        "confidence": {"type": "number", "description": "A fraction from 0 to 1, for example 0.55; not a percent."},
         "evidence": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["id", "type", "source", "retrieved_at", "summary"],
                                                 "properties": {"id": {"type": "string"}, "type": {"type": "string", "enum": list(EVIDENCE_TYPES)}, "source": {"type": "string"},
                                                                "retrieved_at": {"type": "string"}, "summary": {"type": "string"}}}},
