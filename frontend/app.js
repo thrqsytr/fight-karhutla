@@ -1578,7 +1578,7 @@ function gateRows(gate) {
 
 /* Deliberate triage: pick incidents in the list or draw an area on the map, then confirm with the execution code. */
 function batchLimit() { return state.control?.batch_limit ?? 5; }
-function estCost(n) { return (n * (state.control?.est_cost_per_triage_usd ?? 0.055)).toFixed(2); }
+function estCost(n) { return (n * (state.control?.est_cost_per_triage_usd ?? 0.15)).toFixed(2); }
 
 function togglePick(id) {
   if (picked.has(id)) picked.delete(id);
@@ -1691,7 +1691,7 @@ function openTriageDialog(ids) {
       el("div", { class: "gate-list" }, items.map((i) => el("div", { class: "ev" }, el("span", { class: "ev-id" }, i.id),
         el("span", {}, i.hotspot_count != null ? t("{n} hotspots, max FRP {frp}", { n: i.hotspot_count, frp: fmtFrp(i.max_frp) }) : "")))),
       el("p", { class: "muted", style: "margin:0;font-size:13px" },
-        t("Estimated cost ${cost} (about ${each} each, metered after the run).", { cost: estCost(n), each: (state.control?.est_cost_per_triage_usd ?? 0.055).toFixed(3) }) + " " +
+        t("Estimated cost ${cost} (about ${each} each, metered after the run).", { cost: estCost(n), each: (state.control?.est_cost_per_triage_usd ?? 0.15).toFixed(3) }) + " " +
         (left != null ? t("{left} of {cap} runs left today.", { left, cap: state.control.daily_cap }) : "")),
       code, err,
     ],

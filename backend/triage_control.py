@@ -1,6 +1,6 @@
 """Who may spend triage credit, how much, and when.
 
-Every triage spends Meta Model API credit (about $0.05 measured), so runs happen only on purpose:
+Every triage spends Meta Model API credit (about $0.15 measured), so runs happen only on purpose:
 a verifier selects incidents and confirms with an execution code, and the scheduler runs on a
 daily (default) or hourly schedule over citizen-reported incidents only. A daily cap, checked on the
 server, bounds manual and automatic runs together.
@@ -19,7 +19,9 @@ from .config import Settings
 MODES = {"off": None, "daily": timedelta(hours=24), "hourly": timedelta(hours=1)}
 DEFAULT_MODE = "daily"
 WITA = timezone(timedelta(hours=8))
-EST_COST_USD = 0.055  # measured on the first production triage; shown before confirming, never billed by us
+# Shown before confirming, never billed by us. Median of the five bilingual production runs on 2026-10-29
+# ($0.082 to $0.210); the English-only runs before cost about $0.05.
+EST_COST_USD = 0.15
 
 # Wrong execution codes are limited per client so the code cannot be guessed by brute force.
 CODE_ATTEMPTS = 5

@@ -43,7 +43,7 @@ SPECS = (
          "A stored Sentinel-2 pair is reused this long before the archive is searched again. A pass comes about every 5 days.",
          default=24, min=6, max=168, unit="h"),
     Spec("triage_daily_cap", "triage", "Triage runs per day",
-         "Hard limit on triage runs per WITA day, manual and scheduled together. Each run costs about $0.05 of Meta credit.",
+         "Hard limit on triage runs per WITA day, manual and scheduled together. Each run costs about $0.15 of Meta credit.",
          default_attr="triage_daily_cap", min=0, max=100),
     Spec("triage_batch_limit", "triage", "Incidents per selection",
          "How many incidents one confirmed selection may triage.", default_attr="triage_batch_limit", min=1, max=10),

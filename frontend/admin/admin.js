@@ -25,8 +25,8 @@ const ADMIN_ID = {
     "Tile OpenStreetMap baru yang ditanyakan setiap pengambilan. Server Overpass publik dipakai bersama dan sering mati.",
   "A stored Sentinel-2 pair is reused this long before the archive is searched again. A pass comes about every 5 days.":
     "Pasangan Sentinel-2 yang tersimpan dipakai ulang selama ini sebelum arsip dicari lagi. Satelit lewat sekitar setiap 5 hari.",
-  "Hard limit on triage runs per WITA day, manual and scheduled together. Each run costs about $0.05 of Meta credit.":
-    "Batas keras run triase per hari WITA, manual dan terjadwal digabung. Satu run memakai sekitar $0,05 kredit Meta.",
+  "Hard limit on triage runs per WITA day, manual and scheduled together. Each run costs about $0.15 of Meta credit.":
+    "Batas keras run triase per hari WITA, manual dan terjadwal digabung. Satu run memakai sekitar $0,15 kredit Meta.",
   "How many incidents one confirmed selection may triage.": "Jumlah insiden yang boleh ditriase dalam satu pilihan yang dikonfirmasi.",
   "How many citizen-reported incidents one scheduled pass may triage.": "Jumlah insiden laporan warga yang boleh ditriase dalam satu putaran terjadwal.",
   "default {v}": "bawaan {v}", "Scheduled triage": "Triase terjadwal", "Daily": "Harian", "Hourly": "Per jam",
