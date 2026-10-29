@@ -64,12 +64,21 @@ def weather_summary_text(w: dict) -> str:
     return f"Wind {w['wind_speed_ms']} m/s from {w['wind_direction_deg']} deg, humidity {w['relative_humidity_pct']}%, rain 24 h {rain}"
 
 
+def osm_is_outdated(payload: dict) -> bool:
+    """True for OSM evidence stored before every current category was searched."""
+    return any(c not in (payload.get("nearest") or {}) for c in osm.CATEGORIES)
+
+
 def osm_summary_text(a: dict) -> str:
     parts = []
-    for cat, label in (("settlement", "settlement"), ("road", "road"), ("river", "river"), ("lake", "lake or pond"), ("fire_station", "fire station")):
+    labels = {"settlement": "settlement", "road": "road", "river": "river", "lake": "lake or pond", "canal": "canal or ditch", "stream": "stream",
+              "fire_station": "fire station", "police": "police station", "military": "military post", "government": "government office"}
+    for cat, label in labels.items():
+        if cat not in a["nearest"]:  # evidence from before a category was added
+            continue
         n = a["nearest"][cat]
-        radius = a["fire_station_search_radius_m"] if cat == "fire_station" else a["search_radius_m"]
-        parts.append(f"{label} {n['distance_m'] / 1000:.1f} km" + (f" ({n['name']})" if n.get("name") else "") if n else f"no {label} within {radius // 1000} km")
+        radius = a["fire_station_search_radius_m"] if cat in osm.OFFICES else a["search_radius_m"]
+        parts.append(f"{label} {n['distance_m'] / 1000:.1f} km" + (f" ({n['name']})" if n.get("name") else "") if n else f"no {label} mapped within {radius // 1000} km")
     return "Nearest: " + ", ".join(parts)
 
 
@@ -146,6 +155,14 @@ def enrich_incident(settings: Settings, incident_id: str, *, osm_tiles_left: lis
             if last_hs is None or stale:
                 hs = hotspot_evidence(conn, incident_id)
                 have.discard("hotspot")
+        # OSM evidence from before canals and offices were searched (2026-10-30) is collected again; the
+        # offline file answers it for free. The old row stays: evidence is append-only, the agent reads the newest.
+        last_osm = conn.execute(
+            "SELECT payload_json FROM evidence WHERE incident_id=? AND type='osm' ORDER BY rowid DESC LIMIT 1", (incident_id,)
+        ).fetchone()
+        osm_outdated = last_osm is not None and osm_is_outdated(json.loads(last_osm[0]))
+        if osm_outdated:
+            have.discard("osm")
     status = json.loads(inc["enrichment_json"]) if inc["enrichment_json"] else {}
     at = datetime.fromisoformat(inc["last_seen"])
     # sources limits the work to some types, so an agent asking for weather never waits on Overpass.
@@ -205,10 +222,15 @@ def enrich_incident(settings: Settings, incident_id: str, *, osm_tiles_left: lis
         latest_hs = conn.execute(
             "SELECT payload_json FROM evidence WHERE incident_id=? AND type='hotspot' ORDER BY rowid DESC LIMIT 1", (incident_id,)
         ).fetchone()
+        latest_osm = conn.execute(
+            "SELECT payload_json FROM evidence WHERE incident_id=? AND type='osm' ORDER BY rowid DESC LIMIT 1", (incident_id,)
+        ).fetchone()
         for type_, source, summary, payload in new:
             if type_ == "hotspot":
                 if latest_hs is None or json.loads(latest_hs[0]).get("count") != payload["count"]:
                     db.add_evidence(conn, incident_id, type_, source, summary, payload)
+            elif type_ == "osm" and latest_osm is not None and osm_is_outdated(json.loads(latest_osm[0])):
+                db.add_evidence(conn, incident_id, type_, source, summary, payload)
             elif type_ not in have_now:
                 db.add_evidence(conn, incident_id, type_, source, summary, payload)
         conn.execute(

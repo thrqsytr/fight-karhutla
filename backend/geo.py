@@ -38,6 +38,25 @@ def point_to_segment_m(lat: float, lon: float, a: tuple[float, float], b: tuple[
     return math.hypot(px, py) * math.radians(1) * EARTH_RADIUS_M
 
 
+def nearest_on_segment(lat: float, lon: float, a: tuple[float, float], b: tuple[float, float]) -> tuple[float, tuple[float, float]]:
+    """Distance to a segment and the closest point on it, same local projection as point_to_segment_m."""
+    k = math.cos(math.radians(lat))
+    ax, ay = (a[1] - lon) * k, a[0] - lat
+    bx, by = (b[1] - lon) * k, b[0] - lat
+    dx, dy = bx - ax, by - ay
+    seg2 = dx * dx + dy * dy
+    t = 0.0 if seg2 == 0 else max(0.0, min(1.0, -(ax * dx + ay * dy) / seg2))
+    px, py = ax + t * dx, ay + t * dy
+    return math.hypot(px, py) * math.radians(1) * EARTH_RADIUS_M, (lat + py, lon + px / k)
+
+
+def nearest_on_polyline(lat: float, lon: float, line: list[tuple[float, float]]) -> tuple[float, tuple[float, float]]:
+    """Distance to a line (or a single point) and the closest point on it, for drawing where it is."""
+    if len(line) == 1:
+        return haversine_m(lat, lon, line[0][0], line[0][1]), line[0]
+    return min((nearest_on_segment(lat, lon, line[i], line[i + 1]) for i in range(len(line) - 1)), key=lambda r: r[0])
+
+
 def point_to_polyline_m(lat: float, lon: float, line: list[tuple[float, float]]) -> float:
     if len(line) == 1:
         return haversine_m(lat, lon, line[0][0], line[0][1])

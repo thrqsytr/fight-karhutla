@@ -1,3 +1,5 @@
+import json
+
 from backend import db, evidence, ingest
 from backend.sources import http as source_http
 from backend.sources.http import SourceError
@@ -27,7 +29,7 @@ def test_enrichment_adds_hotspot_weather_osm_for_priority_incidents(settings):
         n = conn.execute("SELECT hotspot_count FROM incidents WHERE id=?", (inc_id,)).fetchone()[0]
         assert hs["count"] == n == len(hs["hotspot_ids"])
         assert "m/s" in ev[1]["summary"] and isinstance(ev[1]["payload"]["wind_speed_ms"], (int, float))
-        assert "no fire station within 30 km" in ev[2]["summary"]
+        assert "no fire station mapped within 30 km" in ev[2]["summary"]
 
 
 def test_low_signal_clusters_are_not_enriched_automatically(settings):
@@ -193,3 +195,18 @@ def test_hotspot_snapshot_is_refreshed_when_the_cluster_grows(settings):
     evidence.enrich_incident(settings, inc_id)
     with db.session(settings.db_path) as conn:
         assert sum(1 for e in db.list_evidence(conn, inc_id) if e["type"] == "hotspot") == 2
+
+
+def test_osm_evidence_from_before_the_new_categories_is_collected_again_once(settings):
+    _setup(settings)
+    inc_id = evidence.run_enrichment(settings)["complete"][0]
+    with db.session(settings.db_path) as conn:
+        row = conn.execute("SELECT id, payload_json FROM evidence WHERE incident_id=? AND type='osm'", (inc_id,)).fetchone()
+        old = json.loads(row["payload_json"])
+        old["nearest"] = {k: v for k, v in old["nearest"].items() if k in ("settlement", "road", "river", "lake", "fire_station")}
+        conn.execute("UPDATE evidence SET payload_json=? WHERE id=?", (json.dumps(old), row["id"]))
+    evidence.enrich_incident(settings, inc_id)
+    evidence.enrich_incident(settings, inc_id)  # the refreshed row is current: no third one
+    with db.session(settings.db_path) as conn:
+        rows = [e for e in db.list_evidence(conn, inc_id) if e["type"] == "osm"]
+    assert len(rows) == 2 and not evidence.osm_is_outdated(rows[-1]["payload"])

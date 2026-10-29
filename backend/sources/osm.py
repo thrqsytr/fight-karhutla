@@ -1,4 +1,4 @@
-"""OpenStreetMap via the Overpass API (ODbL).
+"""OpenStreetMap via the Overpass API (ODbL), plus Overture Maps places from the offline file.
 
 The public Overpass servers are shared and often at capacity, so queries go per 0.2 degree tile,
 are cached for a week, and one tile serves every incident inside it. Endpoints are tried in order;
@@ -15,7 +15,7 @@ import zlib
 from contextlib import closing
 from pathlib import Path
 
-from ..geo import haversine_m, point_to_polyline_m
+from ..geo import nearest_on_polyline
 from .http import SourceError, fetch_text
 
 log = logging.getLogger(__name__)
@@ -27,13 +27,18 @@ OVERPASS_ENDPOINTS = (
 )
 FIXTURE_FILE = "overpass_kaltim.json"
 ATTRIBUTION = "Map data (c) OpenStreetMap contributors, ODbL"
-CATEGORIES = ("settlement", "road", "river", "lake", "fire_station")
+OVERTURE_ATTRIBUTION = "Places (c) Overture Maps Foundation and its sources (Meta, Microsoft, Foursquare, AllThePlaces), CDLA Permissive 2.0 / Apache 2.0"
+# Water: river, lake (any water body), canal (also drain and ditch, the peatland canals), stream.
+# Offices: fire station, police, military (barracks, base, office), government (village to regency offices).
+WATER = ("river", "lake", "canal", "stream")
+OFFICES = ("fire_station", "police", "military", "government")
+CATEGORIES = ("settlement", "road", *WATER, *OFFICES)
 
 TILE_DEG = 0.2
 PAD_DEG = 0.1  # about 11 km: any point in the tile is covered for at least this far
 STATION_PAD_DEG = 0.3  # about 33 km for fire stations
 SEARCH_RADIUS_M = 10_000
-STATION_RADIUS_M = 30_000
+STATION_RADIUS_M = 30_000  # every office category
 TTL_S = 7 * 24 * 3600
 
 
@@ -53,35 +58,61 @@ def build_tile_query(tile: tuple[int, int]) -> str:
         "[out:json][timeout:60];("
         f'node["place"~"^(village|hamlet|town|city)$"]({b});'
         f'way["highway"~"^(primary|secondary|tertiary|trunk)$"]({b});'
-        f'way["waterway"="river"]({b});'
+        f'way["waterway"~"^(river|canal|stream|drain|ditch)$"]({b});'
         f'way["natural"="water"]({b});'
-        f'nwr["amenity"="fire_station"]({sb});'
-        f");out geom({b}) tags;"
+        f");out geom({b}) tags;("
+        # Offices are searched farther than the lines are cut, so they come back as centre points.
+        f'nwr["amenity"~"^(fire_station|police|townhall)$"]({sb});'
+        f'nwr["office"="government"]({sb});'
+        f'nwr["landuse"="military"]({sb});'
+        f'nwr["military"~"^(barracks|base|office)$"]({sb});'
+        f");out center tags;"
     )
 
 
+WATERWAY = {"river": "river", "canal": "canal", "drain": "canal", "ditch": "canal", "stream": "stream"}
+
+
 def _category(tags: dict) -> str | None:
+    """Same rules as tools/build_osm_fallback.py. Offline elements carry their category in _cat."""
+    if tags.get("_cat"):
+        return tags["_cat"]
+    amenity = tags.get("amenity")
+    if amenity == "fire_station":
+        return "fire_station"
+    if amenity == "police":
+        return "police"
+    if tags.get("landuse") == "military" or tags.get("military") in ("barracks", "base", "office"):
+        return "military"
+    if amenity == "townhall" or tags.get("office") == "government":
+        return "government"
     if "place" in tags:
         return "settlement"
     if "highway" in tags:
         return "road"
-    if tags.get("waterway") == "river":
-        return "river"
+    if tags.get("waterway") in WATERWAY:
+        return WATERWAY[tags["waterway"]]
     if tags.get("natural") == "water":
         return "lake"
-    if tags.get("amenity") == "fire_station":
-        return "fire_station"
     return None
 
 
-def _distance(lat: float, lon: float, el: dict) -> float | None:
+def _kind(tags: dict) -> str | None:
+    for k in ("_kind", "place", "highway", "waterway", "water", "military", "office", "amenity", "landuse", "natural"):
+        if tags.get(k):
+            return tags[k]
+    return None
+
+
+def _nearest(lat: float, lon: float, el: dict) -> tuple[float, tuple[float, float]] | None:
+    """Distance to the element and its closest point."""
     if "lat" in el:
-        return haversine_m(lat, lon, el["lat"], el["lon"])
+        return nearest_on_polyline(lat, lon, [(el["lat"], el["lon"])])
     geom = [g for g in (el.get("geometry") or []) if g]
     if geom:
-        return point_to_polyline_m(lat, lon, [(g["lat"], g["lon"]) for g in geom])
+        return nearest_on_polyline(lat, lon, [(g["lat"], g["lon"]) for g in geom])
     if "center" in el:
-        return haversine_m(lat, lon, el["center"]["lat"], el["center"]["lon"])
+        return nearest_on_polyline(lat, lon, [(el["center"]["lat"], el["center"]["lon"])])
     return None
 
 
@@ -91,17 +122,22 @@ def nearest_assets(payload: dict, lat: float, lon: float) -> dict:
     for el in payload.get("elements", []):
         tags = el.get("tags", {})
         cat = _category(tags)
-        d = _distance(lat, lon, el)
-        if cat is None or d is None:
+        near = _nearest(lat, lon, el)
+        if cat is None or near is None:
             continue
-        if d > (STATION_RADIUS_M if cat == "fire_station" else SEARCH_RADIUS_M):
+        d, (plat, plon) = near
+        if d > (STATION_RADIUS_M if cat in OFFICES else SEARCH_RADIUS_M):
             continue
         if best[cat] is None or d < best[cat]["distance_m"]:
+            overture = el["type"] == "overture"
             best[cat] = {
                 "name": tags.get("name"),
-                "kind": tags.get("place") or tags.get("highway") or tags.get("waterway") or tags.get("water") or tags.get("natural") or tags.get("amenity"),
+                "kind": _kind(tags),
                 "distance_m": round(d),
-                "osm_id": f"{el['type']}/{el['id']}",
+                # The closest point, so the map can draw a line to it.
+                "at": [round(plat, 6), round(plon, 6)],
+                "source": "overture" if overture else "osm",
+                **({"overture_id": el["id"]} if overture else {"osm_id": f"{el['type']}/{el['id']}"}),
             }
     return best
 
@@ -158,6 +194,10 @@ def ensure_fallback(path: Path, url: str) -> bool:
             raise SourceError("downloaded file is not an OSM fallback database")
         part.replace(path)
         log.info("offline OSM extract ready: %s (%.0f MB)", path, path.stat().st_size / 1e6)
+        for old in path.parent.glob("osm_fallback*.sqlite"):  # earlier releases, now replaced
+            if old != path:
+                old.unlink(missing_ok=True)
+                log.info("removed the earlier offline extract %s", old.name)
         return True
     except (httpx.HTTPError, SourceError, OSError) as exc:
         log.warning("offline OSM extract download failed: %s", exc)
@@ -170,28 +210,30 @@ def _unpack(blob: bytes) -> list[tuple[float, float]]:
     return [(a / 1e6, b / 1e6) for a, b in struct.iter_unpack("<ii", raw)]
 
 
-def fallback_payload(path: Path, lat: float, lon: float) -> dict:
-    """Overpass shaped elements around a point, read from the offline extract."""
+def fallback_payload(path: Path, lat: float, lon: float, *, overture_only: bool = False) -> dict:
+    """Overpass shaped elements around a point, read from the offline extract. Overture places (ids starting
+    with overture/) live in the same file; with overture_only they are added to a live Overpass answer."""
     t0, t1 = tile_of(lat, lon)
     reach = math.ceil(STATION_PAD_DEG / TILE_DEG)
     elements = []
     with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as conn:
         rows = conn.execute(
             """SELECT DISTINCT f.id, f.cat, f.kind, f.name, f.geom FROM tiles t JOIN features f ON f.id = t.fid
-               WHERE t.tlat BETWEEN ? AND ? AND t.tlon BETWEEN ? AND ?""",
+               WHERE t.tlat BETWEEN ? AND ? AND t.tlon BETWEEN ? AND ?""" + (" AND f.id LIKE 'overture/%'" if overture_only else ""),
             (t0 - reach, t0 + reach, t1 - reach, t1 + reach),
         ).fetchall()
         meta = dict(conn.execute("SELECT key, value FROM meta").fetchall())
-    tag_key = {"settlement": "place", "road": "highway", "river": "waterway", "lake": "water", "fire_station": "amenity"}
     for fid, cat, kind, name, blob in rows:
+        if cat not in CATEGORIES:
+            continue
         coords = _unpack(blob)  # the radius per category is applied later, in nearest_assets
-        kind_tag = {"lake": {"natural": "water", "water": kind}}.get(cat, {tag_key[cat]: kind})
-        tags = {**kind_tag, **({"name": name} if name else {})}
-        typ, num = fid.split("/")
+        tags = {"_cat": cat, "_kind": kind, **({"name": name} if name else {})}
+        typ, num = fid.split("/", 1)
+        num = num if typ == "overture" else int(num)
         if len(coords) == 1:
-            elements.append({"type": typ, "id": int(num), "lat": coords[0][0], "lon": coords[0][1], "tags": tags})
+            elements.append({"type": typ, "id": num, "lat": coords[0][0], "lon": coords[0][1], "tags": tags})
         else:
-            elements.append({"type": typ, "id": int(num), "geometry": [{"lat": a, "lon": b} for a, b in coords], "tags": tags})
+            elements.append({"type": typ, "id": num, "geometry": [{"lat": a, "lon": b} for a, b in coords], "tags": tags})
     return {"elements": elements, "osm3s": {"timestamp_osm_base": meta.get("source")}, "_fallback": meta}
 
 
@@ -207,6 +249,9 @@ def get_nearby_assets(lat: float, lon: float, *, cache_dir: Path, fixtures_dir: 
         else:
             try:
                 payload, endpoint = fetch_tile(tile, cache_dir=cache_dir)
+                if have_fallback:  # Overture places come only from the offline file
+                    extra = fallback_payload(fallback, lat, lon, overture_only=True)
+                    payload = {**payload, "elements": payload.get("elements", []) + extra["elements"], "_fallback": extra["_fallback"]}
             except SourceError:
                 if not have_fallback:
                     raise
@@ -223,4 +268,5 @@ def get_nearby_assets(lat: float, lon: float, *, cache_dir: Path, fixtures_dir: 
         "tile": list(tile) if tile else None,
         "endpoint": endpoint,
         "offline_source": (payload.get("_fallback") or {}).get("source"),
+        "overture_release": (payload.get("_fallback") or {}).get("overture_release"),
     }

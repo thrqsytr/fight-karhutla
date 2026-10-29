@@ -2,8 +2,11 @@
 
 When every public Overpass endpoint fails, backend/sources/osm.py answers from this file instead, with the
 same features the Overpass query asks for: places (village, hamlet, town, city), main roads (trunk, primary,
-secondary, tertiary), rivers, water bodies, and fire stations. Lines are simplified to about 20 m, which
-moves a nearest distance by at most that much against kilometre scale radii.
+secondary, tertiary), rivers, canals (also drains and ditches), streams, water bodies, and offices: fire
+stations, police, military (barracks, base, office, military land), and government (town halls, government
+offices). Lines are simplified to about 20 m, which moves a nearest distance by at most that much against
+kilometre scale radii. Offices drawn as areas are stored as their centre; multipolygon relations are skipped.
+tools/overture_places.py then adds Overture Maps offices to the same file.
 
 Usage (repo root): .venv/Scripts/python tools/build_osm_fallback.py INPUT.osm.pbf OUTPUT.sqlite
 Needs: pip install osmium shapely (build time only; the server reads the SQLite with the standard library).
@@ -34,15 +37,27 @@ CREATE TABLE tiles (tlat INTEGER NOT NULL, tlon INTEGER NOT NULL, fid TEXT NOT N
 """
 
 
+WATERWAY = {"river": "river", "canal": "canal", "drain": "canal", "ditch": "canal", "stream": "stream"}  # must match backend/sources/osm.py
+OFFICES = {"fire_station", "police", "military", "government"}
+POINT_CATS = {"settlement"} | OFFICES
+
+
 def category(tags) -> tuple[str, str] | None:
-    if tags.get("amenity") == "fire_station":
+    amenity = tags.get("amenity")
+    if amenity == "fire_station":
         return "fire_station", "fire_station"
+    if amenity == "police":
+        return "police", "police"
+    if tags.get("landuse") == "military" or tags.get("military") in ("barracks", "base", "office"):
+        return "military", tags.get("military") or "military"
+    if amenity == "townhall" or tags.get("office") == "government":
+        return "government", tags.get("townhall:type") or ("townhall" if amenity == "townhall" else "government")
     if tags.get("place") in PLACES:
         return "settlement", tags.get("place")
     if tags.get("highway") in ROADS:
         return "road", tags.get("highway")
-    if tags.get("waterway") == "river":
-        return "river", "river"
+    if tags.get("waterway") in WATERWAY:
+        return WATERWAY[tags.get("waterway")], tags.get("waterway")
     if tags.get("natural") == "water":
         return "lake", tags.get("water") or "water"
     return None
@@ -80,7 +95,7 @@ class Handler(osmium.SimpleHandler):
 
     def node(self, n):
         c = category(n.tags)
-        if c and c[0] in ("settlement", "fire_station") and n.location.valid():
+        if c and c[0] in POINT_CATS and n.location.valid():
             self._add(f"node/{n.id}", c[0], c[1], n.tags.get("name"), [(n.location.lat, n.location.lon)])
             self.n["node"] += 1
 
@@ -96,7 +111,7 @@ class Handler(osmium.SimpleHandler):
         if not coords:
             self.n["skipped"] += 1
             return
-        if c[0] == "fire_station":
+        if c[0] in OFFICES:
             coords = [(sum(p[0] for p in coords) / len(coords), sum(p[1] for p in coords) / len(coords))]
         elif len(coords) > 2:
             line = LineString([(lo, la) for la, lo in coords]).simplify(SIMPLIFY_DEG, preserve_topology=False)

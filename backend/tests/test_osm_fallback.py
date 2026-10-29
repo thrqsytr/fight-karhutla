@@ -86,3 +86,52 @@ def test_a_broken_download_never_becomes_the_fallback(tmp_path, monkeypatch):
     target = tmp_path / "osm_fallback.sqlite"
     assert osm.ensure_fallback(target, "https://example.invalid/x") is False
     assert not target.exists() and not target.with_suffix(".part").exists()
+
+
+def test_canals_offices_and_overture_places_come_with_where_they_are(tmp_path, monkeypatch):
+    fb = tmp_path / "osm_fallback.sqlite"
+    make_fallback(fb)
+    conn = sqlite3.connect(fb)
+    extra = [
+        ("way/4", "canal", "canal", None, [(0.005, 116.44), (0.005, 116.46)]),
+        ("node/5", "police", "police", "Polsek Tabang", [(0.05, 116.45)]),
+        ("overture/abc-1", "fire_station", "fire_station", "Damkar Tabang", [(0.02, 116.45)]),
+        ("overture/abc-2", "military", "military_site", "Koramil", [(0.5, 116.45)]),  # about 55 km: outside 30 km
+    ]
+    for fid, cat, kind, name, coords in extra:
+        conn.execute("INSERT INTO features VALUES (?,?,?,?,?)", (fid, cat, kind, name, pack(coords)))
+        for la, lo in coords:
+            conn.execute("INSERT INTO tiles VALUES (?,?,?)", (*osm.tile_of(la, lo), fid))
+    conn.commit()
+    conn.close()
+    monkeypatch.setattr(osm, "fetch_tile", lambda tile, cache_dir: (_ for _ in ()).throw(SourceError("down")))
+    n = osm.get_nearby_assets(0.0, 116.45, cache_dir=tmp_path, fixtures_dir=tmp_path, fixture=False, fallback=fb)["nearest"]
+    assert n["canal"]["distance_m"] == pytest.approx(556, abs=5) and n["canal"]["at"] == [0.005, 116.45]
+    assert n["fire_station"]["name"] == "Damkar Tabang" and n["fire_station"]["source"] == "overture"  # nearer than the OSM post
+    assert n["fire_station"]["overture_id"] == "abc-1" and "osm_id" not in n["fire_station"]
+    assert n["police"]["source"] == "osm" and n["police"]["osm_id"] == "node/5"
+    assert n["military"] is None and n["government"] is None and n["stream"] is None
+
+
+def test_overture_places_join_a_live_overpass_answer(tmp_path, monkeypatch):
+    fb = tmp_path / "osm_fallback.sqlite"
+    make_fallback(fb)
+    conn = sqlite3.connect(fb)
+    conn.execute("INSERT INTO features VALUES (?,?,?,?,?)", ("overture/g-1", "government", "town_hall", "Kantor Desa", pack([(0.01, 116.45)])))
+    conn.execute("INSERT INTO tiles VALUES (?,?,?)", (*osm.tile_of(0.01, 116.45), "overture/g-1"))
+    conn.commit()
+    conn.close()
+    live = {"elements": [{"type": "node", "id": 9, "lat": 0.0, "lon": 116.46, "tags": {"amenity": "police", "name": "Polsek"}}], "osm3s": {}}
+    monkeypatch.setattr(osm, "fetch_tile", lambda tile, cache_dir: (live, "https://overpass.test"))
+    a = osm.get_nearby_assets(0.0, 116.45, cache_dir=tmp_path, fixtures_dir=tmp_path, fixture=False, fallback=fb)
+    assert a["endpoint"] == "https://overpass.test"
+    assert a["nearest"]["police"]["name"] == "Polsek" and a["nearest"]["government"]["source"] == "overture"
+    assert a["nearest"]["settlement"] is None  # OSM rows of the offline file are not mixed into a live answer
+
+
+def test_a_new_release_url_gets_its_own_file(tmp_path):
+    from backend.config import Settings
+
+    s = Settings(data_dir=tmp_path, osm_fallback_url="https://github.com/o/r/releases/download/osm-fallback-20261030/osm_fallback.sqlite")
+    assert s.osm_fallback_path.name == "osm_fallback-20261030.sqlite"
+    assert Settings(data_dir=tmp_path, osm_fallback_url="").osm_fallback_path.name == "osm_fallback.sqlite"

@@ -56,7 +56,10 @@ class Settings(BaseSettings):
 
     @property
     def osm_fallback_path(self) -> Path:
-        return self.data_dir / "osm_fallback.sqlite"
+        # Named after the release tag in the URL, so a new release is downloaded instead of the old file kept.
+        parts = self.osm_fallback_url.rstrip("/").split("/")
+        tag = (parts[-2] if "download" in parts[:-1] else "").removeprefix("osm-fallback-")
+        return self.data_dir / (f"osm_fallback-{tag}.sqlite" if tag else "osm_fallback.sqlite")
 
     @property
     def cache_dir(self) -> Path:
