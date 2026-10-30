@@ -1655,11 +1655,11 @@ function proposalCard(inc, p) {
       el("dt", {}, t("Flight")), el("dd", {}, t("about {min} min, {km} km path, {b} battery(ies)", { min: fmtNum(est.flight_minutes), km: fmtNum(est.path_km), b: est.batteries }))),
     p.note ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, `${t("Note")}: ${p.note}`) : null,
     p.status === "approved" ? flightBlock(inc, p) : null,
+    // The decision comes first and spans the card; the map toggle and the rejection sit under it.
     el("div", { class: "actions" },
+      p.status === "proposed" ? el("button", { class: "btn btn-primary", type: "button", onclick: () => decideProposal(inc, p, "approve") }, svg("check", "icon icon-sm"), t("Approve mission")) : null,
       mapToggle("plan", "Show plan on map", () => showFlightPlan(p), () => showFlightPlan(null)),
-      p.status === "proposed" ? [
-        el("button", { class: "btn btn-primary", type: "button", onclick: () => decideProposal(inc, p, "approve") }, svg("check", "icon icon-sm"), t("Approve mission")),
-        el("button", { class: "btn btn-ghost-danger", type: "button", onclick: () => decideProposal(inc, p, "reject") }, svg("x", "icon icon-sm"), t("Reject"))] : null),
+      p.status === "proposed" ? el("button", { class: "btn btn-ghost-danger", type: "button", onclick: () => decideProposal(inc, p, "reject") }, svg("x", "icon icon-sm"), t("Reject")) : null),
   );
 }
 

@@ -605,8 +605,13 @@ a.btn-wa-log { color: var(--ink); text-decoration: none; background: var(--card)
 /* Drone survey proposals */
 .proposal { border: 1px solid var(--line-soft); border-radius: var(--r-sm); padding: 10px 12px; display: grid; gap: 8px; }
 /* Plan and flight actions in two columns instead of one tall stack. */
-.proposal .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.proposal .actions .btn { justify-content: center; min-width: 0; }
+/* Drone plan actions: the main action spans the card, the others are one-line buttons that wrap as a group,
+   and a destructive one sits at the end of the row. No label breaks onto two lines. */
+.proposal .actions { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+.proposal .actions .btn { height: 32px; padding: 0 12px; font-size: 12.5px; white-space: nowrap; flex: 1 1 auto; }
+.proposal .actions .btn-primary { flex: 1 1 100%; height: 36px; font-size: 13px; }
+.proposal .actions .btn-ghost-danger { flex: 0 1 auto; margin-left: auto; }
+.proposal .actions .btn-tip { flex: 0 0 auto; }
 .proposal.proposed { border-color: #d9d0fd; background: #faf8ff; }
 .proposal-pill { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--line-soft); color: var(--ink-2); }
 .proposal-pill.proposed { background: #f0ebff; color: #5b3fd6; }
