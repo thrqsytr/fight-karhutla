@@ -1,0 +1,63 @@
+# Evaluation
+
+Full evaluation of the triage agent, moved here from the README on 2026-10-30. The README keeps the summary.
+
+
+Thirty hotspot clusters from the 2025 dry season (FIRMS VIIRS S-NPP archive, Kalimantan Barat, Kalimantan Tengah, Riau, Sumatera Selatan and Jambi), 15 burned and 15 not burned. A label is burned when Sentinel-2 dNBR shows at least 2 ha at 0.27 or more within 500 m of a hotspot, in a clear pair before and within 40 days after the first detection, and not burned under 0.5 ha with at least 60% of that ground clear. Every label was then checked by eye on the before, after, and burn mask images; 4 are doubtful (cloud or haze under the mask, open mining) and the second table leaves them out. Labels: [eval/labels.csv](../eval/labels.csv), images in `eval/dataset/sheets/`.
+
+Each cluster runs through the app's own ingest, enrichment, agent, gate, and critique in a throwaway database. The agent may use hotspots, weather (Open-Meteo archive at the time), and OSM only: Sentinel-2 is the label source, so it is withheld. Positive means `likely_fire` or `possible_fire`. The same 30 were run on both models.
+
+**Muse Spark 1.3 (Meta Model API, the production model)**
+
+| meta (muse-spark-1.3), n=30 | Precision | Recall | F1 | Accuracy | Abstained |
+|---|---|---|---|---|---|
+| (a) Rule: any nominal or high hotspot | 52% | 100% | 68% | 53% | 0 |
+| (b) Agent before gate | 100% | 13% | 24% | 57% | 27 |
+| (c) Agent after gate and critique | 100% | 13% | 24% | 57% | 27 |
+
+Only the 26 clusters whose label also passed a visual check:
+
+| Baseline | Precision | Recall | F1 | Accuracy | Abstained |
+|---|---|---|---|---|---|
+| (a) Rule | 44% | 100% | 61% | 46% | 0 |
+| (b) Agent before gate | 100% | 18% | 31% | 65% | 23 |
+| (c) Agent after gate and critique | 100% | 18% | 31% | 65% | 23 |
+
+Grounding rate 100% (160 of 160 claims kept), 3 corrections, 0 downgrades, 10 disputed by the critic, 1 errors, 0 schema failures. Median 94.3 s per incident (p90 149.1 s), about 29847 tokens per incident, $1.7274 in total ($0.0576 per incident).
+
+**Muse Spark Open (Baseten)**
+
+| baseten (meta-models/muse-spark-open-1026), n=30 | Precision | Recall | F1 | Accuracy | Abstained |
+|---|---|---|---|---|---|
+| (a) Rule: any nominal or high hotspot | 52% | 100% | 68% | 53% | 0 |
+| (b) Agent before gate | 0% | 0% | n/a | 47% | 27 |
+| (c) Agent after gate and critique | n/a | 0% | n/a | 50% | 28 |
+
+Only the 26 clusters whose label also passed a visual check:
+
+| Baseline | Precision | Recall | F1 | Accuracy | Abstained |
+|---|---|---|---|---|---|
+| (a) Rule | 44% | 100% | 61% | 46% | 0 |
+| (b) Agent before gate | 0% | 0% | n/a | 54% | 23 |
+| (c) Agent after gate and critique | n/a | 0% | n/a | 58% | 24 |
+
+Grounding rate 100% (172 of 172 claims kept), 26 corrections, 0 downgrades, 7 disputed by the critic, 2 errors, 5 schema failures. Median 76.2 s per incident (p90 131.8 s), about 34194 tokens per incident, cost not metered (Baseten credit).
+
+What this shows:
+
+- The rule calls nearly every cluster a fire (29 of 30 have a nominal or high hotspot), so its precision is about the share of burned clusters in the set. Hotspot confidence alone does not separate the clusters that left a scar from those that did not.
+- Without an independent source, both models mostly decline to call it. Muse Spark 1.3 returned `needs_more_info` for 27 of 30 and listed what it needs (a citizen photo or report, a clear satellite pass); the 2 clusters it called `possible_fire` were both burned, so it raised no false alarm, but it found 2 of 15 burns. Muse Spark Open never committed. On hotspot, weather, and OSM data alone, neither adds detection over the rule: the value is a grounded brief and routing to a verifier with a request for data, and detection comes from the independent sources (Sentinel-2, citizen photos, the drone), which this evaluation withholds on purpose.
+- Every claim that reached the output cited stored evidence. The gate replaced numbers with the tool values (3 on Muse Spark 1.3, 26 on Muse Spark Open), and the critic disputed 10 and 7 claims. Muse Spark Open failed the schema twice in 5 runs (confidence above 1) and broke off mid JSON in 2; Muse Spark 1.3 returned one empty answer. All count against the agent above.
+- 4 Muse Spark 1.3 runs first failed with a transient API error ("referenced response not found") and were run again after the agent learned to retry that error (decision 49).
+- Burned area error is not reported: the labels are dNBR areas, so comparing dNBR hectares with them would grade the label against itself.
+- Muse Spark 1.3 cost $1.73 for the 30, $0.058 per incident, from the usage of each call. Baseten runs on hackathon credit that is not metered per token.
+
+Run it: `eval/build_dataset.py` (or `eval/dataset_modal.py` next to the data), then `eval/run_eval.py --provider meta` (or `baseten`). Raw results: [eval/results/](../eval/results/).
+
+## Related research (drone simulation)
+
+The drone survey is a simulation, built the way recent work builds synthetic wildfire imagery: a 3D scene derived from real data, with exact truth for every frame.
+
+- Chen, Sun, Li, et al. *A Simulation-Grounded Agentic VLM Framework for Wildfire Monitoring and Reporting.* arXiv:2610.02451 (2026). Turns 2D fire simulations into Blender proxy scenes with labels and uses them as memory for VLM wildfire reports. Our survey also renders in Blender from real ground (a Sentinel-2 burn mask) and measures against the render truth.
+- Sun, Lo, Hu. *WildfireX-SLAM: A Large-scale Low-altitude RGB-D Dataset for Wildfire SLAM and Beyond.* arXiv:2510.27133 (MMM 2026). Synthetic low-altitude forest and wildfire imagery from Unreal Engine 5, because real forest data is costly to collect.
+- Schuck, Rath, Hua, et al. *Crazyflow: An Accurate, GPU-Accelerated, Differentiable Drone Simulator in JAX.* arXiv:2606.01478 (2026), and Tayal. *MuJoCo-Drones-Gym: A GPU-Accelerated Multi-Drone Simulator for Control and Reinforcement Learning.* arXiv:2606.08039 (2026). Physics simulators for control and learning. Our flight telemetry is a deliberately simple kinematic model (cruise speed, wind along each leg, battery drain); a physics simulator like these would be the next step for flight dynamics, and is not used here.
