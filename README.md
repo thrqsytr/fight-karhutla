@@ -36,7 +36,7 @@ Inference only; no model is trained on user data. Metered cost: $0.058 per incid
 - Verifier's desk: verification queue, source health, coverage, spend, operator jobs, settings log, CSV export.
 - Drone survey (simulated): plan, verifier approval, simulated pilot, 3D view with a data console.
 - Replay of three recorded 2025 incidents, Indonesian and English, How it works overlay.
-- Plain-language overview in Indonesian: [docs/WHITEPAPER.md](docs/WHITEPAPER.md).
+- Plain-language whitepaper in Indonesian: [PDF](docs/WHITEPAPER.pdf) or [Markdown](docs/WHITEPAPER.md).
 
 ## Evaluation
 
