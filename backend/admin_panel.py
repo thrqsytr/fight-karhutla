@@ -44,15 +44,19 @@ def queue(conn) -> dict:
         WHERE e.type IN ('report', 'image', 'voice') AND json_extract(e.payload_json, '$.channel') = 'whatsapp'
           AND e.incident_id NOT IN (SELECT incident_id FROM wa_showcase)
         GROUP BY e.incident_id ORDER BY received_at DESC LIMIT 50""")]
+    heat = [dict(r) for r in conn.execute("""
+        SELECT f.id, f.incident_id, f.kind, f.note, f.created_at, (SELECT COUNT(*) FROM heat_source_flags g WHERE g.incident_id = f.incident_id AND g.status = 'pending') AS flags
+        FROM heat_source_flags f WHERE f.status = 'pending' AND f.id = (SELECT MIN(id) FROM heat_source_flags h WHERE h.incident_id = f.incident_id AND h.status = 'pending')
+        ORDER BY f.created_at DESC LIMIT 50""")]
     decisions = [dict(r) for r in conn.execute("""
         SELECT v.id, v.incident_id, v.decision, v.note, v.verifier_hash, v.created_at, i.status, i.simulation
         FROM verdicts v JOIN incidents i ON i.id = v.incident_id ORDER BY v.id DESC LIMIT 20""")]
     real = [a for a in awaiting if not a["simulation"]]
     return {
-        "awaiting_decision": awaiting, "citizen_pending": citizen, "drone_proposed": drone, "wa_unshown": wa,
+        "awaiting_decision": awaiting, "citizen_pending": citizen, "drone_proposed": drone, "wa_unshown": wa, "heat_flags": heat,
         "recent_decisions": decisions,
         # The badge counts what a verifier must act on in real incidents; replays are practice.
-        "count": len(real) + len(citizen) + len(drone),
+        "count": len(real) + len(citizen) + len(drone) + len(heat),
     }
 
 

@@ -8,12 +8,14 @@ from dataclasses import dataclass, field
 
 from pydantic import ValidationError
 
+from . import heat_sources
 from .geo import haversine_m, in_indonesia, pixel_area_ha
 from .schema import STATUS_LADDER, TriageOutput
 
 NUMBER_TOLERANCE = 0.01
 LOCATION_RADIUS_M = 5000
 INDEPENDENT_TYPES = {"image", "voice", "satellite"}
+HEAT_SOURCE_REASON = "inside a persistent heat source zone approved by a verifier, likely_fire needs a citizen photo or voice note"
 # Satellite evidence supports likely_fire only when it measured a burn: 25 pixels at 20 m. Below that, a dNBR count
 # is within edge and misregistration noise. Found on 2026-10-28: a pair with 0.28 ha let the agent claim likely_fire.
 MIN_SATELLITE_BURN_HA = 1.0
@@ -213,6 +215,10 @@ def run(raw: dict, evidence: list[dict], incident_id: str) -> GateResult:
     if out["status"] == "likely_fire" and not any(supports(e) for e in cited):
         reason = "likely_fire needs independent evidence (image, voice, or a satellite burn of at least " f"{MIN_SATELLITE_BURN_HA:g} ha)"
         _set_status(out, res, "possible_fire", reason)
+    # Inside a persistent heat source zone a mine or a flare looks like a burn from orbit: only a citizen photo
+    # or voice note from the ground can carry likely_fire there.
+    if out["status"] == "likely_fire" and heat_sources.active_zone_evidence(evidence) and not any(e["type"] in {"image", "voice"} for e in cited):
+        _set_status(out, res, "possible_fire", HEAT_SOURCE_REASON)
 
     # Burn area is computed by code from a real mask, never taken from the model.
     area = out["burn_area_ha"]

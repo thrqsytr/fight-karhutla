@@ -111,7 +111,7 @@ def stop(settings: Settings) -> dict:
             sim = conn.execute("SELECT simulation FROM incidents WHERE id=?", (inc_id,)).fetchone()
             if sim is None or not sim["simulation"]:
                 continue  # never delete a real incident, whatever the stored list says
-            for table in ("evidence", "verdicts", "drone_flights", "drone_proposals", "agent_runs", "hotspots"):
+            for table in ("evidence", "verdicts", "drone_flights", "drone_proposals", "agent_runs", "hotspots", "heat_source_flags"):
                 conn.execute(f"DELETE FROM {table} WHERE incident_id=?", (inc_id,))
             conn.execute("DELETE FROM incidents WHERE id=?", (inc_id,))
             shutil.rmtree(settings.data_dir / "satellite" / inc_id, ignore_errors=True)

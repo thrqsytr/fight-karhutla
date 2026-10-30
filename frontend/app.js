@@ -391,7 +391,8 @@ function refreshBusy() {
 function setMapData() {
   if (!map) return;
   const hs = geo(state.hotspots, (h) => ({ id: h.id, frp: h.frp, conf: h.confidence, at: h.acquired_at, recent: isRecent(h.acquired_at) ? 1 : 0 }));
-  const inc = geo(state.incidents, (i) => ({ id: i.id, n: i.hotspot_count, frp: i.max_frp, color: (STATUS[i.status] || STATUS.pending_triage).color, last: i.last_seen }));
+  const inc = geo(state.incidents, (i) => ({ id: i.id, n: i.hotspot_count, frp: i.max_frp, last: i.last_seen, hs: i.heat_source ? 1 : 0,
+    color: i.heat_source ? HEAT_GREY : (STATUS[i.status] || STATUS.pending_triage).color }));
   if (map.getSource("hotspots")) {
     map.getSource("hotspots").setData(hs);
     map.getSource("incidents").setData(inc);
@@ -523,7 +524,8 @@ function renderLegend() {
     el("div", { class: "legend-ramp" }),
     el("div", { class: "legend-scale num" }, ...HEAT_STOPS.map(([v]) => el("span", {}, v === HEAT_MAX ? `${v}+` : String(v)))),
     el("div", { class: "legend-label" }, t("Incident status")),
-    el("div", { class: "legend-status" }, ...LEGEND_STATUSES.map((k) => el("span", {}, el("span", { class: "ring", style: `color:${STATUS[k].color}` }), statusLabel(k)))),
+    el("div", { class: "legend-status" }, ...LEGEND_STATUSES.map((k) => el("span", {}, el("span", { class: "ring", style: `color:${STATUS[k].color}` }), statusLabel(k))),
+      el("span", {}, el("span", { class: "ring", style: `color:${HEAT_GREY}` }), t("Persistent heat source"))),
     el("div", { class: "legend-label" }, t("Layers")),
     sw("heatmap", t("Heat density")), sw("hotspots", t("Hotspots")), sw("incidents", t("Incidents")),
     el("div", { class: "legend-label" }, t("NASA satellite layers"), info(t("Latest available day from NASA GIBS. Display only: these images are not used as evidence and clouds can hide smoke."), "tip-left")),
@@ -581,6 +583,226 @@ function showIntro() {
   ] });
 }
 
+/* Persistent heat sources (review round 3). Anyone may say a cluster is a mine, flare, factory, or volcano, not a
+   land fire; only a verifier's acceptance makes a zone. Neutral words: what the heat source is, never who runs it. */
+const HEAT_GREY = "#98a2b3";
+const HEAT_KINDS = { mine_smelter: "Mine or smelter", gas_flare_refinery: "Gas flare or refinery", factory_power_plant: "Factory or power plant", volcano_geothermal: "Volcano or geothermal", other: "Other heat source" };
+
+function choiceGrid(options, value, onPick) {
+  const grid = el("div", { class: "choice-grid", role: "radiogroup" });
+  const paint = (v) => fill(grid, Object.entries(options).map(([k, label]) => el("button", { type: "button", role: "radio", class: "choice", "aria-checked": String(k === v),
+    onclick: () => { paint(k); onPick(k); } }, t(label))));
+  paint(value);
+  return grid;
+}
+
+function openHeatFlag(inc) {
+  let kind = null, consent = false;
+  const note = el("textarea", { class: "input textarea", rows: 3, maxlength: 280, placeholder: t("What is there? For example: an open-pit mine that glows at night.") });
+  const err = el("p", { class: "form-error", hidden: true });
+  const tick = el("button", { class: "checkbox", type: "button", role: "checkbox", "aria-checked": "false" },
+    el("span", { class: "box" }, svg("check", "icon icon-sm")), el("span", {}, t("I understand a verifier checks this before it counts, and the incident stays open.")));
+  tick.onclick = () => { consent = !consent; tick.setAttribute("aria-checked", String(consent)); };
+  const send = el("button", { class: "btn btn-primary", type: "button" }, svg("send", "icon icon-sm"), t("Send"));
+  const dlg = modal({ title: t("Not a land fire? Mark as a persistent heat source"), body: [
+    el("p", { class: "muted", style: "margin:0" }, t("Some places keep emitting heat that satellites read as hotspots: mines, smelters, gas flares, factories, power plants, volcanoes. Tell us what is here; a verifier decides.")),
+    el("div", { class: "legend-label" }, t("What kind of heat source?")), choiceGrid(HEAT_KINDS, null, (k) => { kind = k; }),
+    el("div", { class: "legend-label" }, t("Note (optional)")), note, tick, err],
+    actions: [el("button", { class: "btn", type: "button", onclick: () => dlg.close() }, t("Cancel")), send] });
+  send.onclick = async () => {
+    const fail = (m) => { err.hidden = false; fill(err, svg("alert", "icon icon-sm"), el("span", {}, m)); };
+    if (!kind) return fail(t("Pick what kind of heat source it is."));
+    if (!consent) return fail(t("Tick the statement above the send button."));
+    send.disabled = true;
+    try {
+      await api(`/api/incidents/${inc.id}/heat-source-flags`, { method: "POST", body: JSON.stringify({ kind, note: note.value.trim() || null, consent }) });
+      dlg.close();
+      toast(t("Sent. A verifier will check it; the incident stays open meanwhile."), "check");
+      if (state.selected === inc.id) openIncident(inc.id);
+    } catch (e) {
+      fail(e.message);
+      send.disabled = false;
+    }
+  };
+}
+
+function decideHeat(inc, flag, decision) {
+  let kind = flag.kind;
+  const radius = el("input", { type: "number", class: "input admin-num", min: 200, max: 5000, step: 100, value: 1000, "aria-label": t("Radius") });
+  const note = el("input", { class: "input", maxlength: 280, placeholder: t("Note (optional)"), "aria-label": t("Note (optional)") });
+  const err = el("p", { class: "form-error", hidden: true });
+  const ok = el("button", { class: "btn btn-primary", type: "button" }, t(decision === "accept" ? "Accept" : "Reject"));
+  const body = decision === "accept"
+    ? [el("p", { class: "muted", style: "margin:0" }, t("A zone is stored around this incident. Incidents inside it are marked, new hotspots there too, and likely fire needs a citizen photo or voice note there. Nothing is closed or deleted.")),
+      el("div", { class: "legend-label" }, t("Kind")), choiceGrid(HEAT_KINDS, kind, (k) => { kind = k; }),
+      el("div", { class: "legend-label" }, t("Radius"), " ", el("span", { class: "muted" }, "200 - 5000 m")), el("div", { class: "admin-num-wrap" }, radius, el("span", { class: "muted" }, "m")), note, err]
+    : [el("p", { class: "muted", style: "margin:0" }, t("The flags on this incident are closed as rejected. The incident is not changed.")), note, err];
+  const dlg = modal({ title: t(decision === "accept" ? "Accept as persistent heat source" : "Reject the flag"), body,
+    actions: [el("button", { class: "btn", type: "button", onclick: () => dlg.close() }, t("Cancel")), ok] });
+  ok.onclick = async () => {
+    ok.disabled = true;
+    try {
+      const r = await api(`/api/heat-source-flags/${flag.id}/decision`, { method: "POST",
+        body: JSON.stringify({ decision, radius_m: decision === "accept" ? Math.round(Number(radius.value)) : null, kind: decision === "accept" ? kind : null, note: note.value.trim() || null }) });
+      dlg.close();
+      toast(t(decision === "accept" ? "Zone stored; {n} incident(s) marked." : "Flag rejected.", { n: r.incidents_marked }), "check");
+      loadHeatZones();
+      reloadIncidents();
+      if (state.selected === inc.id) openIncident(inc.id);
+    } catch (e) {
+      err.hidden = false;
+      fill(err, svg("alert", "icon icon-sm"), el("span", {}, e.message));
+      ok.disabled = false;
+    }
+  };
+}
+
+async function withdrawZone(inc, zone) {
+  const ok = el("button", { class: "btn btn-primary", type: "button" }, t("Withdraw"));
+  const dlg = modal({ title: t("Withdraw the zone?"), body: [el("p", { style: "margin:0" }, t("Incidents inside it stop counting as a persistent heat source. The record of the zone stays."))],
+    actions: [el("button", { class: "btn", type: "button", onclick: () => dlg.close() }, t("Cancel")), ok] });
+  ok.onclick = async () => {
+    ok.disabled = true;
+    try {
+      await api(`/api/heat-source-zones/${zone.id}/withdraw`, { method: "POST" });
+      dlg.close();
+      toast(t("Zone withdrawn."), "check");
+      loadHeatZones();
+      reloadIncidents();
+      openIncident(inc.id);
+    } catch (e) {
+      toast(t("Failed: {e}", { e: e.message }), "alert");
+      ok.disabled = false;
+    }
+  };
+}
+
+function nearLine(inc) {
+  const osm = latest(inc, "osm")?.payload?.nearest;
+  const parts = [];
+  if (osm?.settlement) parts.push(t("Near {p}, {d}", { p: osm.settlement.name || t("settlement"), d: km(osm.settlement.distance_m) }));
+  const { spread } = suppressionFacts(inc);
+  if (spread != null) parts.push(t("likely spread toward the {dir}", { dir: compass(spread) }));
+  const water = osm ? waterSource(osm) : null;
+  if (water) parts.push(t("water {w}", { w: `${placeName(water)} ${km(water.distance_m)}` }));
+  if (!parts.length) return null;
+  return el("button", { class: "near-line", type: "button", onclick: () => document.getElementById("stage-4")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+    svg("pin", "icon icon-sm"), el("span", {}, parts.join(" · ")));
+}
+
+function heatSection(inc) {
+  const h = inc.heat_source_flags || { pending: 0, kinds: [], zone: null };
+  const zone = h.zone;
+  const items = (h.items || []).filter((f) => f.status === "pending");
+  const content = zone
+    ? [el("div", { class: "heat-note" }, svg("info", "icon icon-sm"), el("div", {},
+        el("strong", {}, t("Inside a persistent heat source zone: {k}", { k: t(HEAT_KINDS[zone.kind] || zone.kind) })),
+        el("p", {}, t("Accepted by a verifier on {when}, radius {r} m. The incident stays open: a real fire can burn next to a heat source, so likely fire here needs a citizen photo or voice note.", { when: fmtTime(zone.created_at), r: zone.radius_m })))),
+      token() ? el("div", { class: "actions" }, el("button", { class: "btn", type: "button", onclick: () => withdrawZone(inc, zone) }, svg("x", "icon icon-sm"), t("Withdraw the zone"))) : null]
+    : h.pending
+      ? [el("p", { style: "margin:0" }, t("Flagged as a persistent heat source ({n} flag(s): {k}), waiting for a verifier.", { n: h.pending, k: h.kinds.map((k) => t(HEAT_KINDS[k] || k)).join(", ") })),
+        items.map((f) => el("div", { class: "heat-flag" }, el("div", {}, el("strong", {}, t(HEAT_KINDS[f.kind] || f.kind)), el("span", { class: "muted" }, ` · ${fmtTime(f.created_at)}`),
+          f.note ? el("p", { class: "muted" }, f.note) : null),
+          el("div", { class: "actions" }, el("button", { class: "btn btn-primary", type: "button", onclick: () => decideHeat(inc, f, "accept") }, svg("check", "icon icon-sm"), t("Accept")),
+            el("button", { class: "btn", type: "button", onclick: () => decideHeat(inc, f, "reject") }, svg("x", "icon icon-sm"), t("Reject")))))]
+      : [el("p", { class: "empty" }, t("No one has flagged this as a persistent heat source.")), el("div", { class: "actions" }, heatFlagButton(inc))];
+  return section({ icon: "info", title: t("Persistent heat source"), count: zone ? t("zone") : h.pending || null, open: !!(zone || h.pending),
+    tip: t("A mine, smelter, gas flare, factory, power plant, or volcano keeps emitting heat that satellites read as hotspots. Anyone can flag it; it counts only after a verifier accepts, and the incident is never closed by it."),
+    content });
+}
+
+const heatFlagButton = (inc) => el("button", { class: "btn", type: "button", onclick: () => openHeatFlag(inc) }, svg("info", "icon icon-sm"), t("Not a land fire?"));
+const evidenceButton = (inc) => el("a", { class: "btn", href: reportLink(inc) }, svg("camera", "icon icon-sm"), t("A fire? Send evidence"));
+
+/** The actions on one incident, the same in the incident view and on the map card (one component, rule 47). */
+function pointActions(inc, { map: onMap = false, compact = false } = {}) {
+  const zoned = !!inc.heat_source_flags?.zone || inc.heat_source;
+  return [
+    onMap ? el("button", { class: "btn btn-primary", type: "button", onclick: () => openIncident(inc.id) }, svg("file", "icon icon-sm"), t("Open details")) : null,
+    evidenceButton(inc),
+    zoned ? null : heatFlagButton(inc),
+    el("button", { class: "btn", type: "button", onclick: () => openShare(inc) }, svg("share", "icon icon-sm"), t("Share")),
+    onMap && !compact ? el("button", { class: "btn btn-icon", type: "button", title: t("Zoom to the point"), "aria-label": t("Zoom to the point"), onclick: () => map?.flyTo({ center: [inc.lon, inc.lat], zoom: 13 }) }, svg("crosshair", "icon icon-sm")) : null,
+    token() && onMap && !compact ? withTip(el("button", { class: "btn", type: "button", dataset: { busy: "satellite" }, onclick: () => fetchSatellite(inc.id) }, svg("satellite", "icon icon-sm"), t("Find Sentinel-2 images")), "satellite") : null,
+    token() && onMap && !compact ? withTip(el("button", { class: "btn", type: "button", dataset: { busy: "collect" }, onclick: () => collectNow(inc.id) }, svg("activity", "icon icon-sm"), t("Collect missing evidence")), "collect") : null,
+  ].filter(Boolean);
+}
+
+/* A card on the selected point: who it is, its status, and the actions, where the reader is looking. On a phone it
+   is a sheet at the bottom of the map so it never covers the point. */
+let pointPopup = null;
+function pointCard(inc) {
+  pointPopup?.remove();
+  pointPopup = null;
+  $("#point-sheet")?.remove();
+  if (!inc || !map) return;
+  const body = el("div", { class: "point-card" },
+    el("div", { class: "point-card-head" }, el("strong", { class: "mono" }, inc.id), el("span", { class: "status", dataset: { status: inc.status } }, statusLabel(inc.status)),
+      inc.heat_source || inc.heat_source_flags?.zone ? el("span", { class: "pill pill-heat" }, t("Persistent heat source")) : null),
+    el("div", { class: "pop-meta" }, t("{n} hotspots · max FRP {frp}", { n: inc.hotspot_count, frp: fmtFrp(inc.max_frp) }), " · ", fmtTime(inc.last_seen)),
+    // On a phone the sheet keeps the four actions anyone needs; the verifier's tools are in the incident view.
+    el("div", { class: "point-card-actions" }, pointActions(inc, { map: true, compact: window.innerWidth <= 820 })));
+  hydrateIcons(body);
+  if (window.innerWidth <= 820) {
+    const sheet = el("div", { class: "point-sheet card", id: "point-sheet" }, el("button", { class: "btn btn-icon point-sheet-close", type: "button", "aria-label": t("Close"), onclick: () => pointCard(null) }, svg("x", "icon icon-sm")), body);
+    $("#map").parentElement.append(sheet);
+    return;
+  }
+  pointPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: false, offset: 16, maxWidth: "340px", className: "point-popup" })
+    .setLngLat([inc.lon, inc.lat]).setDOMContent(body).addTo(map);
+}
+
+/* Accepted zones on the map: a grey disc with a dashed edge, under the incidents. */
+function circlePolygon(lat, lon, r) {
+  const pts = [];
+  for (let k = 0; k <= 48; k++) {
+    const a = (k / 48) * 2 * Math.PI;
+    pts.push([lon + (r * Math.sin(a)) / (111320 * Math.cos((lat * Math.PI) / 180)), lat + (r * Math.cos(a)) / 111320]);
+  }
+  return pts;
+}
+async function loadHeatZones() {
+  const z = await api("/api/heat-source-zones").catch(() => ({ items: [] }));
+  state.heatZones = z.items;
+  state.mapReady?.then(() => {
+    if (!map) return;
+    const data = { type: "FeatureCollection", features: z.items.map((x) => ({ type: "Feature", properties: { kind: x.kind }, geometry: { type: "Polygon", coordinates: [circlePolygon(x.lat, x.lon, x.radius_m)] } })) };
+    if (map.getSource("heat-zones")) { map.getSource("heat-zones").setData(data); return; }
+    map.addSource("heat-zones", { type: "geojson", data });
+    const below = map.getLayer("incidents") ? "incidents" : undefined;
+    map.addLayer({ id: "heat-zones-fill", type: "fill", source: "heat-zones", paint: { "fill-color": HEAT_GREY, "fill-opacity": 0.18 } }, below);
+    map.addLayer({ id: "heat-zones-line", type: "line", source: "heat-zones", paint: { "line-color": "#667085", "line-width": 1.5, "line-dasharray": [2, 2] } }, below);
+  });
+}
+async function reloadIncidents() {
+  const r = await api("/api/incidents").catch(() => null);
+  if (!r) return;
+  state.incidents = r.items;
+  setMapData();
+  if (!state.selected) renderList();
+}
+
+/* The incident view in the five stages of How it works, with a bar that jumps between them. */
+const STAGES = [
+  ["1. Detect", "Satellite hotspots and citizen reports that make this incident, and whether someone marked it as a persistent heat source."],
+  ["2. Evidence, collected by code", "Evidence collected by code, each with a number the AI must cite."],
+  ["3. Meta AI analyses and drafts", "What Meta AI wrote from the evidence: a draft for a person, not a decision."],
+  ["4. Evidence gate, code checks the AI", "Code checks every AI claim; the suppression outlook is computed from the evidence."],
+  ["5. People decide", "Only a verifier approves or rejects. Every decision is recorded."],
+];
+const STAGE_SHORT = ["Detect", "Evidence", "Meta AI", "Gate", "Decision"];
+function stageNav(inc) {
+  const types = new Set(inc.evidence.map((e) => e.type));
+  const done = [inc.hotspots.length > 0 || inc.reporter_count > 0, types.has("weather") || types.has("osm") || types.has("satellite"), !!inc.triage, !!inc.gate, !!activeVerdict(inc)];
+  return el("nav", { class: "stage-nav", "aria-label": t("Stages") }, STAGES.map(([title], i) => el("button", { type: "button", class: `stage-chip ${done[i] ? "done" : ""}`,
+    title: t(title), onclick: () => document.getElementById(`stage-${i + 1}`)?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+    el("span", { class: "stage-dot" }, done[i] ? svg("check", "icon icon-sm") : String(i + 1)), el("span", { class: "stage-chip-label" }, t(STAGE_SHORT[i])))));
+}
+function stage(n, content) {
+  const [title, tip] = STAGES[n - 1];
+  return el("section", { class: "stage", id: `stage-${n}` }, el("h3", { class: "stage-head" }, el("span", {}, t(title)), info(t(tip))), content.filter(Boolean));
+}
+
 /* Breadcrumb */
 function crumbs(parts) {
   $("#crumbs").hidden = parts.length < 2;
@@ -597,6 +819,7 @@ function filtered() {
   if (state.filter === "multi") items = items.filter((i) => i.hotspot_count >= 3);
   if (state.filter === "high") items = items.filter((i) => i.high_conf_count > 0);
   if (state.filter === "recent") items = items.filter((i) => isRecent(i.last_seen));
+  if (state.filter === "noheat") items = items.filter((i) => !i.heat_source);
   const key = { heat: (i) => i.max_frp ?? -1, size: (i) => i.hotspot_count, recent: (i) => i.last_seen };
   const k = key[state.sort];
   return [...items].sort((a, b) => (k(b) > k(a) ? 1 : k(b) < k(a) ? -1 : a.id.localeCompare(b.id)));
@@ -620,6 +843,7 @@ function incidentCard(i) {
         el("span", { title: t("Max fire radiative power") }, svg("flame"), fmtFrp(i.max_frp)),
         el("span", { title: t("Hotspots in cluster") }, svg("dots"), fmtNum(i.hotspot_count)),
         el("span", { title: t("Last detection") }, svg("clock"), fmtTime(i.last_seen)),
+        i.heat_source ? el("span", { class: "pill pill-heat" }, t("Persistent heat source")) : null,
       ),
     ),
     i.latest_verdict ? el("span", { class: `verdict-pill ${i.latest_verdict}` }, svg(i.latest_verdict === "approve" ? "check" : "x", "icon icon-sm"), t(i.latest_verdict === "approve" ? "Verified" : "Rejected"))
@@ -634,6 +858,7 @@ function renderList() {
   showFootprints(null);
   showFlightPlan(null);
   if (map?.getLayer("incident-selected")) map.setFilter("incident-selected", ["==", ["get", "id"], ""]);
+  pointCard(null);
   crumbs([{ label: t("Incidents") }]);
   $("#list-view").hidden = false;
   $("#detail-view").hidden = true;
@@ -2242,16 +2467,18 @@ async function openIncident(id) {
   const listed = state.incidents.find((i) => i.id === inc.id);
   if (listed && listed.status !== inc.status) { listed.status = inc.status; setMapData(); }
   // The list can render before the map exists; the map then opens on the default view. A reload stays put.
-  if (!saved) map?.flyTo({ center: [inc.lon, inc.lat], zoom: Math.max(map.getZoom(), 10.5), speed: 1.4 });
+  // On a phone the point card is a sheet at the bottom of the map: keep the point above it.
+  if (!saved) map?.flyTo({ center: [inc.lon, inc.lat], zoom: Math.max(map.getZoom(), 10.5), speed: 1.4, padding: { top: 0, left: 0, right: 0, bottom: window.innerWidth <= 820 ? 150 : 0 } });
   const frpPct = inc.max_frp == null ? null : Math.min(100, (inc.max_frp / HEAT_MAX) * 100);
   const recent = isRecent(inc.last_seen);
 
   const head = el("div", { class: "card detail-head" },
     el("div", { class: "detail-title" }, el("h3", {}, inc.id),
-      el("div", { class: "detail-title-right" }, el("span", { class: "status", dataset: { status: inc.status } }, statusLabel(inc.status)),
-        el("button", { class: "btn btn-icon", type: "button", title: t("Share"), "aria-label": t("Share"), dataset: { busy: "share" }, onclick: () => openShare(inc) }, svg("share", "icon icon-sm")))),
+      el("div", { class: "detail-title-right" }, el("span", { class: "status", dataset: { status: inc.status } }, statusLabel(inc.status)))),
+    nearLine(inc),
     el("div", { class: "tags" },
       inc.simulation ? el("span", { class: "pill pill-sim" }, "SIMULASI") : null,
+      inc.heat_source_flags?.zone ? el("span", { class: "pill pill-heat" }, t("Persistent heat source")) : null,
       recent ? el("span", { class: "pill pill-live" }, el("span", { class: "pulse" }), t("Active in last 6 h")) : null,
       el("span", { class: "pill" }, svg(inc.trigger === "hotspot_cluster" ? "satellite" : "camera", "icon icon-sm"), t(TRIGGER_LABEL[inc.trigger] || inc.trigger)),
     ),
@@ -2266,6 +2493,7 @@ async function openIncident(id) {
     ),
   );
 
+  head.append(el("div", { class: "actions detail-actions" }, pointActions(inc)));
   const triage = inc.triage;
   const gate = inc.gate;
   const progress = progressCard(inc);
@@ -2311,13 +2539,24 @@ async function openIncident(id) {
         ),
         inc.hotspots.length > 25 ? el("p", { class: "empty" }, t("Showing 25 of {n}.", { n: inc.hotspots.length })) : null,
       ] }),
-    section({ icon: "gavel", title: t("Verdicts"), count: inc.verdicts.length,
+    section({ icon: "gavel", title: t("Decision history"), count: inc.verdicts.length,
       content: inc.verdicts.length ? inc.verdicts.map((d) => el("div", { class: "ev" }, el("span", { class: "ev-id" }, t(VERDICT_LABEL[d.decision] || d.decision)),
         el("span", {}, `${d.channel} · ${fmtTime(d.created_at)}`, d.note ? ` · "${d.note}"` : "")))
                                    : el("p", { class: "empty" }, t("No verdict yet.")) }),
     section({ icon: "check", title: t("Verifier decision"), open: true, tip: t("Approve or reject is recorded as a label. Labels calibrate the evidence gate thresholds."), content: verifierContent(inc) }),
   ];
-  fill($("#detail-view"), head, progress, sections);
+  // Stages of How it works (review round 3): what made the incident, the evidence, what the AI drafted, what code
+  // checked and computed, and the human decision.
+  const [sup, overview, brief, claims, gateS, sat, evid, hots, verdictsS, decision] = sections;
+  const stages = [
+    stage(1, [overview, heatSection(inc), hots]),
+    stage(2, [sat, evid]),
+    stage(3, [brief, claims]),
+    stage(4, [gateS, sup]),
+    stage(5, [decision, verdictsS]),
+  ];
+  fill($("#detail-view"), head, stageNav(inc), progress, stages);
+  pointCard(inc);
   refreshBusy();
   restoreDetailView(saved);
   // Drone plans and the simulated replay load after the main view so they never delay it.
@@ -2383,6 +2622,7 @@ async function main() {
   if (params.has("intro") || !localStorage.getItem(INTRO_KEY)) showIntro();
   $("#intro-btn")?.addEventListener("click", showIntro);
 
+  loadHeatZones();
   const [hs] = await Promise.all([hsP, mapP]);
   state.hotspots = hs.items;
   setMapData();

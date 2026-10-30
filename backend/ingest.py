@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from . import db, source_status
+from . import db, heat_sources, source_status
 from .config import Settings
 from .geo import Point, centroid, cluster_points, haversine_m
 from .sources import firms
@@ -105,5 +105,7 @@ def run_once(settings: Settings, *, now: datetime | None = None, days: int = 2) 
     with db.session(settings.db_path) as conn:
         new = store_hotspots(conn, hotspots)
         result = cluster_into_incidents(conn, now=now, simulation=settings.fixture_mode)
+        # New incidents inside an accepted persistent heat source zone are marked as they arrive.
+        result["heat_source_marked"] = heat_sources.mark_incidents(conn)
     log.info("ingest: fetched=%d new=%d created=%d extended=%d", len(hotspots), new, len(result["created"]), len(result["extended"]))
     return {"fetched": len(hotspots), "new_hotspots": new, **result}

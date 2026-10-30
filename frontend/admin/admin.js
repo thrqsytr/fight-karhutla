@@ -62,6 +62,12 @@ const ADMIN_ID = {
     "Meta menolak pesan keluar dari akun bisnis ini sampai lolos verifikasi bisnis. Laporan masuk berjalan; setiap balasan tetap dicoba dan penolakannya dicatat. Nomor ditampilkan sebagai karakter awal dari hash bergaram.",
   "refused by Meta": "ditolak Meta", "accepted": "diterima",
   "Weather": "Cuaca",
+  "Kind": "Jenis", "Persistent heat source flags": "Pengajuan sumber panas tetap", "Flags": "Pengajuan", "No heat source flag waits.": "Tidak ada pengajuan sumber panas tetap yang menunggu.",
+  "Citizens say a hotspot cluster is a mine, flare, factory, or volcano. Accept or reject on the incident page; an accepted flag makes a zone.":
+    "Warga menyatakan klaster titik panas adalah tambang, suar gas, pabrik, atau gunung api. Setujui atau tolak di halaman insiden; pengajuan yang disetujui membentuk zona.",
+  "{n} heat source flag(s) wait for a verifier": "{n} pengajuan sumber panas tetap menunggu verifikator",
+  "Mine or smelter": "Tambang atau smelter", "Gas flare or refinery": "Suar gas atau kilang", "Factory or power plant": "Pabrik atau pembangkit listrik",
+  "Volcano or geothermal": "Gunung api atau panas bumi", "Other heat source": "Sumber panas lain",
   "Verification": "Verifikasi", "Drone": "Drone", "Refresh": "Muat ulang", "Updated {t}": "Diperbarui {t}",
   "Needs attention": "Perlu perhatian", "All clear": "Semua lancar",
   "{n} AI recommendation(s) wait for a verifier": "{n} rekomendasi AI menunggu verifikator",
@@ -244,6 +250,7 @@ function attention(d, q) {
   if (real) items.push(["alert", t("{n} AI recommendation(s) wait for a verifier", { n: real }), "#tab=queue"]);
   if (q?.citizen_pending?.length) items.push(["chat", t("{n} citizen report(s) not triaged", { n: q.citizen_pending.length }), "#tab=queue"]);
   if (q?.drone_proposed?.length) items.push(["target", t("{n} drone plan(s) wait for approval", { n: q.drone_proposed.length }), "#tab=queue"]);
+  if (q?.heat_flags?.length) items.push(["info", t("{n} heat source flag(s) wait for a verifier", { n: q.heat_flags.length }), "#tab=queue"]);
   Object.entries(d.sources).filter(([, v]) => v.state === "error").forEach(([k, v]) => items.push(["alert", t("{src}: {detail}", { src: t(SOURCE_NAME[k] || k), detail: v.detail || t("error") }), "#tab=system"]));
   if (d.sources.whatsapp_media?.state === "error") items.push(["alert", t("WhatsApp media download failing (access token?)"), "#tab=whatsapp"]);
   if (d.offline?.overpass_down) items.push(["clock", t("Overpass is down; nearby places come from the offline file"), "#tab=system"]);
@@ -275,13 +282,18 @@ function queueTab(q) {
     q.wa_unshown.length ? el("ul", { class: "admin-list" }, q.wa_unshown.map((w) => el("li", {}, incLink(w.id), el("span", { class: "muted" }, fmtTime(w.received_at)))))
       : el("p", { class: "empty" }, t("Every WhatsApp report has been decided.")),
     el("div", { class: "actions" }, el("a", { class: "btn", href: "/whatsapp/" }, svg("chat", "icon icon-sm"), t("Open the WhatsApp report log"))));
+  const HEAT = { mine_smelter: "Mine or smelter", gas_flare_refinery: "Gas flare or refinery", factory_power_plant: "Factory or power plant", volcano_geothermal: "Volcano or geothermal", other: "Other heat source" };
+  const heat = card("info", [t("Persistent heat source flags"), info(t("Citizens say a hotspot cluster is a mine, flare, factory, or volcano. Accept or reject on the incident page; an accepted flag makes a zone."))],
+    (q.heat_flags || []).length ? table([t("Incident"), t("Kind"), t("Flags"), t("Received")],
+      q.heat_flags.map((f) => el("tr", {}, td(t("Incident"), incLink(f.incident_id)), td(t("Kind"), t(HEAT[f.kind] || f.kind)), td(t("Flags"), String(f.flags)), td(t("Received"), fmtTime(f.created_at)))), "admin-stack")
+      : el("p", { class: "empty" }, t("No heat source flag waits.")));
   const decisions = card("list", t("Recent decisions"),
     q.recent_decisions.length ? table([t("When"), t("Incident"), t("Decision"), t("Note"), t("Verifier")],
       q.recent_decisions.map((v) => el("tr", {}, td(t("When"), fmtTime(v.created_at)), td(t("Incident"), incLink(v.incident_id), v.simulation ? [" ", pill("pill-sim", "SIMULASI")] : null),
         td(t("Decision"), pill(`pill-decision-${v.decision}`, t(v.decision))), td(t("Note"), v.note || ""), td(t("Verifier"), el("span", { class: "mono" }, `#${v.verifier_hash.slice(0, 6)}`)))), "admin-stack")
       : el("p", { class: "empty" }, t("No decisions yet.")),
     el("div", { class: "actions" }, exportBtn("incidents", t("Incidents (CSV)")), exportBtn("verdicts", t("Decisions (CSV)")), info(t("Exact coordinates and verifier hashes: keep the file inside the team."))));
-  return [awaiting, el("div", { class: "admin-dash" }, citizen, drone), el("div", { class: "admin-dash" }, wa, decisions)];
+  return [awaiting, el("div", { class: "admin-dash" }, citizen, drone), el("div", { class: "admin-dash" }, heat, wa), decisions];
 }
 
 function exportBtn(name, label) {

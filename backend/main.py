@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin_panel, admin_settings, agent, db, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control, wa_reports, whatsapp
+from . import admin_panel, admin_settings, agent, heat_sources, db, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control, wa_reports, whatsapp
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -180,6 +180,10 @@ def config_js(settings: Settings = Depends(get_settings)) -> PlainTextResponse:
 
 
 # Latest verdict per incident, so public visibility is decided in one query instead of one per row.
+# 1 when the incident sits in an active persistent heat source zone (its newest row for the zone is not a withdrawal).
+HEAT_SOURCE_COLUMN = """EXISTS (SELECT 1 FROM evidence e JOIN heat_source_zones z ON z.id = json_extract(e.payload_json, '$.zone_id')
+    WHERE e.incident_id = i.id AND e.type = 'heat_source' AND z.active = 1) AS heat_source"""
+
 LATEST_VERDICT_SUBQUERY = """
     SELECT v.incident_id, v.decision FROM verdicts v
     WHERE v.id = (SELECT MAX(id) FROM verdicts WHERE incident_id = v.incident_id)
@@ -192,7 +196,7 @@ def list_incidents(request: Request, verifier: bool = Depends(is_verifier), sett
     public_filter = "" if verifier else f"WHERE i.trigger IN {PUBLIC_TRIGGERS!r} OR lv.decision = 'approve' OR i.id IN (SELECT incident_id FROM wa_showcase)"
     with db.session(settings.db_path) as conn:
         rows = conn.execute(
-            f"""SELECT i.*, {SEVERITY_COLUMNS}, CASE WHEN lv.decision IN ('approve', 'reject') THEN lv.decision END AS latest_verdict FROM incidents i
+            f"""SELECT i.*, {SEVERITY_COLUMNS}, CASE WHEN lv.decision IN ('approve', 'reject') THEN lv.decision END AS latest_verdict, {HEAT_SOURCE_COLUMN} FROM incidents i
                 LEFT JOIN ({SEVERITY_SUBQUERY}) s ON s.incident_id = i.id
                 LEFT JOIN ({LATEST_VERDICT_SUBQUERY}) lv ON lv.incident_id = i.id
                 {public_filter}
@@ -225,6 +229,7 @@ def get_incident(incident_id: str, verifier: bool = Depends(is_verifier), settin
         verdicts = [dict(r) for r in conn.execute(
             "SELECT decision, note, channel, created_at FROM verdicts WHERE incident_id=? ORDER BY id", (incident_id,)
         )]
+        heat = heat_sources.flags_for(conn, incident_id, verifier)
     if not verifier:
         inc = _public_view(inc)
         # Citizen photos and voice are visible to verifiers only.
@@ -238,7 +243,7 @@ def get_incident(incident_id: str, verifier: bool = Depends(is_verifier), settin
             inc["gate"] = None
         for h in hotspots:
             h["lat"], h["lon"] = round(h["lat"], PUBLIC_COORD_DECIMALS), round(h["lon"], PUBLIC_COORD_DECIMALS)
-    return {**inc, "evidence": evidence, "hotspots": hotspots, "verdicts": verdicts}
+    return {**inc, "evidence": evidence, "hotspots": hotspots, "verdicts": verdicts, "heat_source_flags": heat}
 
 
 class VerdictIn(BaseModel):
@@ -870,6 +875,60 @@ def admin_overview(settings: Settings = Depends(get_settings)) -> dict:
                       "model_configured": bool(settings.model_api_key), "baseten_configured": bool(settings.baseten_api_key)},
             **admin_panel.overview_extra(settings, conn),
         }
+
+
+class HeatFlagIn(BaseModel):
+    kind: Literal[heat_sources.KINDS]
+    note: str | None = Field(default=None, max_length=heat_sources.NOTE_MAX)
+    consent: bool = False
+
+
+def _heat(fn):
+    try:
+        return fn()
+    except heat_sources.FlagError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail)
+
+
+@app.post("/api/incidents/{incident_id}/heat-source-flags", status_code=201)
+def flag_heat_source(incident_id: str, body: HeatFlagIn, request: Request, settings: Settings = Depends(get_settings)) -> dict:
+    """Anyone: say this cluster is a persistent heat source, not a land fire. Nothing changes until a verifier accepts."""
+    if not body.consent:
+        raise HTTPException(status_code=422, detail="confirm that a verifier checks the flag before it counts")
+    sender = heat_sources.client_hash(_client(request), settings.verifier_token or "salt")
+    with db.session(settings.db_path) as conn:
+        row = conn.execute("SELECT * FROM incidents WHERE id=?", (incident_id,)).fetchone()
+        if row is None or not _visible_to_public(conn, dict(row)):
+            raise HTTPException(status_code=404, detail="incident not found")
+        return _heat(lambda: heat_sources.submit(conn, dict(row), body.kind, body.note, sender))
+
+
+class HeatDecisionIn(BaseModel):
+    decision: Literal["accept", "reject"]
+    radius_m: int | None = Field(default=None, ge=heat_sources.MIN_RADIUS_M, le=heat_sources.MAX_RADIUS_M)
+    kind: Literal[heat_sources.KINDS] | None = None
+    note: str | None = Field(default=None, max_length=heat_sources.NOTE_MAX)
+
+
+@app.post("/api/heat-source-flags/{flag_id}/decision", dependencies=[Depends(require_verifier)])
+def decide_heat_source(flag_id: int, body: HeatDecisionIn, settings: Settings = Depends(get_settings)) -> dict:
+    verifier_hash = hashlib.sha256(("dashboard:" + settings.verifier_token).encode()).hexdigest()[:16]
+    with db.session(settings.db_path) as conn:
+        return _heat(lambda: heat_sources.decide(conn, flag_id, body.decision, verifier_hash, body.radius_m, body.kind, body.note))
+
+
+@app.post("/api/heat-source-zones/{zone_id}/withdraw", dependencies=[Depends(require_verifier)])
+def withdraw_heat_source(zone_id: int, settings: Settings = Depends(get_settings)) -> dict:
+    with db.session(settings.db_path) as conn:
+        return _heat(lambda: heat_sources.deactivate(conn, zone_id))
+
+
+@app.get("/api/heat-source-zones")
+def list_heat_source_zones(settings: Settings = Depends(get_settings)) -> dict:
+    """Accepted zones, for the map. Public: a zone says what kind of heat source, never who runs it."""
+    with db.session(settings.db_path) as conn:
+        items = heat_sources.zones(conn)
+    return {"count": len(items), "items": items}
 
 
 @app.get("/api/admin/queue", dependencies=[Depends(require_verifier)])
