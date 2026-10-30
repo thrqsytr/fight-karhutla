@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin_panel, admin_settings, agent, heat_sources, db, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control, wa_reports, whatsapp
+from . import admin_panel, admin_settings, agent, heat_sources, db, places, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control, wa_reports, whatsapp
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -92,6 +92,10 @@ async def lifespan(app: FastAPI):
         import threading
 
         threading.Thread(target=osm.ensure_fallback, args=(settings.osm_fallback_path, settings.osm_fallback_url), daemon=True).start()
+    if settings.places_url and not settings.places_path.exists():
+        import threading
+
+        threading.Thread(target=places.ensure, args=(settings.places_path, settings.places_url), daemon=True).start()
     sched = _start_scheduler(settings)
     yield
     if sched:
@@ -289,6 +293,27 @@ def list_hotspots(request: Request, settings: Settings = Depends(get_settings)) 
         ).fetchall()
     items = [dict(r) for r in rows]
     return etag_json(request, {"count": len(items), "items": items, "attribution": firms.ATTRIBUTION}, private=False)
+
+
+@app.get("/api/places")
+def search_places(request: Request, q: str = "", settings: Settings = Depends(get_settings)) -> Response:
+    """Map search by place name. Incident ids are matched in the browser against the list it already has."""
+    try:
+        items = places.search(settings.places_path, q[:80])
+    except places.NotReady as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    return etag_json(request, {"count": len(items), "items": items, "attribution": places.ATTRIBUTION}, private=False)
+
+
+@app.get("/api/places/{place_id}/outline")
+def place_outline(place_id: str, request: Request, settings: Settings = Depends(get_settings)) -> Response:
+    try:
+        feature = places.outline(settings.places_path, place_id)
+    except places.NotReady as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    if not feature:
+        raise HTTPException(status_code=404, detail="no outline for this place")
+    return etag_json(request, feature, private=False)
 
 
 @app.get("/api/stats")

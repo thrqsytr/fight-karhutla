@@ -138,6 +138,185 @@ function renderBasemapSwitch() {
     opt("world", t("World"), t("World satellite imagery from Esri with the same boundaries and labels. Display only: not used as evidence, and the image date varies by place.")));
 }
 
+/* Map search (review item 17): one box for incident numbers and place names. Incident ids are matched against
+   the list already loaded, so the box shows exactly what the list may show; places come from the server's
+   gazetteer (provinces, regencies and cities, districts with their outline; towns, villages, hamlets as points). */
+const PLACE_KIND = {
+  "region:province": "Province", "region:regency": "Regency", "region:city": "City", "region:district": "District",
+  "settlement:city": "City centre", "settlement:town": "Town", "settlement:village": "Village", "settlement:hamlet": "Hamlet",
+};
+const PLACE_ZOOM = { city: 11.5, town: 12.5, village: 13.5, hamlet: 14.5 };
+const searchState = { seq: 0, timer: null, items: [], active: -1 };
+
+function matchIncidents(q) {
+  const s = q.toUpperCase().replace(/\s+/g, "");
+  const digits = s.replace(/^INC-?/, "");
+  if (!/^INC/.test(s) && !/^\d{3,}$/.test(digits)) return [];
+  const hits = state.incidents.filter((i) => i.id.includes(s) || (/^\d+$/.test(digits) && i.id.replace(/-/g, "").includes(digits)));
+  // Exact id first, then ids ending with the number typed (0624 is INC-20261025-0624 before INC-20262406-...).
+  const score = (i) => (i.id === s ? 0 : i.id.endsWith(`-${digits}`) ? 1 : 2);
+  return hits.sort((a, b) => score(a) - score(b) || b.last_seen.localeCompare(a.last_seen)).slice(0, 5).map((i) => ({ type: "incident", inc: i }));
+}
+
+function searchRow(item, idx) {
+  let icon, main, sub;
+  if (item.type === "incident") {
+    const i = item.inc;
+    icon = "flame";
+    main = i.id;
+    sub = [statusLabel(i.status), i.hotspot_count === 1 ? t("1 hotspot") : i.hotspot_count ? t("{n} hotspots", { n: i.hotspot_count }) : t("citizen report"), fmtTime(i.last_seen)].join(" · ");
+  } else if (item.type === "place") {
+    const p = item.place;
+    icon = p.cat === "region" ? "target" : "pin";
+    main = p.label;
+    const parents = p.cat === "region" && p.kind !== "district" ? [p.province] : [p.district, p.regency, p.province];
+    sub = [t(PLACE_KIND[`${p.cat}:${p.kind}`] || "Place"), ...parents.filter(Boolean)].join(" · ");
+  } else {
+    return el("li", { class: "map-search-note", role: "presentation" }, item.text);
+  }
+  return el("li", { role: "option", id: `map-search-opt-${idx}`, class: "map-search-opt", "aria-selected": String(idx === searchState.active),
+    onmousedown: (e) => e.preventDefault(), onclick: () => pickSearch(item) },
+  svg(icon, "icon icon-sm"), el("span", { class: "map-search-text" }, el("span", { class: "map-search-main" }, main), el("span", { class: "map-search-sub" }, sub)));
+}
+
+function renderSearch(loading = false) {
+  const list = $("#map-search-list");
+  const input = $("#map-search-input");
+  const rows = searchState.items.map(searchRow);
+  if (loading) rows.push(...[0, 1].map(() => el("li", { class: "map-search-opt skeleton", role: "presentation" },
+    el("span", { class: "sk sk-circle" }), el("span", { class: "map-search-text" }, el("span", { class: "sk sk-title" }), el("span", { class: "sk sk-line" })))));
+  fill(list, rows);
+  list.hidden = !rows.length;
+  input.setAttribute("aria-expanded", String(!list.hidden));
+  const active = searchState.items[searchState.active] ? `map-search-opt-${searchState.active}` : null;
+  if (active) input.setAttribute("aria-activedescendant", active);
+  else input.removeAttribute("aria-activedescendant");
+  $("#map-search-clear").hidden = !input.value;
+}
+
+function runSearch(q) {
+  const seq = ++searchState.seq;
+  clearTimeout(searchState.timer);
+  const incidents = matchIncidents(q);
+  searchState.items = incidents;
+  searchState.active = incidents.length ? 0 : -1;
+  const wantsPlaces = /\p{L}/u.test(q) && q.replace(/[^\p{L}\p{N}]/gu, "").length >= 2 && !/^\s*inc[-\s]?\d/i.test(q);
+  if (!q.trim()) { searchState.items = []; renderSearch(); return; }
+  if (!wantsPlaces) {
+    if (!incidents.length) searchState.items = [{ type: "note", text: t("No incident or place matches.") }];
+    renderSearch();
+    return;
+  }
+  renderSearch(true);
+  searchState.timer = setTimeout(async () => {
+    let places = [];
+    let note = null;
+    try {
+      places = (await api(`/api/places?q=${encodeURIComponent(q)}`)).items.map((p) => ({ type: "place", place: p }));
+    } catch (e) {
+      note = /not downloaded/.test(e.message) ? t("Place search is not ready yet: the place file is still downloading on the server.") : t("Place search failed: {e}", { e: e.message });
+    }
+    if (seq !== searchState.seq) return;  // a newer query is on its way
+    searchState.items = [...incidents, ...places];
+    if (note) searchState.items.push({ type: "note", text: note });
+    else if (!searchState.items.length) searchState.items = [{ type: "note", text: t("No incident or place matches.") }];
+    searchState.active = searchState.items[0]?.type === "note" ? -1 : 0;
+    renderSearch();
+  }, 200);
+}
+
+async function showSearchPlace(p) {
+  await state.mapReady;
+  const empty = { type: "FeatureCollection", features: [] };
+  if (!map.getSource("search-place")) {
+    map.addSource("search-place", { type: "geojson", data: empty, attribution: "Places: (c) OpenStreetMap contributors" });
+    const below = map.getLayer("incidents") ? "incidents" : undefined;
+    map.addLayer({ id: "search-place-line", type: "line", source: "search-place", filter: ["!=", ["geometry-type"], "Point"],
+      paint: { "line-color": "#0064e0", "line-width": 2, "line-dasharray": [3, 2], "line-opacity": 0.9 } }, below);
+    map.addLayer({ id: "search-place-pin", type: "circle", source: "search-place", filter: ["==", ["geometry-type"], "Point"],
+      paint: { "circle-radius": 6, "circle-color": "#0064e0", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2 } });
+  }
+  const src = map.getSource("search-place");
+  if (!p) { src.setData(empty); return; }
+  if (p.cat === "region" && p.bbox) {
+    const [w, s, e, n] = p.bbox;
+    // The search box sits on the map's top edge: more room there so the boundary is not under it.
+    map.fitBounds([[w, s], [e, n]], { padding: { top: 64, bottom: 40, left: 40, right: 40 }, duration: 900, maxZoom: 13 });
+    src.setData(empty);
+    try {
+      const outline = await api(`/api/places/${encodeURIComponent(p.id)}/outline`);
+      if ($("#map-search-input").dataset.place === p.id) src.setData(outline);
+    } catch {
+      toast(t("The outline of {name} could not be loaded.", { name: p.label }), "alert");
+    }
+  } else {
+    map.flyTo({ center: [p.lon, p.lat], zoom: PLACE_ZOOM[p.kind] || 13, speed: 1.4 });
+    src.setData({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] }, properties: { label: p.label } });
+  }
+}
+
+function pickSearch(item) {
+  if (!item || item.type === "note") return;
+  const input = $("#map-search-input");
+  searchState.items = [];
+  searchState.seq++;
+  if (item.type === "incident") {
+    input.value = item.inc.id;
+    delete input.dataset.place;
+    showSearchPlace(null);
+    openIncident(item.inc.id);
+  } else {
+    input.value = item.place.label;
+    input.dataset.place = item.place.id;
+    showSearchPlace(item.place);
+  }
+  renderSearch();
+  input.blur();
+}
+
+function clearSearch() {
+  const input = $("#map-search-input");
+  input.value = "";
+  delete input.dataset.place;
+  searchState.items = [];
+  searchState.seq++;
+  showSearchPlace(null);
+  renderSearch();
+  input.focus();
+}
+
+function mapSearch() {
+  const input = el("input", { id: "map-search-input", type: "text", role: "combobox", autocomplete: "off", spellcheck: "false",
+    "aria-autocomplete": "list", "aria-expanded": "false", "aria-controls": "map-search-list",
+    placeholder: t("Search an incident or a place"), "aria-label": t("Search an incident or a place") });
+  input.addEventListener("input", () => { delete input.dataset.place; runSearch(input.value); });
+  input.addEventListener("focus", () => { if (input.value && !input.dataset.place && !searchState.items.length) runSearch(input.value); });
+  input.addEventListener("blur", () => { searchState.items = []; renderSearch(); });
+  input.addEventListener("keydown", (e) => {
+    const n = searchState.items.length;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!n) return;
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      let i = searchState.active;
+      for (let k = 0; k < n; k++) { i = (i + step + n) % n; if (searchState.items[i].type !== "note") break; }
+      searchState.active = i;
+      renderSearch();
+      $(`#map-search-opt-${i}`)?.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      pickSearch(searchState.items[searchState.active]);
+    } else if (e.key === "Escape") {
+      if (searchState.items.length) { searchState.items = []; renderSearch(); } else if (input.value) clearSearch();
+    }
+  });
+  fill($("#map-search"),
+    el("label", { class: "search overlay map-search-box" }, svg("search", "icon icon-sm"), input,
+      el("button", { type: "button", id: "map-search-clear", class: "map-search-clear", hidden: true, "aria-label": t("Clear search"), title: t("Clear search"), onmousedown: (e) => e.preventDefault(), onclick: clearSearch }, svg("x", "icon icon-sm")),
+      info(t("Type an incident number (INC-20261025-0624, or just 0624) or a place: a province, regency or city, district, town, or village. A region opens with its boundary; a town or village is zoomed to. Places come from OpenStreetMap, where not every district is mapped yet."), "tip-left")),
+    el("ul", { id: "map-search-list", class: "map-search-list card overlay", role: "listbox", hidden: true, "aria-label": t("Search results") }));
+}
+
 function setBasemap(key) {
   localStorage.setItem(BASEMAP_KEY, key);
   renderBasemapSwitch();
@@ -2653,6 +2832,7 @@ async function main() {
 
   renderKpis();
   renderLegend();
+  mapSearch();
   loadControl();
   bindListControls();
   crumbs([{ label: t("Incidents") }]);

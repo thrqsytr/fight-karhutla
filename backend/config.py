@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     replay_dir: Path = REPO_ROOT / "replay"
     public_url: str = "https://karhutla.thariq.xyz"  # absolute links in share pages and OG tags
     osm_fallback_url: str = ""  # where the server downloads the offline OSM extract once, if it is missing
+    places_url: str = ""  # where the server downloads the place search file (tools/build_places.py) once
     fixture_mode: bool = True
     scheduler_enabled: bool = False
     firms_poll_minutes: int = 30
@@ -60,6 +61,13 @@ class Settings(BaseSettings):
         parts = self.osm_fallback_url.rstrip("/").split("/")
         tag = (parts[-2] if "download" in parts[:-1] else "").removeprefix("osm-fallback-")
         return self.data_dir / (f"osm_fallback-{tag}.sqlite" if tag else "osm_fallback.sqlite")
+
+    @property
+    def places_path(self) -> Path:
+        # Named after the release tag (places-YYYYMMDD), so a new release replaces the old file.
+        parts = self.places_url.rstrip("/").split("/")
+        tag = (parts[-2] if "download" in parts[:-1] else "").removeprefix("places-")
+        return self.data_dir / (f"places-{tag}.sqlite" if tag else "places.sqlite")
 
     @property
     def cache_dir(self) -> Path:
