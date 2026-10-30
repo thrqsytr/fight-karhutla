@@ -118,6 +118,15 @@ CREATE TABLE IF NOT EXISTS wa_outbox (
 
 -- WhatsApp reports a verifier chose to show on the public report log.
 CREATE TABLE IF NOT EXISTS wa_showcase (incident_id TEXT PRIMARY KEY, marked_at TEXT NOT NULL, marked_by TEXT NOT NULL);
+-- Persistent heat sources (review round 3): citizen flags, and the zones a verifier accepted.
+CREATE TABLE IF NOT EXISTS heat_source_flags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, incident_id TEXT NOT NULL REFERENCES incidents(id), lat REAL NOT NULL, lon REAL NOT NULL,
+    kind TEXT NOT NULL, note TEXT, sender_hash TEXT NOT NULL, created_at TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'accepted', 'rejected')), decided_at TEXT, decided_by TEXT, decision_note TEXT, zone_id INTEGER);
+CREATE INDEX IF NOT EXISTS heat_source_flags_incident ON heat_source_flags(incident_id);
+CREATE TABLE IF NOT EXISTS heat_source_zones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, lat REAL NOT NULL, lon REAL NOT NULL, radius_m INTEGER NOT NULL, kind TEXT NOT NULL, note TEXT,
+    flag_id INTEGER, created_at TEXT NOT NULL, created_by TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1);
 -- Operator settings changes, for the admin panel: what changed, from what, to what, when.
 CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, key TEXT NOT NULL, old TEXT, new TEXT);
 
@@ -246,7 +255,11 @@ def next_incident_id(conn: sqlite3.Connection, day: datetime) -> str:
 
 
 def next_evidence_id(conn: sqlite3.Connection, incident_id: str) -> str:
-    n = conn.execute("SELECT COUNT(*) FROM evidence WHERE incident_id = ?", (incident_id,)).fetchone()[0] + 1
+    # The highest number plus one, not the row count: after citizen data is deleted the count is lower than the
+    # numbers in use, and a count-based id collided with an existing row (UNIQUE constraint failed: evidence.id).
+    n = conn.execute(
+        "SELECT COALESCE(MAX(CAST(substr(id, instr(id, '/EV-') + 4) AS INTEGER)), 0) FROM evidence WHERE incident_id = ?", (incident_id,)
+    ).fetchone()[0] + 1
     return f"EV-{n:03d}"
 
 
@@ -276,6 +289,8 @@ def list_evidence(conn: sqlite3.Connection, incident_id: str) -> list[dict]:
 def incident_row_to_dict(row: sqlite3.Row) -> dict:
     d = dict(row)
     d["simulation"] = bool(d["simulation"])
+    if "heat_source" in d:
+        d["heat_source"] = bool(d["heat_source"])
     for k in ("triage_json", "gate_json", "enrichment_json"):
         v = d.pop(k)
         d[k.removesuffix("_json")] = json.loads(v) if v else None

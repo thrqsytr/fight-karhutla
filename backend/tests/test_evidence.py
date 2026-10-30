@@ -210,3 +210,14 @@ def test_osm_evidence_from_before_the_new_categories_is_collected_again_once(set
     with db.session(settings.db_path) as conn:
         rows = [e for e in db.list_evidence(conn, inc_id) if e["type"] == "osm"]
     assert len(rows) == 2 and not evidence.osm_is_outdated(rows[-1]["payload"])
+
+
+def test_evidence_ids_never_collide_after_a_row_is_deleted(settings):
+    _setup(settings)
+    inc_id = evidence.run_enrichment(settings)["complete"][0]
+    with db.session(settings.db_path) as conn:
+        ids = [e["id"] for e in db.list_evidence(conn, inc_id)]
+        conn.execute("DELETE FROM evidence WHERE id=?", (f"{inc_id}/{ids[0]}",))  # as deleting citizen data does
+        new = db.add_evidence(conn, inc_id, "osm", "test", "x", {})
+    assert new not in ids[1:] and int(new.split("-")[1]) == int(ids[-1].split("-")[1]) + 1
+
