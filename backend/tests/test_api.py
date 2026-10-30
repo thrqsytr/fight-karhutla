@@ -66,6 +66,26 @@ def test_stats_counts_match_lists(settings):
         assert 0 < s["hotspots_last_24h"] <= s["hotspots"]
 
 
+def test_map_gets_every_hotspot_of_every_incident(settings):
+    # A cap on the newest N hotspots left older incidents as empty rings on the map (review item 16).
+    from backend import db
+
+    with client(settings) as c:
+        c.get("/health")
+        with db.session(settings.db_path) as conn:
+            conn.executemany(
+                "INSERT INTO hotspots (id, source, lat, lon, acquired_at, frp, ingested_at) VALUES (?, 'test', 1.0, 101.0, '2099-01-01T00:00:00+00:00', 1.0, '2099-01-01T00:00:00+00:00')",
+                [(f"HS-newer-{n}",) for n in range(5100)],
+            )
+        items = c.get("/api/hotspots").json()["items"]
+        incidents = c.get("/api/incidents", headers=AUTH).json()["items"]
+    per = {}
+    for h in items:
+        per[h["incident_id"]] = per.get(h["incident_id"], 0) + 1
+    assert all(per.get(i["id"], 0) == i["hotspot_count"] for i in incidents)
+    assert len(items) > 5100
+
+
 def test_large_lists_are_gzipped(settings):
     with client(settings) as c:
         r = c.get("/api/hotspots", headers={"Accept-Encoding": "gzip"})

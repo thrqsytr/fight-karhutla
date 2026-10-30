@@ -281,9 +281,11 @@ def post_verdict(incident_id: str, body: VerdictIn, background: BackgroundTasks,
 
 @app.get("/api/hotspots")
 def list_hotspots(request: Request, settings: Settings = Depends(get_settings)) -> Response:
+    # Every hotspot, not the newest N: the incident list has no window, so a cap left older incidents as empty rings
+    # on the map. About 11,000 rows are about 0.2 MB gzipped; the ETag spares a repeat download.
     with db.session(settings.db_path) as conn:
         rows = conn.execute(
-            "SELECT id, lat, lon, acquired_at, satellite, confidence, frp, incident_id FROM hotspots ORDER BY acquired_at DESC LIMIT 5000"
+            "SELECT id, lat, lon, acquired_at, satellite, confidence, frp, incident_id FROM hotspots ORDER BY acquired_at DESC"
         ).fetchall()
     items = [dict(r) for r in rows]
     return etag_json(request, {"count": len(items), "items": items, "attribution": firms.ATTRIBUTION}, private=False)

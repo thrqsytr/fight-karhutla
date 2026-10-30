@@ -311,6 +311,40 @@ function geo(items, props) {
   return { type: "FeatureCollection", features: items.map((i) => ({ type: "Feature", geometry: { type: "Point", coordinates: [i.lon, i.lat] }, properties: props(i) })) };
 }
 
+/* An incident ring encloses its own hotspots: radius = farthest hotspot from the incident centre plus half a
+   MODIS pixel, never under RING_MIN_PX. The radius is in metres, so the ring keeps its ground size at every zoom.
+   rz0 is that radius in pixels at zoom 0 (MapLibre tiles are 512 px). */
+const RING_PAD_M = 500;
+const RING_MIN_PX = 7;
+const M_PER_PX_Z0 = 40075016.686 / 512;
+function ringZ0(incidents, hotspots) {
+  const byId = new Map(incidents.map((i) => [i.id, i]));
+  const far = new Map();
+  for (const h of hotspots) {
+    const i = h.incident_id && byId.get(h.incident_id);
+    if (!i) continue;
+    const k = Math.cos((i.lat * Math.PI) / 180);
+    const d = Math.hypot((h.lon - i.lon) * k * 111320, (h.lat - i.lat) * 110540);
+    far.set(i.id, Math.max(far.get(i.id) || 0, d));
+  }
+  const out = new Map();
+  for (const i of incidents) {
+    if (!far.has(i.id)) continue;
+    out.set(i.id, (far.get(i.id) + RING_PAD_M) / (M_PER_PX_Z0 * Math.cos((i.lat * Math.PI) / 180)));
+  }
+  return out;
+}
+// Integer zoom stops with base-2 interpolation follow the metric radius exactly; the max keeps a floor in pixels.
+function ringRadius(extra = 0) {
+  const stops = [];
+  for (let z = 3; z <= 20; z++) stops.push(z, ["+", ["max", RING_MIN_PX, ["*", ["coalesce", ["get", "rz0"], 0], 2 ** z]], extra]);
+  return ["interpolate", ["exponential", 2], ["zoom"], ...stops];
+}
+function pickOnMap(id) {
+  if (state.picking) togglePick(id);
+  else openIncident(id);
+}
+
 /* Background work per incident (collecting evidence, searching Sentinel-2, planning a drone survey). While it runs,
    the button shows a spinner, the incident pulses on the map, its list card gets a badge, and the incident view a
    banner. Triage running on the server (status triaging) shows the same way. */
@@ -373,13 +407,14 @@ function refreshBusy() {
   // Pulsing ring on the map
   if (!map?.getSource("busy")) return;
   const pts = ids.map((id) => state.incidents.find((i) => i.id === id)).filter(Boolean);
-  map.getSource("busy").setData(geo(pts, (i) => ({ id: i.id })));
+  const rz = ringZ0(pts, state.hotspots);
+  map.getSource("busy").setData(geo(pts, (i) => ({ id: i.id, rz0: rz.get(i.id) ?? null })));
   if (pts.length && !busyTimer) {
     const t0 = performance.now();
     busyTimer = setInterval(() => {
       const k = ((performance.now() - t0) % 1400) / 1400;
-      // Grows from just outside the incident circle (as wide as the selection ring) at every zoom.
-      map.setPaintProperty("incident-busy", "circle-radius", ["interpolate", ["linear"], ["zoom"], 4, 10 + 18 * k, 11, 46 + 34 * k]);
+      // Grows from just outside the incident ring (as wide as the selection ring) at every zoom.
+      map.setPaintProperty("incident-busy", "circle-radius", ringRadius(4 + 24 * k));
       map.setPaintProperty("incident-busy", "circle-stroke-opacity", 0.9 * (1 - k));
     }, 50);
   } else if (!pts.length && busyTimer) {
@@ -390,8 +425,10 @@ function refreshBusy() {
 
 function setMapData() {
   if (!map) return;
-  const hs = geo(state.hotspots, (h) => ({ id: h.id, frp: h.frp, conf: h.confidence, at: h.acquired_at, recent: isRecent(h.acquired_at) ? 1 : 0 }));
+  const hs = geo(state.hotspots, (h) => ({ id: h.id, inc: h.incident_id || "", frp: h.frp, conf: h.confidence, at: h.acquired_at, recent: isRecent(h.acquired_at) ? 1 : 0 }));
+  const rz = ringZ0(state.incidents, state.hotspots);
   const inc = geo(state.incidents, (i) => ({ id: i.id, n: i.hotspot_count, frp: i.max_frp, last: i.last_seen, hs: i.heat_source ? 1 : 0,
+    rz0: rz.get(i.id) ?? null, pin: rz.has(i.id) ? 0 : 1,
     color: i.heat_source ? HEAT_GREY : (STATUS[i.status] || STATUS.pending_triage).color }));
   if (map.getSource("hotspots")) {
     map.getSource("hotspots").setData(hs);
@@ -417,10 +454,9 @@ function setMapData() {
   map.addLayer({
     id: "incidents", type: "circle", source: "incidents",
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, ["interpolate", ["linear"], ["get", "n"], 1, 3, 20, 9], 11, ["interpolate", ["linear"], ["get", "n"], 1, 14, 20, 40]],
-      "circle-color": ["get", "color"],
-      // At regional zoom the heatmap carries the signal; stacked gray fills over orange turn muddy.
-      "circle-opacity": ["interpolate", ["linear"], ["zoom"], 6.5, 0, 9, 0.06],
+      "circle-radius": ringRadius(),
+      // Outline only: a filled ring read as a click target where no hotspot is (review item 16).
+      "circle-opacity": 0,
       "circle-stroke-color": ["get", "color"],
       "circle-stroke-width": 1,
       "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0, 8, 0.85],
@@ -441,13 +477,25 @@ function setMapData() {
       "circle-stroke-opacity": 0.7,
     },
   });
+  // Invisible, a few pixels wider than each dot, so a hotspot is easy to hit with a finger. Starts where the dots show.
+  map.addLayer({
+    id: "hotspots-hit", type: "circle", source: "hotspots", minzoom: 6,
+    paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 6, 8, 12, ["interpolate", ["linear"], ["coalesce", ["get", "frp"], 0], 0, 10, HEAT_MAX, 16]],
+      "circle-color": "#000000", "circle-opacity": 0, "circle-stroke-width": 0,
+    },
+  });
+  map.addLayer({
+    id: "incident-pin", type: "circle", source: "incidents", minzoom: 5, filter: ["==", ["get", "pin"], 1],
+    paint: { "circle-radius": 5, "circle-color": ["get", "color"], "circle-stroke-color": "#ffffff", "circle-stroke-width": 1.5 },
+  });
   map.addLayer({
     id: "incident-selected", type: "circle", source: "incidents", filter: ["==", ["get", "id"], state.selected || ""],
-    paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 10, 11, 46], "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#0064e0", "circle-stroke-width": 1.5 },
+    paint: { "circle-radius": ringRadius(4), "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#0064e0", "circle-stroke-width": 1.5 },
   });
   map.addLayer({
     id: "incident-picked", type: "circle", source: "incidents", filter: ["in", ["get", "id"], ["literal", [...picked]]],
-    paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 8, 11, 42], "circle-color": "rgba(0,100,224,0.12)", "circle-stroke-color": "#0064e0", "circle-stroke-width": 2 },
+    paint: { "circle-radius": ringRadius(2), "circle-color": "rgba(0,100,224,0.12)", "circle-stroke-color": "#0064e0", "circle-stroke-width": 2 },
   });
 
   map.addSource("busy", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -455,17 +503,24 @@ function setMapData() {
     paint: { "circle-radius": 12, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#0064e0", "circle-stroke-width": 3, "circle-stroke-opacity": 0.8 } });
   refreshBusy();
 
-  map.on("click", "incidents", (e) => (state.picking ? togglePick(e.features[0].properties.id) : openIncident(e.features[0].properties.id)));
-  const hover = (layer, html) => {
+  // A pin and a hotspot can overlap; the pin is on top, so one click opens one incident.
+  map.on("click", (e) => {
+    const f = map.queryRenderedFeatures(e.point, { layers: ["incident-pin", "hotspots-hit"] })[0];
+    const id = f && (f.layer.id === "incident-pin" ? f.properties.id : f.properties.inc);
+    if (id) pickOnMap(id);
+  });
+  const hover = (layer, html, clickable) => {
     map.on("mousemove", layer, (e) => {
-      map.getCanvas().style.cursor = "pointer";
-      popup.setLngLat(e.lngLat).setDOMContent(html(e.features[0].properties)).addTo(map);
+      const p = e.features[0].properties;
+      map.getCanvas().style.cursor = clickable(p) ? "pointer" : "";
+      popup.setLngLat(e.lngLat).setDOMContent(html(p)).addTo(map);
     });
     map.on("mouseleave", layer, () => { map.getCanvas().style.cursor = ""; popup.remove(); });
   };
-  hover("incidents", (p) => el("div", {}, el("div", { class: "pop-id" }, p.id),
-    el("div", { class: "pop-meta" }, t("{n} hotspots · max FRP {frp}", { n: p.n, frp: fmtFrp(p.frp === "null" ? null : p.frp) }))));
-  hover("hotspots", (p) => el("div", {}, el("div", { class: "pop-meta" }, t("FRP {frp} · confidence {c}", { frp: fmtFrp(p.frp), c: p.conf })), el("div", { class: "pop-meta" }, fmtTime(p.at))));
+  hover("incident-pin", (p) => el("div", {}, el("div", { class: "pop-id" }, p.id),
+    el("div", { class: "pop-meta" }, t("{n} hotspots · max FRP {frp}", { n: p.n, frp: fmtFrp(p.frp === "null" ? null : p.frp) }))), () => true);
+  hover("hotspots-hit", (p) => el("div", {}, p.inc ? el("div", { class: "pop-id" }, p.inc) : null,
+    el("div", { class: "pop-meta" }, t("FRP {frp} · confidence {c}", { frp: fmtFrp(p.frp), c: p.conf })), el("div", { class: "pop-meta" }, fmtTime(p.at))), (p) => !!p.inc);
   animatePulse();
 }
 
@@ -500,7 +555,8 @@ function animatePulse() {
 
 function setLayerVisible(key, on) {
   state.layers[key] = on;
-  const ids = key === "hotspots" ? ["hotspots", "hotspots-pulse"] : NASA_LAYERS.some((L) => L.key === key) ? [`nasa-${key}`] : [key];
+  const ids = key === "hotspots" ? ["hotspots", "hotspots-pulse", "hotspots-hit"] : key === "incidents" ? ["incidents", "incident-pin"]
+    : NASA_LAYERS.some((L) => L.key === key) ? [`nasa-${key}`] : [key];
   ids.forEach((id) => map?.getLayer(id) && map.setLayoutProperty(id, "visibility", on ? "visible" : "none"));
 }
 
