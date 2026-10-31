@@ -1875,6 +1875,66 @@ function decideProposal(inc, p, decision) {
   };
 }
 
+/* Mission files for a real drone (review item 18). Made on the server from the approved plan; the request carries
+   the verifier token, so the file is fetched and handed to the browser as a download. */
+const MISSION_FORMATS = [
+  { fmt: "px4", app: "QGroundControl", fw: "PX4", ext: ".plan" },
+  { fmt: "ardupilot", app: "QGroundControl", fw: "ArduPilot", ext: ".plan" },
+  { fmt: "waypoints", app: "Mission Planner", fw: "ArduPilot", ext: ".waypoints" },
+  { fmt: "kml", app: "Google Earth, QGIS", fw: "Area and route", ext: ".kml" },
+];
+
+async function downloadMission(p, fmt, btn) {
+  if (btn.getAttribute("aria-busy") === "true") return;
+  btn.setAttribute("aria-busy", "true");
+  const kids = [...btn.childNodes];
+  btn.replaceChildren(el("span", { class: "spinner", "aria-hidden": "true" }), ...(btn.classList.contains("btn-icon") ? [] : [t("Preparing...")]));
+  try {
+    const res = await fetch(`/api/drone-proposals/${p.id}/mission/${fmt}`, { headers: authHeaders() });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `HTTP ${res.status}`);
+    const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") || "")?.[1] || `mission-${p.id}.${fmt}`;
+    const url = URL.createObjectURL(await res.blob());
+    const a = el("a", { href: url, download: name, hidden: true });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast(t("Downloaded {name}", { name }), "download");
+  } catch (e) {
+    toast(t("Download failed: {e}", { e: e.message }), "alert");
+  } finally {
+    btn.replaceChildren(...kids);
+    btn.removeAttribute("aria-busy");
+  }
+}
+
+function missionFiles(p) {
+  if (p.status === "proposed") {
+    return el("div", { class: "mission-files is-locked" },
+      el("div", { class: "mission-head" }, svg("download", "icon icon-sm"), el("strong", {}, t("Mission files for a real drone"))),
+      el("p", { class: "mission-note" }, t("Available once a verifier approves this plan.")));
+  }
+  if (p.status !== "approved") return null;
+  const zip = el("button", { class: "btn btn-primary mission-zip", type: "button" }, svg("download", "icon icon-sm"), t("Download mission package"),
+    el("span", { class: "mission-zip-ext" }, ".zip"));
+  zip.onclick = () => downloadMission(p, "zip", zip);
+  const rows = MISSION_FORMATS.map((f) => {
+    const label = t("Download {app} file for {fw}", { app: f.app, fw: t(f.fw) });
+    const b = el("button", { class: "btn btn-icon", type: "button", "aria-label": label, title: label }, svg("download", "icon icon-sm"));
+    b.onclick = () => downloadMission(p, f.fmt, b);
+    return el("li", { class: "mission-row" },
+      el("span", { class: "mission-fmt" }, el("span", { class: "mission-app" }, f.app), el("span", { class: "mission-fw" }, t(f.fw))),
+      el("code", { class: "mission-ext" }, f.ext), b);
+  });
+  return el("div", { class: "mission-files" },
+    el("div", { class: "mission-head" }, svg("download", "icon icon-sm"), el("strong", {}, t("Mission files for a real drone")),
+      info(t("The approved plan as a mission a ground control app can load: take off to the survey height, fly each line through its photo points with the camera triggered by distance, and return to launch. The package holds every format and a README for the pilot. A DJI route file (.kmz) is not made: it needs the exact drone and camera model; import the KML area in DJI Pilot 2 instead."), "tip-left")),
+    zip,
+    el("ul", { class: "mission-list", "aria-label": t("Single files") }, rows),
+    el("p", { class: "mission-warn" }, svg("alert", "icon icon-sm"),
+      el("span", {}, t("Heights are relative to the launch point over flat ground. A licensed pilot checks terrain, obstacles, and permits before flight; never fly while firefighting aircraft work the area."))));
+}
+
 function proposalCard(inc, p) {
   const plan = p.plan;
   const est = plan.estimate;
@@ -1889,6 +1949,8 @@ function proposalCard(inc, p) {
       el("dt", {}, t("Area")), el("dd", {}, `${fmtNum(plan.area_km2)} km² · ${t("{lines} lines x {n} frames, {alt} m above ground, GSD {gsd} m", { lines: plan.lines, n: plan.frames_per_line, alt: plan.altitude_agl_m, gsd: fmtNum(plan.gsd_m) })}`),
       el("dt", {}, t("Flight")), el("dd", {}, t("about {min} min, {km} km path, {b} battery(ies)", { min: fmtNum(est.flight_minutes), km: fmtNum(est.path_km), b: est.batteries }))),
     p.note ? el("p", { class: "muted", style: "margin:0;font-size:12px" }, `${t("Note")}: ${p.note}`) : null,
+    // After approval the plan goes to a pilot: the files come before the simulated rehearsal.
+    missionFiles(p),
     p.status === "approved" ? flightBlock(inc, p) : null,
     // The decision comes first and spans the card; the map toggle and the rejection sit under it.
     el("div", { class: "actions" },

@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin_panel, admin_settings, agent, heat_sources, db, places, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control, wa_reports, whatsapp
+from . import admin_panel, admin_settings, agent, heat_sources, db, drone_export, places, drone_flight, drone_missions, drone_replay, ground, share, evidence, ingest, intake, replay, reports, satellite, source_status, triage_control, wa_reports, whatsapp
 from .config import Settings, get_settings
 from .sources import firms, osm, sentinel, weather
 
@@ -836,6 +836,22 @@ def _plan_row(conn, proposal_id: int):
     if row is None:
         raise HTTPException(status_code=404, detail="proposal not found")
     return row["incident_id"], json.loads(row["plan_json"])
+
+
+@app.get("/api/drone-proposals/{proposal_id}/mission/{fmt}", dependencies=[Depends(require_verifier)])
+def mission_file(proposal_id: int, fmt: str, settings: Settings = Depends(get_settings)) -> Response:
+    """Mission file for a real drone from an approved plan: px4 or ardupilot (.plan), waypoints, kml, or zip (all plus README)."""
+    with db.session(settings.db_path) as conn:
+        row = conn.execute("SELECT * FROM drone_proposals WHERE id=?", (proposal_id,)).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="proposal not found")
+    row = dict(row)
+    row["plan"] = json.loads(row.pop("plan_json"))
+    try:
+        body, name, media = drone_export.build(row, fmt, settings.public_url.rstrip("/"))
+    except drone_export.ExportError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail)
+    return Response(content=body, media_type=media, headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "private, no-store"})
 
 
 @app.get("/api/drone-proposals/{proposal_id}/ground", dependencies=[Depends(require_verifier)])
