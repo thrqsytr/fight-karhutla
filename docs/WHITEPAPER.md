@@ -74,6 +74,7 @@ Pembagian kerjanya disengaja. Model bahasa pandai membaca dan menulis, tetapi bi
 
 **Untuk semua orang**
 - Peta insiden dengan saringan, lapisan asap dan aerosol, peta dasar biasa atau citra satelit, legenda, dan status setiap sumber data.
+- Kotak cari di atas peta: nomor insiden, atau provinsi, kabupaten/kota, kecamatan, dan desa beserta garis batasnya, dari berkas tempat OSM milik sendiri.
 - Detail insiden yang tersusun dalam lima tahap di atas, dengan penunjuk tahap dan baris ringkas: permukiman terdekat, arah sebaran, air terdekat.
 - Kartu aksi di titik yang dipilih di peta: buka detail, kirim bukti bahwa itu kebakaran, tandai bukan kebakaran lahan, bagikan.
 - Rekomendasi pemadaman (lihat bagian 9).
@@ -88,7 +89,7 @@ Pembagian kerjanya disengaja. Model bahasa pandai membaca dan menulis, tetapi bi
 **Untuk verifikator**
 - Antrian verifikasi: rekomendasi AI yang menunggu keputusan, laporan warga yang belum ditriase, rencana drone yang perlu persetujuan, pengajuan sumber panas tetap, laporan WhatsApp yang belum diputuskan.
 - Mencari pasangan citra Sentinel-2, mengumpulkan bukti yang kurang, dan menjalankan triase AI.
-- Survei drone (simulasi): agen atau verifikator mengusulkan jalur pemetaan 120 m di atas tanah; hanya verifikator yang menyetujui; pilot simulasi menerbangkannya dengan telemetri dari rencana dan angin; tampilan 3D di atas citra Sentinel-2 dengan konsol data.
+- Survei drone: agen atau verifikator mengusulkan jalur pemetaan 120 m di atas tanah; hanya verifikator yang menyetujui; rencana yang disetujui bisa diunduh sebagai berkas misi untuk drone asli (QGroundControl untuk PX4 dan ArduPilot, Mission Planner, KML, dengan README untuk pilot); pilot simulasi menerbangkannya dengan telemetri dari rencana dan angin; tampilan 3D di atas citra Sentinel-2 dengan konsol data.
 
 **Untuk operator**
 - Panel admin: interval pengambilan data, kuota, biaya per hasil run, kesehatan sumber data, riwayat perubahan pengaturan, aksi operator (ambil data sekarang, kumpulkan bukti tertunda, cari citra Sentinel-2), ekspor CSV.
@@ -142,7 +143,7 @@ Simulasi drone diukur terhadap kebenaran render, bukan akurasi dunia nyata: SAM 
 - Titik panas adalah anomali termal, bukan kebakaran yang pasti.
 - Awan dan asap sering menutupi lokasi dari satelit. Sentinel-2 lewat sekitar setiap 2 sampai 5 hari; saat kabut asap tebal, luas tidak diklaim.
 - OpenStreetMap dan Overture Maps tidak lengkap.
-- Drone hanya simulasi; tidak ada drone yang terhubung.
+- Tidak ada drone yang terhubung. Berkas misi sudah dicek terhadap sumber resmi QGroundControl dan MAVLink dan terbaca oleh pymavlink, tetapi belum pernah diterbangkan.
 - WhatsApp saat ini satu arah: laporan masuk, tetapi Meta menolak balasan bot sampai akun lolos verifikasi bisnis, dan hanya nomor penguji yang terdaftar yang bisa mengirim.
 - AI bisa keliru. Ringkasan adalah bahan pertimbangan, bukan keputusan.
 

@@ -71,6 +71,7 @@
       <h4>Untuk semua orang</h4>
       <ul>
         <li><strong>Peta insiden</strong>: titik panas dan insiden, saringan (3+ titik panas, keyakinan tinggi, 6 jam terakhir), urutan panas, jumlah, atau terbaru, lapisan asap dan aerosol NASA GIBS, peta dasar Peta atau World, legenda, dan status setiap sumber data.</li>
+        <li><strong>Kotak cari</strong> di atas peta: nomor insiden, atau provinsi, kabupaten/kota, kecamatan, dan desa beserta garis batasnya.</li>
         <li><strong>Detail insiden</strong>: kartu progres (terdeteksi, bukti, triase AI, verifikator) dengan apa yang masih kurang; ringkasan dan klaim AI yang terhubung ke bukti; rincian gerbang bukti; bukti bernomor dan daftar titik panas.</li>
         <li><strong>Rekomendasi pemadaman</strong>: arah sebaran dan sisi pendekatan, akses darat, sumber air terdekat, pos pemadam, kantor untuk koordinasi, tingkat kekeringan, dan ukuran api, dengan ambang yang disebut; arah sebaran dan tempat sekitar bisa digambar di peta.</li>
         <li><strong>Bekas terbakar Sentinel-2</strong>: citra sebelum, sesudah, dan masker bekas terbakar di detail insiden dan di peta, dengan luas dalam hektar.</li>
@@ -85,7 +86,7 @@
         <li>Masuk dengan token verifikator; melihat foto, suara, dan teks warga; menyamarkan data pribadi di foto.</li>
         <li>Menyetujui atau menolak rekomendasi AI, dan membatalkan keputusan dengan alasan; setiap keputusan tercatat.</li>
         <li>Mencari pasangan citra Sentinel-2, mengumpulkan bukti yang kurang, dan menjalankan triase AI (pilih di daftar atau gambar area di peta).</li>
-        <li>Survei drone (simulasi): agen atau verifikator mengusulkan jalur pemetaan 120 m di atas tanah, paling luas 2 km2 dan 80 frame; hanya verifikator yang menyetujui. Pilot simulasi menerbangkannya dengan telemetri dari rencana dan angin insiden; tampilan 3D di atas citra Sentinel-2 dengan konsol data.</li>
+        <li>Survei drone: agen atau verifikator mengusulkan jalur pemetaan 120 m di atas tanah, paling luas 2 km2 dan 80 frame; hanya verifikator yang menyetujui, lalu rencana itu bisa diunduh sebagai berkas misi untuk drone asli (QGroundControl, Mission Planner, KML). Pilot simulasi menerbangkannya dengan telemetri dari rencana dan angin insiden; tampilan 3D di atas citra Sentinel-2 dengan konsol data.</li>
         <li>Memilih laporan WhatsApp yang tampil publik.</li>
       </ul>
       <h4>Untuk operator</h4>
@@ -102,7 +103,7 @@
         <li>Titik panas adalah anomali termal, bukan kebakaran yang pasti.</li>
         <li>Awan dan asap dapat menutupi lokasi dari satelit. Sentinel-2 lewat sekitar setiap 2 sampai 5 hari, jadi luas bekas terbakar bisa belum ada; saat kabut asap tebal, luas tidak diklaim.</li>
         <li>OpenStreetMap dan Overture Maps tidak lengkap; "tidak terpetakan" bukan berarti tidak ada di lapangan.</li>
-        <li>Drone disimulasikan; tidak ada drone yang terhubung.</li>
+        <li>Tidak ada drone yang terhubung. Berkas misi sudah dicek terhadap sumber resmi, tetapi belum pernah diterbangkan.</li>
         <li>AI bisa keliru. Dalam evaluasi atas 30 klaster dari 2025, tanpa bukti independen agen paling sering menjawab butuh info tambahan dan menemukan 2 dari 15 lahan terbakar, tanpa alarm palsu. Ringkasan adalah bahan pertimbangan, bukan keputusan.</li>
         <li>Fight Karhutla tidak memberi saran kesehatan dan tidak menyebut penyebab atau pihak yang bertanggung jawab atas kebakaran.</li>
       </ul>
@@ -155,6 +156,7 @@
       <h4>For everyone</h4>
       <ul>
         <li><strong>Incident map</strong>: hotspots and incidents, filters (3+ hotspots, high confidence, last 6 hours), sorting by heat, count, or newest, NASA GIBS smoke and aerosol layers, a map or world basemap, a legend, and the state of every data source.</li>
+        <li><strong>Search box</strong> over the map: an incident number, or a province, regency, district, or village with its boundary.</li>
         <li><strong>Incident view</strong>: a progress card (detected, evidence, AI triage, verifier) with what is still missing; the AI brief and claims linked to evidence; the evidence gate in detail; numbered evidence and the hotspot list.</li>
         <li><strong>Suppression outlook</strong>: likely spread and the side to approach from, ground access, nearest water, fire station, offices to coordinate with, dryness, and size, with the thresholds named; the spread and the nearby places can be drawn on the map.</li>
         <li><strong>Sentinel-2 burn scar</strong>: before, after, and burn scar images in the incident view and on the map, with the area in hectares.</li>
@@ -169,7 +171,7 @@
         <li>Sign in with a verifier token; see citizens' photos, voice, and text; hide personal details in a photo.</li>
         <li>Approve or reject the AI recommendation, and cancel a decision with a reason; every decision is recorded.</li>
         <li>Look for a Sentinel-2 pair, collect missing evidence, and run AI triage (select in the list or draw an area on the map).</li>
-        <li>Drone survey (simulated): the agent or a verifier proposes a mapping route 120 m above ground, at most 2 km2 and 80 frames; only a verifier approves it. A simulated pilot flies it with telemetry from the plan and the incident's wind; a 3D view over the Sentinel-2 image with a data console.</li>
+        <li>Drone survey: the agent or a verifier proposes a mapping route 120 m above ground, at most 2 km2 and 80 frames; only a verifier approves it, and the approved plan downloads as mission files for a real drone (QGroundControl, Mission Planner, KML). A simulated pilot flies it with telemetry from the plan and the incident's wind; a 3D view over the Sentinel-2 image with a data console.</li>
         <li>Choose which WhatsApp reports the public sees.</li>
       </ul>
       <h4>For operators</h4>
@@ -186,7 +188,7 @@
         <li>A hotspot is a thermal anomaly, not a confirmed fire.</li>
         <li>Clouds and smoke can hide a site from satellites. Sentinel-2 passes about every 2 to 5 days, so the burned area may not be known yet; under heavy haze no area is claimed.</li>
         <li>OpenStreetMap and Overture Maps are incomplete; "not mapped" does not mean absent on the ground.</li>
-        <li>The drone is simulated; no drone is connected.</li>
+        <li>No drone is connected. The mission files are checked against the official sources but have not been flown.</li>
         <li>AI can be wrong. In an evaluation on 30 clusters from 2025, without independent evidence the agent mostly answered needs more info and found 2 of 15 burned sites, with no false alarm. A brief is input for a decision, not the decision.</li>
         <li>Fight Karhutla gives no health advice and does not name causes or parties responsible for a fire.</li>
       </ul>

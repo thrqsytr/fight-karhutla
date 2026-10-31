@@ -29,12 +29,13 @@ Inference only; no model is trained on user data. Metered cost: $0.058 per incid
 ## Features
 
 - Map with incident list, filters, NASA GIBS smoke and aerosol layers, map or world basemap, and the state of every source.
+- Search box over the map: an incident number, or a province, regency, district, or village with its boundary (our own OSM gazetteer, no outside geocoder).
 - Incident view in the five stages above, and a card on the selected map point with its actions.
 - Suppression outlook: likely spread and approach side, access, nearest water, fire station and offices, dryness, size, with thresholds stated.
 - Report page (up to 3 photos, voice, text, location; EXIF stripped) and WhatsApp intake; public WhatsApp report log.
 - Persistent heat sources: anyone flags a mine, flare, factory, or volcano; a verifier accepts it as a zone.
 - Verifier's desk: verification queue, source health, coverage, spend, operator jobs, settings log, CSV export.
-- Drone survey (simulated): plan, verifier approval, simulated pilot, 3D view with a data console.
+- Drone survey: plan, verifier approval, mission files for a real drone (QGroundControl .plan for PX4 and ArduPilot, Mission Planner .waypoints, KML, with a pilot README), simulated pilot, 3D view with a data console.
 - Replay of three recorded 2025 incidents, Indonesian and English, How it works overlay.
 - Plain-language whitepaper in Indonesian: [PDF](docs/WHITEPAPER.pdf) or [Markdown](docs/WHITEPAPER.md).
 
@@ -56,7 +57,7 @@ Full tables, the Muse Spark Open run, method, and how to rerun: [docs/EVALUATION
 ## Limits
 
 - Clouds and haze hide Sentinel-2; then the burned area is unknown, not zero.
-- The drone is simulated; no drone is connected.
+- No drone is connected. Mission files are checked against the QGroundControl and MAVLink sources and load in pymavlink, but have not been flown.
 - WhatsApp is one way: reports arrive, but Meta refuses outgoing messages until business verification; only registered test numbers can report.
 - OpenStreetMap and Overture Maps are incomplete.
 
